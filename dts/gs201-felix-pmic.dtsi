@@ -1,0 +1,26 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Felix-specific PMIC settings
+ *
+ * Copyright 2021 Google LLC.
+ *
+ */
+
+/* Mag sensor: 1v8 power source. */
+&m_ldo24_reg {
+	regulator-always-on;
+	regulator-initial-mode = <SEC_OPMODE_ON>;
+	schematic-name = "L24M_SENSORS";
+	subsys-name = "Sensors";
+};
+
+/* Touch: touch controller requires 3.0v typ */
+&m_ldo26_reg {
+	regulator-max-microvolt = <3000000>;
+};
+
+/* Display: vci-supply voltage */
+&m_ldo27_reg {
+	regulator-min-microvolt = <3025000>;
+	regulator-max-microvolt = <3025000>;
+};
