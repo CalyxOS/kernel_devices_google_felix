@@ -23,8 +23,7 @@ ext_modules += touch/common
 ext_modules += touch/focaltech/ft3658
 ext_modules += touch/sec
 ext_modules += touch/synaptics
-ext_modules += wlan/wcn6740/cnss2
-ext_modules += wlan/wcn6740/wlan/qcacld-3.0
+ext_modules += wlan/bcmdhd4389
 ext_modules += video/gchips
 
 # Add any modules which have their own UAPI headers to this list.  This will
