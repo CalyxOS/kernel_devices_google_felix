@@ -12,6 +12,8 @@
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/sound/google-aoc.h>
 
+/delete-node/ &cs40l26a_haptics;
+
 &aoc {
 	aoc-board-cfg = "F10";
 };
@@ -30,6 +32,10 @@
 			<&cs35l41_r 0>,
 			<&cs35l41_e 0>;
 	};
+};
+
+&dai_be_haptic_rx_codec {
+	sound-dai = <&cs40l26_codec 0>, <&cs40l26_codec_2 0>;
 };
 
 &aoc_snd_card {
@@ -73,6 +79,19 @@
 				/* out clk multiple */
 				out_mul = <1>;
 			};
+
+			sys@cs40l26_codec_2 {
+				comp = <&cs40l26_codec_2>;
+				src = "BCLK";
+				/* clk id */
+				id = <0>;
+				/* clk source */
+				srcid = <0>;
+				/* in clk multiple */
+				in_mul = <1>;
+				/* out clk multiple */
+				out_mul = <1>;
+			};
 		};
 	};
 };
@@ -93,6 +112,12 @@
 
 	cs35l41_e_irq: cs35l41-e-irq {
 		samsung,pins = "gpa6-2"; /* XEINT_2 - AMP3_IRQ_L */
+		samsung,pin-function = <EXYNOS_PIN_FUNC_EINT>;
+		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
+	};
+
+	hapt_amp2_irq: hapt-amp2-irq {
+		samsung,pins = "gpa8-0"; /* XEINT_12 */
 		samsung,pin-function = <EXYNOS_PIN_FUNC_EINT>;
 		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
 	};
@@ -123,6 +148,13 @@
 
 	cs35l41_l_rst: cs35l41-l-rst {
 		samsung,pins = "gpp17-1"; /* XAPC_VSYNC8 - AMP1_RESET_L */
+		samsung,pin-function = <EXYNOS_PIN_FUNC_OUTPUT>;
+		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
+		samsung,pin-con-pdn = <EXYNOS_PIN_PDN_PREV>;
+		samsung,pin-pud-pdn = <EXYNOS_PIN_PULL_NONE>;
+	};
+        hapt_amp2_rst: hapt-amp2-rst {
+		samsung,pins = "gpp18-2"; /* XAPC_USI14_RTSn_DI */
 		samsung,pin-function = <EXYNOS_PIN_FUNC_OUTPUT>;
 		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
 		samsung,pin-con-pdn = <EXYNOS_PIN_PDN_PREV>;
@@ -301,6 +333,71 @@
 			samsung,spi-feedback-delay = <1>;
 			/* SET SPI CS CONTROL TO AUTOMATIC */
 			samsung,spi-chip-select-mode = <1>;
+		};
+	};
+};
+
+&hsi2c_15 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&hsi2c15_bus>;
+	clock-frequency = <400000>;
+
+	cs40l26a_haptics_2: cs40l26a@43 {
+		compatible = "cirrus,cs40l26a";
+		reg = <0x43>;
+		dev-name = "cs40l26a";				/* sysfs folder name */
+		input-device-name = "cs40l26_input";		/* input device name */
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&hapt_amp2_irq &hapt_amp2_rst &hapt_amp_trig>;
+
+		interrupt-parent = <&gpa8>;
+		interrupts = <0 0 0>;
+
+		reset-gpios = <&gpp18 2 0>;
+
+		cirrus,bst-dcm-en = <0>;
+		cirrus,vibe-state;
+		cirrus,bst-expl-mode-disable;
+		cirrus,vpbr-enable = <1>;
+		cirrus,vpbr-thld-mv = <2800>;			/* 2.8V */
+		status = "okay";
+
+		cs40l26_codec: cs40l26_codec@snd {
+			#sound-dai-cells = <1>;
+			compatible = "cs40l26-codec";
+			status = "okay";
+		};
+	};
+
+	cs40l26a_haptics_1: cs40l26a@42 {
+		compatible = "cirrus,cs40l26a";
+		reg = <0x42>;
+		dev-name = "cs40l26a-dual";			/* sysfs folder name */
+		input-device-name = "cs40l26_dual_input";	/* input device name */
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&hapt_amp_irq &hapt_amp_rst>;
+
+		interrupt-parent = <&gpa8>;
+		interrupts = <1 0 0>;
+
+		reset-gpios = <&gpp24 3 0>;
+
+		cirrus,bst-dcm-en = <0>;
+		cirrus,vibe-state;
+		cirrus,bst-expl-mode-disable;
+		cirrus,vpbr-enable = <1>;
+		cirrus,vpbr-thld-mv = <2800>;			/* 2.8V */
+		status = "okay";
+
+		cs40l26_codec_2: cs40l26_codec_2@snd {
+			#sound-dai-cells = <1>;
+			sound-name-prefix = "HR";
+			compatible = "cs40l26-codec";
+			status = "okay";
 		};
 	};
 };
