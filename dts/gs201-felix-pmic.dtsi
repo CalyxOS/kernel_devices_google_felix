@@ -24,3 +24,14 @@
 	regulator-min-microvolt = <3025000>;
 	regulator-max-microvolt = <3025000>;
 };
+
+/* Display: inner vci-supply voltage */
+&s_ldo28_reg {
+	regulator-min-microvolt = <3025000>;
+	regulator-max-microvolt = <3025000>;
+};
+
+&disp_vddr_0 {
+	status = "ok";
+	gpio = <&gpp0 2 0>;
+};
