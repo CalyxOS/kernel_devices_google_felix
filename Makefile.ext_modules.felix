@@ -20,9 +20,7 @@ ext_modules += lwis
 ext_modules += nfc
 ext_modules += power/reset
 ext_modules += touch/common
-ext_modules += touch/focaltech/ft3658
-ext_modules += touch/sec
-ext_modules += touch/synaptics
+ext_modules += touch/fts/ftm5
 ext_modules += wlan/bcmdhd4389
 ext_modules += video/gchips
 ext_modules += ../devices/google/felix/display
@@ -43,9 +41,7 @@ endif
 
 allmodules: $(ext_modules) $(install_uapi_headers_targets) depmod
 
-touch/focaltech/ft3658: | touch/common
-
-touch/sec: | touch/common
+touch/fts/ftm5: | touch/common
 
 aoc/alsa: | aoc
 
