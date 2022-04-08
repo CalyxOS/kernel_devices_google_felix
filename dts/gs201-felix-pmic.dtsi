@@ -8,7 +8,7 @@
 
 /* Mag sensor: 1v8 power source. */
 &m_ldo24_reg {
-	regulator-always-on;
+	regulator-boot-on;
 	regulator-initial-mode = <SEC_OPMODE_ON>;
 	schematic-name = "L24M_SENSORS";
 	subsys-name = "Sensors";
