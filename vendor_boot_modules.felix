@@ -72,6 +72,7 @@ gs_thermal.ko
 gsa.ko
 gsa_gsc.ko
 gvotable.ko
+hall_sensor.ko
 hardlockup-debug.ko
 hardlockup-watchdog.ko
 heatmap.ko
