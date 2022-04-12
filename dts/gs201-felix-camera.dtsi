@@ -11,8 +11,8 @@
 #include <dt-bindings/pinctrl/samsung.h>
 
 &slg51002_ldo1 {
-	regulator-min-microvolt = <2850000>;
-	regulator-max-microvolt = <2850000>;
+	regulator-min-microvolt = <2900000>;
+	regulator-max-microvolt = <2900000>;
 };
 
 &slg51002_ldo2 {
@@ -46,8 +46,8 @@
 };
 
 &slg51002_ldo8 {
-	regulator-min-microvolt = <1050000>;
-	regulator-max-microvolt = <1050000>;
+	regulator-min-microvolt = <1075000>;
+	regulator-max-microvolt = <1075000>;
 };
 
 &s_ldo12_reg {
@@ -192,12 +192,12 @@
 	fragment@lwiscamera {
 		target-path = "/";
 		__overlay__ {
-			/* REAR CAMERA IMX787 */
+			/* REAR CAMERA OKSOKO */
 			sensor0: sensor@0 {
 				compatible = "google,lwis-i2c-device";
 
 				/* Device node name */
-				node-name = "sensor-imx787";
+				node-name = "sensor-oksoko";
 
 				/* I2C */
 				i2c-bus = <&hsi2c_1>;
@@ -213,10 +213,10 @@
 
 				/* Power supplies */
 				s2mpg13_ldo12-supply = <&s_ldo12_reg>;
+				gpio2-supply = <&slg51002_gpio2>;
 				ldo1-supply = <&slg51002_ldo1>;
 				ldo3-supply = <&slg51002_ldo3>;
 				ldo4-supply = <&slg51002_ldo4>;
-				ldo5-supply = <&slg51002_ldo5>;
 				ldo8-supply = <&slg51002_ldo8>;
 
 				clocks =
@@ -237,7 +237,7 @@
 				/* Power up sequence */
 				power-up-seqs =
 					"s2mpg13_ldo12",
-					"ldo5",
+					"gpio2",
 					"ldo4",
 					"ldo1",
 					"ldo3",
@@ -256,7 +256,7 @@
 				power-up-seq-delays-us =
 					<1000
 					 1000
-					 0
+					 1000
 					 1000
 					 1000
 					 1000
@@ -271,7 +271,7 @@
 					"ldo3",
 					"ldo1",
 					"ldo4",
-					"ldo5",
+					"gpio2",
 					"s2mpg13_ldo12";
 				power-down-seq-types =
 					"pinctrl",
@@ -293,12 +293,12 @@
 					 1000>;
 			};
 
-			/* FRONT CAMERA IMX712 */
+			/* FRONT CAMERA DOKKAEBI */
 			sensor1: sensor@1 {
 				compatible = "google,lwis-i2c-device";
 
 				/* Device node name */
-				node-name = "sensor-imx712";
+				node-name = "sensor-dokkaebi";
 
 				/* I2C */
 				i2c-bus = <&hsi2c_2>;
@@ -372,12 +372,12 @@
 					 1000>;
 			};
 
-			/* REAR ULTRA WIDE CAMERA IMX712 */
+			/* REAR ULTRA WIDE CAMERA SANDWORM */
 			sensor2: sensor@2 {
 				compatible = "google,lwis-i2c-device";
 
 				/* Device node name */
-				node-name = "sensor-imx712-uw";
+				node-name = "sensor-sandworm";
 
 				/* I2C */
 				i2c-bus = <&hsi2c_3>;
@@ -451,12 +451,12 @@
 					 1000>;
 			};
 
-			/* Eeprom lc898129 for imx787 */
+			/* Eeprom nessie for oksoko */
 			eeprom0: eeprom@0 {
 				compatible = "google,lwis-i2c-device";
 
 				/* Device node name */
-				node-name = "eeprom-lc898129";
+				node-name = "eeprom-nessie";
 
 				/* I2C */
 				i2c-bus = <&hsi2c_1>;
@@ -468,13 +468,13 @@
 
 				/* Power supplies */
 				s2mpg13_ldo12-supply = <&s_ldo12_reg>;
+				gpio2-supply = <&slg51002_gpio2>;
 				ldo4-supply = <&slg51002_ldo4>;
-				ldo5-supply = <&slg51002_ldo5>;
 
 				/* Power up sequence */
 				power-up-seqs =
 					"s2mpg13_ldo12",
-					"ldo5",
+					"gpio2",
 					"ldo4";
 				power-up-seq-types =
 					"regulator",
@@ -488,7 +488,7 @@
 				/* Power down sequence */
 				power-down-seqs =
 					"ldo4",
-					"ldo5",
+					"gpio2",
 					"s2mpg13_ldo12";
 				power-down-seq-types =
 					"regulator",
@@ -535,12 +535,12 @@
 					<1000>;
 			};
 
-			/* Eeprom m24c64x for imx712-uw */
+			/* Eeprom m24c64x for SANDWORM */
 			eeprom2: eeprom@2 {
 				compatible = "google,lwis-i2c-device";
 
 				/* Device node name */
-				node-name = "eeprom-m24c64x-imx712-uw";
+				node-name = "eeprom-m24c64x-sandworm";
 
 				/* I2C */
 				i2c-bus = <&hsi2c_3>;
@@ -570,12 +570,12 @@
 					<1000>;
 			};
 
-			/* Actuator lc898129 for imx787 */
+			/* Actuator nessie for oksoko */
 			actuator0: actuator@0 {
 				compatible = "google,lwis-i2c-device";
 
 				/* Device node name */
-				node-name = "act-lc898129";
+				node-name = "act-nessie";
 
 				/* I2C */
 				i2c-bus = <&hsi2c_1>;
@@ -587,13 +587,13 @@
 
 				/* Power supplies */
 				s2mpg13_ldo12-supply = <&s_ldo12_reg>;
+				gpio2-supply = <&slg51002_gpio2>;
 				ldo4-supply = <&slg51002_ldo4>;
-				ldo5-supply = <&slg51002_ldo5>;
 
 				/* Power up sequence */
 				power-up-seqs =
 					"s2mpg13_ldo12",
-					"ldo5",
+					"gpio2",
 					"ldo4";
 				power-up-seq-types =
 					"regulator",
@@ -607,7 +607,7 @@
 				/* Power down sequence */
 				power-down-seqs =
 					"ldo4",
-					"ldo5",
+					"gpio2",
 					"s2mpg13_ldo12";
 				power-down-seq-types =
 					"regulator",
@@ -619,12 +619,12 @@
 					 1000>;
 			};
 
-			/* Ois lc898129 for imx787 */
+			/* Ois nessie for oksoko */
 			ois0: ois@0 {
 				compatible = "google,lwis-i2c-device";
 
 				/* Device node name */
-				node-name = "ois-lc898129";
+				node-name = "ois-nessie";
 
 				/* I2C */
 				i2c-bus = <&hsi2c_1>;
@@ -636,13 +636,13 @@
 
 				/* Power supplies */
 				s2mpg13_ldo12-supply = <&s_ldo12_reg>;
+				gpio2-supply = <&slg51002_gpio2>;
 				ldo4-supply = <&slg51002_ldo4>;
-				ldo5-supply = <&slg51002_ldo5>;
 
 				/* Power up sequence */
 				power-up-seqs =
 					"s2mpg13_ldo12",
-					"ldo5",
+					"gpio2",
 					"ldo4";
 				power-up-seq-types =
 					"regulator",
@@ -656,7 +656,7 @@
 				/* Power down sequence */
 				power-down-seqs =
 					"ldo4",
-					"ldo5",
+					"gpio2",
 					"s2mpg13_ldo12";
 				power-down-seq-types =
 					"regulator",
