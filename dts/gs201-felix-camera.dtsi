@@ -60,6 +60,11 @@
 	regulator-max-microvolt = <1200000>;
 };
 
+&s_ldo25_reg {
+	regulator-min-microvolt = <1100000>;
+	regulator-max-microvolt = <1100000>;
+};
+
 &pinctrl_4 {
 	hsi2c1_bus: hsi2c1-bus {
 		samsung,pin-pud = <EXYNOS_PIN_PULL_UP>;
@@ -100,6 +105,17 @@
 
 	hsi2c4_bus_in: hsi2c4-bus-in {
 		samsung,pins = "gpp8-0", "gpp8-1";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_INPUT>;
+		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
+		samsung,pin-drv = <GS101_PIN_DRV_2_5_MA>;
+	};
+
+	hsi2c14_bus: hsi2c14-bus {
+		samsung,pin-pud = <EXYNOS_PIN_PULL_UP>;
+	};
+
+	hsi2c14_bus_in: hsi2c14-bus-in {
+		samsung,pins = "gpp18-0", "gpp18-1";
 		samsung,pin-function = <EXYNOS_PIN_FUNC_INPUT>;
 		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
 		samsung,pin-drv = <GS101_PIN_DRV_2_5_MA>;
@@ -179,6 +195,19 @@
 	pinctrl-0 = <&hsi2c4_bus_in>;
 	pinctrl-1 = <&hsi2c4_bus>;
 	pinctrl-2 = <&hsi2c4_bus_in>;
+};
+
+&hsi2c_14 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	gpios = <&gpp18 0 GPIO_ACTIVE_HIGH &gpp18 1 GPIO_ACTIVE_HIGH>;
+	status = "okay";
+	clock-frequency = <975000>;
+
+	pinctrl-names = "default","on_i2c","off_i2c";
+	pinctrl-0 = <&hsi2c14_bus>;
+	pinctrl-1 = <&hsi2c14_bus>;
+	pinctrl-2 = <&hsi2c14_bus>;
 };
 
 &hsi2c_15 {
@@ -551,6 +580,85 @@
 					 1000
 					 1000
 					 2500
+					 1000
+					 1000
+					 1000>;
+			};
+
+			/* FRONT CAMERA DOKKAEBI */
+			sensor4: sensor@4 {
+				compatible = "google,lwis-i2c-device";
+
+				/* Device node name */
+				node-name = "sensor-dokkaebi";
+
+				/* I2C */
+				i2c-bus = <&hsi2c_14>;
+				i2c-addr = <0x10>;
+
+				/* Registers */
+				reg-addr-bitwidth = <16>;
+				reg-value-bitwidth = <16>;
+
+				/* GPIOs */
+				reset-gpios = <&gpp18 3 GPIO_ACTIVE_HIGH>;
+
+				/* Power supplies */
+				s2mpg13_ldo12-supply = <&s_ldo12_reg>;
+				s2mpg13_ldo25-supply = <&s_ldo25_reg>;
+				gpio4-supply = <&slg51002_gpio4>;
+
+				clocks =
+					<&clock CIS_CLK4>,
+					<&clock GATE_DFTMUX_CMU_CIS_CLK4>;
+				clock-names =
+					"CIS_CLK4",
+					"GATE_DFTMUX_CMU_CIS_CLK4";
+				clock-rates =
+					<24000000>,
+					<0>;
+
+				/* MCLK Control */
+				pinctrl-names = "mclk_on", "mclk_off";
+				pinctrl-0 = <&sensor_mclk5_fn>;
+				pinctrl-1 = <&sensor_mclk5_out>;
+
+				/* Power up sequence */
+				power-up-seqs =
+					"s2mpg13_ldo12",
+					"gpio4",
+					"s2mpg13_ldo25",
+					"reset",
+					"mclk_on";
+				power-up-seq-types =
+					"regulator",
+					"regulator",
+					"regulator",
+					"gpio",
+					"pinctrl";
+				power-up-seq-delays-us =
+					<1000
+					 1000
+					 1000
+					 1000
+					 1000>;
+
+				/* Power down sequence */
+				power-down-seqs =
+					"mclk_off",
+					"reset",
+					"gpio4",
+					"s2mpg13_ldo25",
+					"s2mpg13_ldo12";
+				power-down-seq-types =
+					"pinctrl",
+					"gpio",
+					"regulator",
+					"regulator",
+					"regulator";
+				power-down-seq-delays-us =
+					<1000
+					 1000
 					 1000
 					 1000
 					 1000>;
