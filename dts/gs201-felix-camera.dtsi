@@ -16,8 +16,8 @@
 };
 
 &slg51002_ldo2 {
-	regulator-min-microvolt = <2800000>;
-	regulator-max-microvolt = <2800000>;
+	regulator-min-microvolt = <2850000>;
+	regulator-max-microvolt = <2850000>;
 };
 
 &slg51002_ldo3 {
@@ -31,8 +31,8 @@
 };
 
 &slg51002_ldo5 {
-	regulator-min-microvolt = <2850000>;
-	regulator-max-microvolt = <2850000>;
+	regulator-min-microvolt = <2950000>;
+	regulator-max-microvolt = <2950000>;
 };
 
 &slg51002_ldo6 {
@@ -41,8 +41,8 @@
 };
 
 &slg51002_ldo7 {
-	regulator-min-microvolt = <1200000>;
-	regulator-max-microvolt = <1200000>;
+	regulator-min-microvolt = <1080000>;
+	regulator-max-microvolt = <1080000>;
 };
 
 &slg51002_ldo8 {
@@ -172,7 +172,7 @@
 	#size-cells = <0>;
 	gpios = <&gpp8 0 GPIO_ACTIVE_HIGH &gpp8 1 GPIO_ACTIVE_HIGH>;
 	status = "okay";
-	clock-frequency = <1000000>;
+	clock-frequency = <975000>;
 	samsung,reset-before-trans;
 
 	pinctrl-names = "default","on_i2c","off_i2c";
@@ -451,6 +451,106 @@
 				power-down-seq-delays-us =
 					<1000
 					 1000
+					 1000
+					 1000
+					 1000>;
+			};
+
+			/* REAR TELE CAMERA DOKKAEBI */
+			sensor3: sensor@3 {
+				compatible = "google,lwis-i2c-device";
+
+				/* Device node name */
+				node-name = "sensor-dokkaebi-tele";
+
+				/* I2C */
+				i2c-bus = <&hsi2c_4>;
+				i2c-addr = <0x10>;
+
+				/* Registers */
+				reg-addr-bitwidth = <16>;
+				reg-value-bitwidth = <16>;
+
+				/* GPIOs */
+				reset-gpios = <&gpp6 2 GPIO_ACTIVE_HIGH>;
+				resetAfOis-gpios = <&gpp13 0 GPIO_ACTIVE_HIGH>;
+
+				/* Power supplies */
+				s2mpg13_ldo12-supply = <&s_ldo12_reg>;
+				gpio2-supply = <&slg51002_gpio2>;
+				ldo2-supply = <&slg51002_ldo2>;
+				ldo5-supply = <&slg51002_ldo5>;
+				ldo7-supply = <&slg51002_ldo7>;
+
+				clocks =
+					<&clock CIS_CLK2>,
+					<&clock GATE_DFTMUX_CMU_CIS_CLK2>;
+				clock-names =
+					"CIS_CLK2",
+					"GATE_DFTMUX_CMU_CIS_CLK2";
+				clock-rates =
+					<24000000>,
+					<0>;
+
+				/* MCLK Control */
+				pinctrl-names = "mclk_on", "mclk_off";
+				pinctrl-0 = <&sensor_mclk3_fn>;
+				pinctrl-1 = <&sensor_mclk3_out>;
+
+				/* Power up sequence */
+				power-up-seqs =
+					"s2mpg13_ldo12",
+					"gpio2",
+					"ldo2",
+					"resetAfOis",
+					"ldo5",
+					"ldo7",
+					"reset",
+					"mclk_on";
+				power-up-seq-types =
+					"regulator",
+					"regulator",
+					"regulator",
+					"gpio",
+					"regulator",
+					"regulator",
+					"gpio",
+					"pinctrl";
+				power-up-seq-delays-us =
+					<1000
+					 1000
+					 2500
+					 1000
+					 1000
+					 1000
+					 1000
+					 1000>;
+
+				/* Power down sequence */
+				power-down-seqs =
+					"mclk_off",
+					"reset",
+					"ldo7",
+					"ldo5",
+					"resetAfOis",
+					"ldo2",
+					"gpio2",
+					"s2mpg13_ldo12";
+				power-down-seq-types =
+					"pinctrl",
+					"gpio",
+					"regulator",
+					"regulator",
+					"gpio",
+					"regulator",
+					"regulator",
+					"regulator";
+				power-down-seq-delays-us =
+					<1000
+					 1000
+					 1000
+					 1000
+					 2500
 					 1000
 					 1000
 					 1000>;
