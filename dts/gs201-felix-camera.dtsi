@@ -713,12 +713,12 @@
 					 1000>;
 			};
 
-			/* Eeprom m24c64x for imx712 */
+			/* Eeprom smaug for medusa */
 			eeprom1: eeprom@1 {
 				compatible = "google,lwis-i2c-device";
 
 				/* Device node name */
-				node-name = "eeprom-m24c64x-imx712";
+				node-name = "eeprom-smaug-medusa";
 
 				/* I2C */
 				i2c-bus = <&hsi2c_2>;
