@@ -11,6 +11,8 @@
 		compatible = "samsung,ana6707-f10";
 		label = "samsung-ana6707-f10";
 		channel = <0>;
+		/* 0: normal, 1: bottom up, 2: left up, 3: right up*/
+		orientation = <2>;
 
 		/* reset, power */
 		reset-gpios = <&gpa7 1 GPIO_ACTIVE_HIGH>;
