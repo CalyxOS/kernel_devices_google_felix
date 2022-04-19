@@ -16,7 +16,6 @@
 #include "google-base/gs201-cloudripper-sbbm.dtsi"
 #include "google-base/gs201-cloudripper-wlan.dtsi"
 
-#include "google-base/gs201-ravenclaw-fingerprint.dtsi"
 #include "google-base/gs201-ravenclaw-wcharger.dtsi"
 #include "google-base/gs201-ravenclaw-usecases.dtsi"
 
@@ -30,3 +29,4 @@
 #include "gs201-felix-touch.dtsi"
 #include "gs201-felix-thermal.dtsi"
 #include "gs201-felix-audio.dtsi"
+#include "gs201-felix-fingerprint.dtsi"

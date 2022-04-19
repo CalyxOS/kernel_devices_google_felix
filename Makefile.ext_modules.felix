@@ -25,6 +25,7 @@ ext_modules += touch/fts/ftm5
 ext_modules += wlan/bcmdhd4389
 ext_modules += video/gchips
 ext_modules += ../devices/google/felix/display
+ext_modules += fingerprint/fpc
 
 # Add any modules which have their own UAPI headers to this list.  This will
 # cause the build to run the module makefile with headers_install target.
