@@ -197,6 +197,19 @@
 	pinctrl-2 = <&hsi2c4_bus_in>;
 };
 
+&hsi2c_8 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	gpios = <&gpp16 0 GPIO_ACTIVE_HIGH &gpp16 1 GPIO_ACTIVE_HIGH>;
+	status = "okay";
+	clock-frequency = <400000>;
+
+	pinctrl-names = "default","on_i2c","off_i2c";
+	pinctrl-0 = <&hsi2c8_bus>;
+	pinctrl-1 = <&hsi2c8_bus>;
+	pinctrl-2 = <&hsi2c8_bus>;
+};
+
 &hsi2c_14 {
 	#address-cells = <1>;
 	#size-cells = <0>;
@@ -888,7 +901,7 @@
 				node-name = "flash-lm3644";
 
 				/* I2C */
-				i2c-bus = <&hsi2c_15>;
+				i2c-bus = <&hsi2c_8>;
 				i2c-addr = <0x63>;
 
 				/* Registers */
