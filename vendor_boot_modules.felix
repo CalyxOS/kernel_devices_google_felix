@@ -104,6 +104,7 @@ p9221.ko
 panel-samsung-ana6707-f10.ko
 panel-samsung-drv.ko
 panel-samsung-emul.ko
+panel-samsung-ea8182-f10.ko
 panel-samsung-s6e3fc3.ko
 panel-samsung-s6e3fc3-p10.ko
 panel-samsung-s6e3hc2.ko
