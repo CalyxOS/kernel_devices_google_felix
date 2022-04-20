@@ -7,6 +7,7 @@
 
 #include "google-base/gs201-common.dtsi"
 #include "google-base/gs201-cloudripper-battery.dtsi"
+#include "google-base/gs201-cloudripper-bluetooth.dtsi"
 #include "google-base/gs201-cloudripper-bcl.dtsi"
 #include "google-base/gs201-cloudripper-charging.dtsi"
 #include "google-base/gs201-cloudripper-cp-s5300-sit.dtsi"
@@ -20,7 +21,6 @@
 #include "google-base/gs201-ravenclaw-usecases.dtsi"
 
 #include "gs201-felix-aoc.dtsi"
-#include "gs201-felix-bluetooth.dtsi"
 #include "gs201-felix-camera-pmic.dtsi"
 #include "gs201-felix-camera.dtsi"
 #include "gs201-felix-display.dtsi"
