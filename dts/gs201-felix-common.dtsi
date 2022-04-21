@@ -30,3 +30,4 @@
 #include "gs201-felix-thermal.dtsi"
 #include "gs201-felix-audio.dtsi"
 #include "gs201-felix-fingerprint.dtsi"
+#include "gs201-felix-battery.dtsi"
