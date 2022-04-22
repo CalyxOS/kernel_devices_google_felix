@@ -940,6 +940,65 @@
 					 1000>;
 			};
 
+			/* Actuator jotnar for dokkaebi */
+			actuator1: actuator@1 {
+				compatible = "google,lwis-i2c-device";
+
+				/* Device node name */
+				node-name = "act-jotnar";
+
+				/* I2C */
+				i2c-bus = <&hsi2c_4>;
+				i2c-addr = <0x34>;
+
+				/* Registers */
+				reg-addr-bitwidth = <16>;
+				reg-value-bitwidth = <16>;
+
+				/* GPIOs */
+				shared-afois-reset-gpios =
+					<&gpp13 0 GPIO_ACTIVE_HIGH>;
+
+				/* Power supplies */
+				s2mpg13_ldo12-supply = <&s_ldo12_reg>;
+				gpio2-supply = <&slg51002_gpio2>;
+				ldo2-supply = <&slg51002_ldo2>;
+
+				/* Power up sequence */
+				power-up-seqs =
+					"s2mpg13_ldo12",
+					"gpio2",
+					"ldo2",
+					"shared-afois-reset";
+				power-up-seq-types =
+					"regulator",
+					"regulator",
+					"regulator",
+					"gpio";
+				power-up-seq-delays-us =
+					<1000
+					 1000
+					 2500
+					 1000>;
+
+				/* Power down sequence */
+				power-down-seqs =
+					"shared-afois-reset",
+					"ldo2",
+					"gpio2",
+					"s2mpg13_ldo12";
+				power-down-seq-types =
+					"gpio",
+					"regulator",
+					"regulator",
+					"regulator";
+				power-down-seq-delays-us =
+					<2500
+					 1000
+					 1000
+					 1000>;
+			};
+
 			/* Ois nessie for oksoko */
 			ois0: ois@0 {
 				compatible = "google,lwis-i2c-device";
@@ -985,6 +1044,65 @@
 					"regulator";
 				power-down-seq-delays-us =
 					<1000
+					 1000
+					 1000>;
+			};
+
+			/* Ois nessie for dokkaebi */
+			ois1: ois@1 {
+				compatible = "google,lwis-i2c-device";
+
+				/* Device node name */
+				node-name = "ois-jotnar";
+
+				/* I2C */
+				i2c-bus = <&hsi2c_4>;
+				i2c-addr = <0x34>;
+
+				/* Registers */
+				reg-addr-bitwidth = <16>;
+				reg-value-bitwidth = <16>;
+
+				/* GPIOs */
+				shared-afois-reset-gpios =
+					<&gpp13 0 GPIO_ACTIVE_HIGH>;
+
+				/* Power supplies */
+				s2mpg13_ldo12-supply = <&s_ldo12_reg>;
+				gpio2-supply = <&slg51002_gpio2>;
+				ldo2-supply = <&slg51002_ldo2>;
+
+				/* Power up sequence */
+				power-up-seqs =
+					"s2mpg13_ldo12",
+					"gpio2",
+					"ldo2",
+					"shared-afois-reset";
+				power-up-seq-types =
+					"regulator",
+					"regulator",
+					"regulator",
+					"gpio";
+				power-up-seq-delays-us =
+					<1000
+					 1000
+					 2500
+					 1000>;
+
+				/* Power down sequence */
+				power-down-seqs =
+					"shared-afois-reset",
+					"ldo2",
+					"gpio2",
+					"s2mpg13_ldo12";
+				power-down-seq-types =
+					"gpio",
+					"regulator",
+					"regulator",
+					"regulator";
+				power-down-seq-delays-us =
+					<2500
+					 1000
 					 1000
 					 1000>;
 			};
