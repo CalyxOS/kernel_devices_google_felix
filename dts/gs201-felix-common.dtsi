@@ -8,7 +8,7 @@
 #include "google-base/gs201-common.dtsi"
 #include "google-base/gs201-cloudripper-battery.dtsi"
 #include "google-base/gs201-cloudripper-bcl.dtsi"
-#include "google-base/gs201-cloudripper-charging.dtsi"
+#include "google-base/gs201-pantah-charging.dtsi"
 #include "google-base/gs201-cloudripper-cp-s5300-sit.dtsi"
 #include "google-base/gs201-cloudripper-ese.dtsi"
 #include "google-base/gs201-cloudripper-gsa-gsc.dtsi"
@@ -31,3 +31,4 @@
 #include "gs201-felix-audio.dtsi"
 #include "gs201-felix-fingerprint.dtsi"
 #include "gs201-felix-battery.dtsi"
+#include "gs201-felix-charging.dtsi"
