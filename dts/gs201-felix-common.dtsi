@@ -2,7 +2,7 @@
 /*
  * Felix device tree source
  *
- * Copyright 2021 Google,LLC
+ * Copyright 2021-2022 Google,LLC
  */
 
 #include "google-base/gs201-common.dtsi"
@@ -17,7 +17,7 @@
 #include "google-base/gs201-cloudripper-sbbm.dtsi"
 #include "google-base/gs201-cloudripper-wlan.dtsi"
 
-#include "google-base/gs201-ravenclaw-wcharger.dtsi"
+#include "gs201-felix-wcharger.dtsi"
 #include "google-base/gs201-ravenclaw-usecases.dtsi"
 
 #include "gs201-felix-aoc.dtsi"
