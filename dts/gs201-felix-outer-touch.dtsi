@@ -75,16 +75,17 @@
 			&ext_ts_spi_cs_sleep>;
 		st,irq-gpio = <&gpa6 7 0>;
 		st,reset-gpio = <&gpp23 3 0>;
-		st,dchip_id = /bits/ 8 <0x36 0x39>;
+		st,dchip_id = /bits/ 8 <0x36 0x40>;
 		st,max-coords = <1079 2099>;
 		st,device_name = "fts_ext";
-		st,firmware_names = "ftm5_fw_p7_ext.ftb";
-		st,limits_names = "stm_fts_production_limits_p7_ext.csv";
+		st,firmware_names = "ftm5_fw_f10_ext.ftb";
+		st,limits_names = "stm_fts_production_limits_f10_ext.csv";
 		/* st,panel_map = <&samsung_ea8182 0>; */
 		st,sensor_inverted_x;
 		st,sensor_inverted_y;
 		vdd-supply = <&m_ldo25_reg>;
 		avdd-supply = <&m_ldo26_reg>;
+		reg = <0>;
 		controller-data {
 			cs-gpio = <&gpp12 3 0>;
 			samsung,spi-feedback-delay = <1>;
