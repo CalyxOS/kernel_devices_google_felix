@@ -27,6 +27,7 @@
 #include "gs201-felix-hall-sensor.dtsi"
 #include "gs201-felix-pmic.dtsi"
 #include "gs201-felix-touch.dtsi"
+#include "gs201-felix-outer-touch.dtsi"
 #include "gs201-felix-thermal.dtsi"
 #include "gs201-felix-audio.dtsi"
 #include "gs201-felix-fingerprint.dtsi"

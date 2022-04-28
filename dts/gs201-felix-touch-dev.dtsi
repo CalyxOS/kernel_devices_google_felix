@@ -22,13 +22,13 @@
 
 &spitouch {
 	status = "ok";
-	compatible = "st,fst2";
+	compatible = "st,fts";
 	spi-max-frequency = <10000000>;
 	st,dchip_id = /bits/ 8 <0x36 0x50>;
 	st,max-coords = <2207 1839>;
 	st,device_name = "fts";
-	st,firmware_names = "ftm5_fw_f10.ftb";
-	st,limits_names = "stm_fts_production_limits_f10.csv";
+	st,firmware_names = "ftm5_fw_p7.ftb";
+	st,limits_names = "stm_fts_production_limits_p7.csv";
 	/* st,panel_map = <&samsung_ana6707_f10 0>; */
 	st,tx_rx_dir_swap;
 	pinctrl-names = "pmx_ts_active", "pmx_ts_suspend";
