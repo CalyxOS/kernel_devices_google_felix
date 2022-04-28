@@ -592,7 +592,7 @@ static void ana6707_f10_get_panel_rev(struct exynos_panel *ctx, u32 id)
 	u8 rev = (((build_code & 0xE0) >> 3) | (build_code & 0x0C) >> 2);
 
 	switch (rev) {
-	case 0x01:
+	case 0x00:
 		ctx->panel_rev = PANEL_REV_PROTO1;
 		break;
 	case 0x09:
