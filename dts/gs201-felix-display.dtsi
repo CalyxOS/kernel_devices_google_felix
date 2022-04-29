@@ -30,3 +30,29 @@
 		reset-gpios = <&gpa7 1 GPIO_ACTIVE_HIGH>;
 	};
 };
+
+&drmdsim1 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
+
+	samsung_ea8182_f10: panel@0 {
+		compatible = "samsung,ea8182-f10";
+		label = "samsung-ea8182-f10";
+		channel = <0>;
+
+		/* reset, power */
+		reset-gpios = <&gpp23 0 GPIO_ACTIVE_HIGH>;
+		vci-supply = <&m_ldo27_reg>;
+		vddi-supply = <&m_ldo23_reg>;
+		vddd-supply = <&disp_vddd>;
+	};
+	panel@1 {
+		compatible = "samsung,emul";
+		label = "samsung-emul";
+		channel = <0>;
+
+		/* reset, power */
+		reset-gpios = <&gpp23 0 GPIO_ACTIVE_HIGH>;
+	};
+};
