@@ -21,14 +21,6 @@
 	subsys-name = "Touch";
 };
 
-/* Display: vci-supply voltage */
-&m_ldo27_reg {
-	regulator-min-microvolt = <3025000>;
-	regulator-max-microvolt = <3025000>;
-	schematic-name = "L27M_OUTER_DISP_VCI";
-	subsys-name = "Display";
-};
-
 /* Display: inner vci-supply voltage */
 &s_ldo28_reg {
 	regulator-min-microvolt = <3025000>;
@@ -42,7 +34,14 @@
 	gpio = <&gpp0 2 0>;
 };
 
+&disp_vddd {
+    status = "ok";
+    gpio = <&s2mpg12_gpio 3 GPIO_ACTIVE_HIGH>;
+};
+
 &m_ldo23_reg {
+	regulator-min-microvolt = <1850000>;
+	regulator-max-microvolt = <1850000>;
 	schematic-name = "L23M_OUTER_DISP_VDDI";
 	subsys-name = "Display";
 };
@@ -55,6 +54,13 @@
 &m_ldo25_reg {
 	schematic-name = "L25M_OUTER_TS_DVDD";
 	subsys-name = "Touch";
+};
+
+&m_ldo27_reg {
+	regulator-min-microvolt = <3050000>;
+	regulator-max-microvolt = <3050000>;
+	schematic-name = "L27M_OUTER_DISP_VCI";
+	subsys-name = "Display";
 };
 
 &m_ldo28_reg {
