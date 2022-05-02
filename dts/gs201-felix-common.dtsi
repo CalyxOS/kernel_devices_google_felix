@@ -16,6 +16,7 @@
 #include "google-base/gs201-cloudripper-nfc.dtsi"
 #include "google-base/gs201-cloudripper-sbbm.dtsi"
 #include "google-base/gs201-cloudripper-wlan.dtsi"
+#include "google-base/gs201-ravenclaw-uwb.dtsi"
 
 #include "gs201-felix-wcharger.dtsi"
 #include "google-base/gs201-ravenclaw-usecases.dtsi"
