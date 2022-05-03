@@ -810,7 +810,7 @@
 
 				/* Registers */
 				reg-addr-bitwidth = <16>;
-				reg-value-bitwidth = <16>;
+				reg-value-bitwidth = <8>;
 
 				/* GPIOs */
 				shared-afois-reset-gpios =
@@ -940,7 +940,7 @@
 					 1000>;
 			};
 
-			/* Actuator jotnar for dokkaebi */
+			/* Actuator jotnar for dokkaebi tele */
 			actuator1: actuator@1 {
 				compatible = "google,lwis-i2c-device";
 
@@ -953,7 +953,7 @@
 
 				/* Registers */
 				reg-addr-bitwidth = <16>;
-				reg-value-bitwidth = <16>;
+				reg-value-bitwidth = <8>;
 
 				/* GPIOs */
 				shared-afois-reset-gpios =
@@ -1048,7 +1048,7 @@
 					 1000>;
 			};
 
-			/* Ois nessie for dokkaebi */
+			/* Ois jotnar for dokkaebi tele */
 			ois1: ois@1 {
 				compatible = "google,lwis-i2c-device";
 
@@ -1061,7 +1061,7 @@
 
 				/* Registers */
 				reg-addr-bitwidth = <16>;
-				reg-value-bitwidth = <16>;
+				reg-value-bitwidth = <8>;
 
 				/* GPIOs */
 				shared-afois-reset-gpios =
