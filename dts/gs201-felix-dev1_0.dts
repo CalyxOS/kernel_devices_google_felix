@@ -9,6 +9,8 @@
 /plugin/;
 
 #include "gs201-felix-common.dtsi"
+#include "gs201-felix-battery-dev.dtsi"
+#include "gs201-felix-touch-dev.dtsi"
 
 / {
 	board_id = <0x30601>;

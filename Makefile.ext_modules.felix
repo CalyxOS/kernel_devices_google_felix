@@ -10,7 +10,7 @@ ext_modules += amplifiers/drv2624
 ext_modules += aoc
 ext_modules += aoc/alsa
 ext_modules += aoc/usb
-ext_modules += bluetooth/qcom
+ext_modules += bluetooth/broadcom
 ext_modules += bms
 ext_modules += display/samsung
 ext_modules += edgetpu/janeiro/drivers/edgetpu
@@ -19,13 +19,14 @@ ext_modules += gpu/mali_pixel
 ext_modules += lwis
 ext_modules += nfc
 ext_modules += power/reset
+ext_modules += sensors/hall_sensor
 ext_modules += touch/common
-ext_modules += touch/focaltech/ft3658
-ext_modules += touch/sec
-ext_modules += touch/synaptics
-ext_modules += wlan/wcn6740/cnss2
-ext_modules += wlan/wcn6740/wlan/qcacld-3.0
+ext_modules += touch/fts/ftm5
+ext_modules += touch/fts/fst2
+ext_modules += wlan/bcmdhd4389
 ext_modules += video/gchips
+ext_modules += ../devices/google/felix/display
+ext_modules += fingerprint/fpc
 
 # Add any modules which have their own UAPI headers to this list.  This will
 # cause the build to run the module makefile with headers_install target.
@@ -43,15 +44,15 @@ endif
 
 allmodules: $(ext_modules) $(install_uapi_headers_targets) depmod
 
-touch/focaltech/ft3658: | touch/common
-
-touch/sec: | touch/common
+touch/fts/ftm5: | touch/common
 
 aoc/alsa: | aoc
 
 aoc/usb: | aoc/alsa aoc
 
 power/reset: | bms
+
+../devices/google/felix/display: | display/samsung
 
 # amplifiers/cs35l45 and amplifiers/cs35l41 both build identical version of
 # snd-soc-wm-adsp.ko. To make sure the makefiles don't step on each other,

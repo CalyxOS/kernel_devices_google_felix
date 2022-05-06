@@ -9,11 +9,13 @@ VENDOR_RAMDISK_BINARY=${ROOT_DIR}/private/devices/google/felix/vendor_ramdisk-fe
 MAKE_GOALS="$MAKE_GOALS
 modules
 google/devices/felix/google-base/gs201-a0.dtb
+google/devices/felix/google-base/gs201-b0.dtb
 google/devices/felix/dtbo.img
 "
 
 FILES="
 arch/arm64/boot/dts/google/devices/felix/google-base/gs201-a0.dtb
+arch/arm64/boot/dts/google/devices/felix/google-base/gs201-b0.dtb
 arch/arm64/boot/dts/google/devices/felix/dtbo.img
 "
 

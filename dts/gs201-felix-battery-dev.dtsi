@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Battery device tree entries specific to felix
+ *
+ * Copyright 2022 Google,LLC
+ *
+ */
+
+&google_battery {
+	google,chg-battery-capacity = <3000>;
+};
+
+&max77759_fg {
+	/delete-node/ maxim,fg-data;
+
+	maxim,fg-data {
+		#include "google-base/gs101-fake-battery-data.dtsi"
+	};
+};
+
+&google_dual_batt_gauge {
+	/delete-property/ google,second-fg-psy-name;
+};

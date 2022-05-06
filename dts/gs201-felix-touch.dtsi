@@ -2,41 +2,48 @@
 /*
  * Google L10 touch device tree source
  *
- * Copyright 2021 Google Inc.
+ * Copyright 2022 Google Inc.
  *
  */
 
 #include <dt-bindings/pinctrl/samsung.h>
 
-/*
- * Touch is connected to spi_0, pins:
- *   CLK=GPP20[0], MOSI=GPP20[1], MISO=GPP20[2], CS=GPP20[3]
- * TS_RESET_L = C26 = XAPC_USI11_RTSN_DI = GPP23[2] = <&gpp23 2 0>
- * TS_INT_L = AT22 = XEINT_8 = GPA7[0] = <&gpa7 0 0>
- *
- * DVDD = PP1800_L25M_TSP_DVDD = ??? = VLDO25M = "PP1800_L25M_TSP"?
- * AVDD = PP3300_L26M_TS_AVDD  = ??? = VLDO26M = "PP3300_L26M_TSP"?
- *
- * AP2AOC: XHSI1_GPIO2 - GPH1[0] -> XAOC_GPIO13 - gpio_in[87]
- * AOC2AP: XAOC_GPIO8 - gpio_in[74] -> XEINT_19 - GPA8[7]
- */
+&s_ldo22_reg {
+	regulator-min-microvolt = <1800000>;
+	regulator-max-microvolt = <1800000>;
+	/delete-property/ regulator-always-on;
+};
+
+&s_ldo6_reg {
+	regulator-min-microvolt = <3300000>;
+	regulator-max-microvolt = <3300000>;
+	/delete-property/ regulator-always-on;
+};
 
 &spitouch {
 	status = "ok";
-	compatible = "focaltech,ts";
-
+	compatible = "st,fst2";
 	spi-max-frequency = <10000000>;
-
-	focaltech,irq-gpio = <&gpa7 0 0>;
-	focaltech,reset-gpio = <&gpp23 2 0>;
-	focaltech,max-touch-number = <10>;
-	focaltech,display-coords = <0 0 1079 2399>;
-	focaltech,panel_map = <&sdc_s6e3fc3_p10 0>;
-
+	st,dchip_id = /bits/ 8 <0x36 0x50>;
+	st,max-coords = <2207 1839>;
+	st,device_name = "fts";
+	st,firmware_names = "ftm5_fw_f10.ftb";
+	st,limits_names = "stm_fts_production_limits_f10.csv";
+	/* st,panel_map = <&samsung_ana6707_f10 0>; */
+	st,tx_rx_dir_swap;
+	pinctrl-names = "pmx_ts_active", "pmx_ts_suspend";
+	st,irq-gpio = <&gpa7 0 0>;
+	st,reset-gpio = <&gpp23 2 0>;
+	/* Either st,panel_map or st,max-coords should be used
+	 * in the product touch dtsi */
+	st,grip_area = /bits/ 8 <15>; /* Left and right grip rejection
+					 area. Unit: pixels */
+	vdd-supply = <&s_ldo22_reg>; /* VIO 1.8V, different from common. */
+	avdd-supply = <&s_ldo6_reg>; /* AVDD 3.3V, different from common. */
 	controller-data {
 		cs-gpio = <&gpp20 3 0>;
-		samsung,spi-feedback-delay = <0>;
-		samsung,spi-chip-select-mode = <1>;
-		cs-clock-delay = <1>;
+		samsung,spi-feedback-delay = <1>;
+		samsung,spi-chip-select-mode = <0>;
+		cs-clock-delay = <2>;
 	};
 };

@@ -1,0 +1,97 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Google L10 touch device tree source
+ *
+ * Copyright 2022 Google Inc.
+ *
+ */
+
+#include <dt-bindings/pinctrl/samsung.h>
+
+&m_ldo25_reg {
+	regulator-max-microvolt = <1800000>;
+	regulator-min-microvolt = <1800000>;
+	/delete-property/ regulator-always-on;
+};
+
+&m_ldo26_reg {
+	regulator-min-microvolt = <3300000>;
+	regulator-max-microvolt = <3300000>;
+	/delete-property/ regulator-always-on;
+};
+
+&pinctrl_4 {
+	ext_ts_spi_bus_active: ext_ts_spi_bus_active {
+		samsung,pins = "gpp12-0", "gpp12-1", "gpp12-2";
+		samsung,pin-function = <3>;
+		samsung,pin-pud = <0>;
+		samsung,pin-drv = <GS101_PIN_DRV_5_MA>;
+	};
+	ext_ts_spi_cs_active: ext_ts_spi_cs_active {
+		samsung,pins = "gpp12-3";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_OUTPUT>;
+		samsung,pin-pud = <0>;
+		samsung,pin-drv = <GS101_PIN_DRV_2_5_MA>;
+	};
+	ext_ts_spi_bus_sleep: ext_ts_spi_bus_sleep {
+		samsung,pins = "gpp12-0", "gpp12-1";
+		samsung,pin-function = <0>;
+		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
+		samsung,pin-drv = <GS101_PIN_DRV_2_5_MA>;
+		samsung,pin-con-pdn = <EXYNOS_PIN_PDN_INPUT>;
+		samsung,pin-pud-pdn = <EXYNOS_PIN_PULL_NONE>;
+	};
+	ext_ts_spi_miso_sleep: ext_ts_spi_miso_sleep {
+		samsung,pins = "gpp12-2";
+		samsung,pin-function = <0>;
+		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
+		samsung,pin-drv = <GS101_PIN_DRV_2_5_MA>;
+		samsung,pin-con-pdn = <EXYNOS_PIN_PDN_INPUT>;
+		samsung,pin-pud-pdn = <EXYNOS_PIN_PULL_NONE>;
+	};
+	ext_ts_spi_cs_sleep: ext_ts_spi_cs_sleep {
+		samsung,pins = "gpp12-3";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_INPUT>;
+		samsung,pin-pud = <EXYNOS_PIN_PULL_UP>;
+		samsung,pin-drv = <GS101_PIN_DRV_2_5_MA>;
+		samsung,pin-con-pdn = <EXYNOS_PIN_PDN_INPUT>;
+		samsung,pin-pud-pdn = <EXYNOS_PIN_PULL_UP>;
+	};
+};
+
+&spi_6 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
+	pinctrl-0 = <>;
+	spi6touch: touchscreen@0 {
+		status = "ok";
+		compatible = "st,fts";
+		spi-max-frequency = <10000000>;
+		pinctrl-names = "pmx_ts_active", "pmx_ts_suspend";
+		pinctrl-0 = <&ext_ts_spi_bus_active
+			&ext_ts_spi_cs_active>;
+		pinctrl-1 = <&ext_ts_spi_bus_sleep &ext_ts_spi_miso_sleep
+			&ext_ts_spi_cs_sleep>;
+		st,irq-gpio = <&gpa6 7 0>;
+		st,reset-gpio = <&gpp23 3 0>;
+		st,dchip_id = /bits/ 8 <0x36 0x40>;
+		st,max-coords = <1079 2099>;
+		st,device_name = "fts_ext";
+		st,firmware_names = "ftm5_fw_f10_ext.ftb";
+		st,limits_names = "stm_fts_production_limits_f10_ext.csv";
+		/* st,panel_map = <&samsung_ea8182 0>; */
+		st,sensor_inverted_x;
+		st,sensor_inverted_y;
+		vdd-supply = <&m_ldo25_reg>;
+		avdd-supply = <&m_ldo26_reg>;
+		reg = <0>;
+		controller-data {
+			cs-gpio = <&gpp12 3 0>;
+			samsung,spi-feedback-delay = <1>;
+			samsung,spi-chip-select-mode = <0>;
+			cs-clock-delay = <2>;
+		};
+	};
+};
+
