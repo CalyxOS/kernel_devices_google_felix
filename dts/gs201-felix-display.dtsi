@@ -6,6 +6,10 @@
  *
  */
 
+&drmdecon1 {
+       status = "ok";
+};
+
 &drmdsim0 {
 	samsung_ana6707_f10: panel@0 {
 		compatible = "samsung,ana6707-f10";
