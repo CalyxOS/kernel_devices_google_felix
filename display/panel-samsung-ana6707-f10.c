@@ -141,7 +141,7 @@ static const struct exynos_dsi_cmd ana6707_f10_off_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(0xF7, 0x07),
 	EXYNOS_DSI_CMD_SEQ(0xF0, 0xA5, 0xA5),
 	EXYNOS_DSI_CMD(display_off, 20),
-	EXYNOS_DSI_CMD(sleep_in, 130),
+	EXYNOS_DSI_CMD(sleep_in, 120),
 };
 static DEFINE_EXYNOS_CMD_SET(ana6707_f10_off);
 
@@ -464,13 +464,8 @@ static void ana6707_f10_panel_reset(struct exynos_panel *ctx)
 {
 	dev_dbg(ctx->dev, "%s +\n", __func__);
 
-	usleep_range(10000, 10010);
 	gpiod_set_value(ctx->reset_gpio, 1);
-	usleep_range(1000, 1010);
-	gpiod_set_value(ctx->reset_gpio, 0);
-	usleep_range(1000, 1010);
-	gpiod_set_value(ctx->reset_gpio, 1);
-	usleep_range(10000, 11000);
+	usleep_range(10100, 10110);
 
 	dev_dbg(ctx->dev, "%s -\n", __func__);
 
@@ -641,13 +636,12 @@ static int ana6707_f10_set_power(struct exynos_panel *ctx, bool enable)
 	int ret;
 
 	if (enable) {
-		if (ctx->vddr_en) {
-			ret = regulator_enable(ctx->vddr_en);
+		if (ctx->vddr) {
+			ret = regulator_enable(ctx->vddr);
 			if (ret) {
-				dev_err(ctx->dev, "vddr_en enable failed\n");
+				dev_err(ctx->dev, "vddr enable failed\n");
 				return ret;
 			}
-			usleep_range(5000, 6000);
 		}
 
 		if (ctx->vddi) {
@@ -656,16 +650,6 @@ static int ana6707_f10_set_power(struct exynos_panel *ctx, bool enable)
 				dev_err(ctx->dev, "vddi enable failed\n");
 				return ret;
 			}
-			usleep_range(10000, 11000);
-		}
-
-		if (ctx->vddr) {
-			ret = regulator_enable(ctx->vddr);
-			if (ret) {
-				dev_err(ctx->dev, "vddr enable failed\n");
-				return ret;
-			}
-			usleep_range(5000, 6000);
 		}
 
 		if (ctx->vci) {
@@ -674,7 +658,7 @@ static int ana6707_f10_set_power(struct exynos_panel *ctx, bool enable)
 				dev_err(ctx->dev, "vci enable failed\n");
 				return ret;
 			}
-			usleep_range(20000, 21000);
+			usleep_range(10000, 10010);
 		}
 	} else {
 		gpiod_set_value(ctx->reset_gpio, 0);
@@ -685,7 +669,6 @@ static int ana6707_f10_set_power(struct exynos_panel *ctx, bool enable)
 				dev_err(ctx->dev, "vddr disable failed\n");
 				return ret;
 			}
-			usleep_range(10000, 11000);
 		}
 
 		if (ctx->vddi) {
@@ -702,16 +685,6 @@ static int ana6707_f10_set_power(struct exynos_panel *ctx, bool enable)
 				dev_err(ctx->dev, "vci disable failed\n");
 				return ret;
 			}
-			usleep_range(12000, 13000);
-		}
-
-		if (ctx->vddr_en) {
-			ret = regulator_disable(ctx->vddr_en);
-			if (ret) {
-				dev_err(ctx->dev, "vddr_en disable failed\n");
-				return ret;
-			}
-			usleep_range(1000, 2000);
 		}
 	}
 
