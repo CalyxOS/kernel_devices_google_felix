@@ -120,7 +120,20 @@ static const struct exynos_dsi_cmd ea8182_f10_init_cmds[] = {
 };
 static DEFINE_EXYNOS_CMD_SET(ea8182_f10_init);
 
-/* TODO: change frequency */
+static void ea8182_f10_change_frequency(struct exynos_panel *ctx,
+				     unsigned int vrefresh)
+{
+	if (!ctx || (vrefresh != 60 && vrefresh != 120))
+		return;
+
+	EXYNOS_DCS_WRITE_SEQ(ctx, 0xF0, 0x5A, 0x5A);
+	EXYNOS_DCS_WRITE_SEQ(ctx, 0x60, (vrefresh == 120) ? 0x08 : 0x00, 0x00);
+	EXYNOS_DCS_WRITE_SEQ(ctx, 0xEB, 0x14, 0x00);
+	EXYNOS_DCS_WRITE_SEQ(ctx, 0xF7, 0x07);
+	EXYNOS_DCS_WRITE_SEQ(ctx, 0xF0, 0xA5, 0xA5);
+
+	dev_dbg(ctx->dev, "%s: change to %uhz\n", __func__, vrefresh);
+}
 
 static void ea8182_f10_update_wrctrld(struct exynos_panel *ctx)
 {
@@ -156,9 +169,7 @@ static void ea8182_f10_set_nolp_mode(struct exynos_panel *ctx,
 		EXYNOS_DCS_WRITE_SEQ(ctx, 0xF0, 0x5A, 0x5A);
 		EXYNOS_DCS_WRITE_SEQ(ctx, 0xC3, 0x02);
 		EXYNOS_DCS_WRITE_SEQ(ctx, 0xF0, 0xA5, 0xA5);
-
-		/* TODO: add change frequency */
-
+		ea8182_f10_change_frequency(ctx, vrefresh);
 		ea8182_f10_update_wrctrld(ctx);
 		usleep_range(delay_us, delay_us + 10);
 		EXYNOS_DCS_WRITE_TABLE(ctx, display_on);
@@ -185,9 +196,9 @@ static int ea8182_f10_enable(struct drm_panel *panel)
 	EXYNOS_PPS_LONG_WRITE(ctx);             /* PPS_SETTING */
 
 	exynos_panel_send_cmd_set(ctx, &ea8182_f10_init_cmd_set);
+	usleep_range(90000, 90010);
+	ea8182_f10_change_frequency(ctx, drm_mode_vrefresh(&pmode->mode));
 	ea8182_f10_update_wrctrld(ctx);             /* dimming and HBM */
-
-	/* TODO: add change frequency */
 
 	ctx->enabled = true;
 
@@ -221,7 +232,7 @@ static void ea8182_f10_mode_set(struct exynos_panel *ctx,
 	if (!ctx->enabled)
 		return;
 
-	/* TODO: add change frequency */
+	ea8182_f10_change_frequency(ctx, drm_mode_vrefresh(&pmode->mode));
 }
 
 static bool ea8182_f10_is_mode_seamless(const struct exynos_panel *ctx,
@@ -315,7 +326,7 @@ static const struct exynos_panel_mode ea8182_f10_modes[] = {
 				.enabled = true,
 				.dsc_count = 1,
 				.slice_count = 2,
-				.slice_height = 523,	// 50
+				.slice_height = 523,
 			},
 			.underrun_param = &underrun_param,
 		},
@@ -344,7 +355,7 @@ static const struct exynos_panel_mode ea8182_f10_modes[] = {
 				.enabled = true,
 				.dsc_count = 1,
 				.slice_count = 2,
-				.slice_height = 50,
+				.slice_height = 523,
 			},
 			.underrun_param = &underrun_param,
 		},
@@ -376,7 +387,7 @@ static const struct exynos_panel_mode ea8182_f10_lp_mode = {
 			.enabled = true,
 			.dsc_count = 1,
 			.slice_count = 2,
-			.slice_height = 50,
+			.slice_height = 523,
 		},
 		.underrun_param = &underrun_param,
 		.is_lp_mode = true,
