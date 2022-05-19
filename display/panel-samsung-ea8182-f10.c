@@ -311,7 +311,7 @@ static const struct exynos_panel_mode ea8182_f10_modes[] = {
 			.bpc = 8,
 			.dsc = {
 				.enabled = true,
-				.dsc_count = 2,
+				.dsc_count = 1,
 				.slice_count = 2,
 				.slice_height = 523,	// 50
 			},
@@ -340,7 +340,7 @@ static const struct exynos_panel_mode ea8182_f10_modes[] = {
 			.bpc = 8,
 			.dsc = {
 				.enabled = true,
-				.dsc_count = 2,
+				.dsc_count = 1,
 				.slice_count = 2,
 				.slice_height = 50,
 			},
@@ -372,7 +372,7 @@ static const struct exynos_panel_mode ea8182_f10_lp_mode = {
 		.bpc = 8,
 		.dsc = {
 			.enabled = true,
-			.dsc_count = 2,
+			.dsc_count = 1,
 			.slice_count = 2,
 			.slice_height = 50,
 		},
