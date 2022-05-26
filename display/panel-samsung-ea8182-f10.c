@@ -235,34 +235,34 @@ static void ea8182_f10_get_panel_rev(struct exynos_panel *ctx, u32 id)
 {
 	/* extract command 0xDB */
 	u8 build_code = (id & 0xFF00) >> 8;
-	u8 rev = (((build_code & 0xE0) >> 3) | (build_code & 0x03));
+	u8 rev = (((build_code & 0xE0) >> 3) | (build_code & 0x0C) >> 2);
 
 	switch (rev) {
-	case 0:
+	case 1:
 		ctx->panel_rev = PANEL_REV_PROTO1;
 		break;
-	case 1:
+	case 2:
 		ctx->panel_rev = PANEL_REV_PROTO1_1;
 		break;
-	case 2:
+	case 3:
 		ctx->panel_rev = PANEL_REV_PROTO1_2;
 		break;
-	case 4:
+	case 5:
 		ctx->panel_rev = PANEL_REV_EVT1;
 		break;
-	case 5:
+	case 6:
 		ctx->panel_rev = PANEL_REV_EVT1_1;
 		break;
-	case 6:
+	case 7:
 		ctx->panel_rev = PANEL_REV_EVT1_2;
 		break;
-	case 8:
+	case 9:
 		ctx->panel_rev = PANEL_REV_DVT1;
 		break;
-	case 9:
+	case 0xA:
 		ctx->panel_rev = PANEL_REV_DVT1_1;
 		break;
-	case 0x10:
+	case 0x11:
 		ctx->panel_rev = PANEL_REV_PVT;
 		break;
 	default:
