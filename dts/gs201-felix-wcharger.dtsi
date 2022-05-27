@@ -53,6 +53,7 @@
 		idt,has_rtx = <0>;
 
 		google,power_mitigate_threshold = <90>;
+		google,has-sw-ramp;
 
 		pinctrl-names = "default";
 		pinctrl-0 = <&wc_irq &wc_en>;
