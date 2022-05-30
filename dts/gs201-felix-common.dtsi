@@ -34,3 +34,4 @@
 #include "gs201-felix-fingerprint.dtsi"
 #include "gs201-felix-battery.dtsi"
 #include "gs201-felix-charging.dtsi"
+#include "gs201-felix-usb.dtsi"
