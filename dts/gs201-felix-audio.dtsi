@@ -361,7 +361,7 @@
 		reset-gpios = <&gpp18 2 0>;
 
 		cirrus,bst-dcm-en = <0>;
-		cirrus,vibe-state;
+		cirrus,pwle-zero-cross-en;
 		cirrus,bst-expl-mode-disable;
 		cirrus,vpbr-enable = <1>;
 		cirrus,vpbr-thld-mv = <2800>;			/* 2.8V */
@@ -389,7 +389,7 @@
 		reset-gpios = <&gpp24 3 0>;
 
 		cirrus,bst-dcm-en = <0>;
-		cirrus,vibe-state;
+		cirrus,pwle-zero-cross-en;
 		cirrus,bst-expl-mode-disable;
 		cirrus,vpbr-enable = <1>;
 		cirrus,vpbr-thld-mv = <2800>;			/* 2.8V */
