@@ -242,13 +242,13 @@ static const struct exynos_dsi_cmd ana6707_f10_mode_idle_10hz_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(0xBD, 0x82),
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x0E), /* global para */
 	/* 10Hz auto frame insertion */
-	EXYNOS_DSI_CMD_SEQ(0xBD, 0x00, 0x80, 0x21, 0x00, 0x03, 0x02),
+	EXYNOS_DSI_CMD_SEQ(0xBD, 0x02, 0x80, 0x14, 0x00, 0x03, 0x02),
 };
 static DEFINE_EXYNOS_CMD_SET(ana6707_f10_mode_idle_10hz);
 
 static const struct exynos_dsi_cmd ana6707_f10_mode_manual_120hz_cmds[] = {
-	EXYNOS_DSI_CMD_SEQ(0xB0, 0x96), /* global para */
-	EXYNOS_DSI_CMD_SEQ(0xDE, 0x08), /* non-90Hz */
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x62), /* global para */
+	EXYNOS_DSI_CMD_SEQ(0xBD, 0x00), /* OSC setting */
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x01), /* global para */
 	EXYNOS_DSI_CMD0(mode_set_120hz),
 	EXYNOS_DSI_CMD0(update_key),
@@ -266,8 +266,8 @@ static const struct exynos_dsi_cmd ana6707_f10_mode_60_manual_cmds[] = {
 	EXYNOS_DSI_CMD0(early_exit_global_para),
 	EXYNOS_DSI_CMD_SEQ(0xBD, 0x80), /* early exit off */
 
-	EXYNOS_DSI_CMD_SEQ(0xB0, 0x96), /* global para */
-	EXYNOS_DSI_CMD_SEQ(0xDE, 0x08), /* non-90Hz */
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x62), /* global para */
+	EXYNOS_DSI_CMD_SEQ(0xBD, 0x00), /* OSC setting */
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x01), /* global para */
 	EXYNOS_DSI_CMD0(mode_set_60hz),
 	EXYNOS_DSI_CMD0(update_key),
