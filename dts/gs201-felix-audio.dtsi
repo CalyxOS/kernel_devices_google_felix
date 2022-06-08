@@ -16,6 +16,8 @@
 
 &aoc {
 	aoc-board-cfg = "F10";
+	aoc-board-id = <0x30601>;
+	aoc-board-rev = <0x10000>;
 };
 
 &dai_be_tdm0_rx {

@@ -11,7 +11,6 @@
 };
 
 &max77759_fg {
-	/delete-node/ maxim,fg-data;
 
 	maxim,fg-data {
 		#include "google-base/gs101-fake-battery-data.dtsi"

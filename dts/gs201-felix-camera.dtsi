@@ -133,10 +133,22 @@
 	sensor_mclk2_fn: sensor-mclk2-fn {
 		samsung,pin-drv = <GS101_PIN_DRV_5_MA>;
 	};
+	sensor_mclk3_out: sensor-mclk3-out {
+		samsung,pin-drv = <GS101_PIN_DRV_5_MA>;
+	};
+	sensor_mclk3_fn: sensor-mclk3-fn {
+		samsung,pin-drv = <GS101_PIN_DRV_5_MA>;
+	};
 	sensor_mclk4_out: sensor-mclk4-out {
 		samsung,pin-drv = <GS101_PIN_DRV_5_MA>;
 	};
 	sensor_mclk4_fn: sensor-mclk4-fn {
+		samsung,pin-drv = <GS101_PIN_DRV_5_MA>;
+	};
+	sensor_mclk5_out: sensor-mclk5-out {
+		samsung,pin-drv = <GS101_PIN_DRV_5_MA>;
+	};
+	sensor_mclk5_fn: sensor-mclk5-fn {
 		samsung,pin-drv = <GS101_PIN_DRV_5_MA>;
 	};
 };
@@ -218,23 +230,11 @@
 	clock-frequency = <975000>;
 
 	pinctrl-names = "default","on_i2c","off_i2c";
-	pinctrl-0 = <&hsi2c14_bus>;
+	pinctrl-0 = <&hsi2c14_bus_in>;
 	pinctrl-1 = <&hsi2c14_bus>;
-	pinctrl-2 = <&hsi2c14_bus>;
+	pinctrl-2 = <&hsi2c14_bus_in>;
 };
 
-&hsi2c_15 {
-	#address-cells = <1>;
-	#size-cells = <0>;
-	gpios = <&gpp24 0 GPIO_ACTIVE_HIGH &gpp24 1 GPIO_ACTIVE_HIGH>;
-	status = "okay";
-	clock-frequency = <400000>;
-
-	pinctrl-names = "default","on_i2c","off_i2c";
-	pinctrl-0 = <&hsi2c15_bus>;
-	pinctrl-1 = <&hsi2c15_bus>;
-	pinctrl-2 = <&hsi2c15_bus>;
-};
 / {
 	fragment@lwiscamera {
 		target-path = "/";
@@ -661,8 +661,8 @@
 				power-down-seqs =
 					"mclk_off",
 					"reset",
-					"gpio4",
 					"s2mpg13_ldo25",
+					"gpio4",
 					"s2mpg13_ldo12";
 				power-down-seq-types =
 					"pinctrl",
@@ -810,7 +810,7 @@
 
 				/* Registers */
 				reg-addr-bitwidth = <16>;
-				reg-value-bitwidth = <16>;
+				reg-value-bitwidth = <8>;
 
 				/* GPIOs */
 				shared-afois-reset-gpios =
@@ -940,7 +940,7 @@
 					 1000>;
 			};
 
-			/* Actuator jotnar for dokkaebi */
+			/* Actuator jotnar for dokkaebi tele */
 			actuator1: actuator@1 {
 				compatible = "google,lwis-i2c-device";
 
@@ -953,7 +953,7 @@
 
 				/* Registers */
 				reg-addr-bitwidth = <16>;
-				reg-value-bitwidth = <16>;
+				reg-value-bitwidth = <8>;
 
 				/* GPIOs */
 				shared-afois-reset-gpios =
@@ -1048,7 +1048,7 @@
 					 1000>;
 			};
 
-			/* Ois nessie for dokkaebi */
+			/* Ois jotnar for dokkaebi tele */
 			ois1: ois@1 {
 				compatible = "google,lwis-i2c-device";
 
@@ -1061,7 +1061,7 @@
 
 				/* Registers */
 				reg-addr-bitwidth = <16>;
-				reg-value-bitwidth = <16>;
+				reg-value-bitwidth = <8>;
 
 				/* GPIOs */
 				shared-afois-reset-gpios =
