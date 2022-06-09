@@ -14,3 +14,7 @@
 	/* irdrop */
 	google,irdrop-limits = <50000 10000 0>;
 };
+
+&google_charger {
+	google,fv-max-uv = <4480000>;
+};
