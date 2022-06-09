@@ -19,8 +19,8 @@
 #include "google-base/gs201-ravenclaw-uwb.dtsi"
 
 #include "gs201-felix-wcharger.dtsi"
-#include "google-base/gs201-ravenclaw-usecases.dtsi"
 
+#include "gs201-felix-usecases.dtsi"
 #include "gs201-felix-aoc.dtsi"
 #include "gs201-felix-camera-pmic.dtsi"
 #include "gs201-felix-camera.dtsi"
