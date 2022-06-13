@@ -50,6 +50,7 @@
 		vci-supply = <&m_ldo27_reg>;
 		vddi-supply = <&m_ldo23_reg>;
 		vddd-supply = <&disp_vddd>;
+		touch = <&spi6touch>;
 	};
 	panel@1 {
 		compatible = "samsung,emul";
