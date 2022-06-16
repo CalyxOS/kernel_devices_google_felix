@@ -56,6 +56,9 @@ maxim,config {
 		maxim,batt-id-kohm = <1>;
 		maxim,model-version = <1>;
 		maxim,force-reset-model-data;
+		maxim,rc1-tempco = /bits/ 16 <0x181d>;
+		maxim,rc2-tempco = /bits/ 16 <0x1302>;
+		maxim,rc2-learncfg = /bits/ 16 <0x260e>;
 		maxim,fg-model = /bits/ 16 <
 			0xa500 0xb700 0xb8e0 0xbb00 0xbc10 0xbd40 0xbf10 0xc060
 			0xc1e0 0xc4b0 0xc8a0 0xcc70 0xd180 0xd600 0xd960 0xdce0
@@ -100,6 +103,9 @@ maxim,config {
 		maxim,batt-id-kohm = <3>;
 		maxim,model-version = <0>;
 		maxim,force-reset-model-data;
+		maxim,rc1-tempco = /bits/ 16 <0x1a1f>;
+		maxim,rc2-tempco = /bits/ 16 <0x1602>;
+		maxim,rc2-learncfg = /bits/ 16 <0x260e>;
 		maxim,fg-model = /bits/ 16 <
 			0xa500 0xa900 0xb780 0xb8d0 0xba30 0xbb90 0xbce0 0xbe20
 			0xbf60 0xc0d0 0xc240 0xc640 0xca80 0xd020 0xd6f0 0xdd90

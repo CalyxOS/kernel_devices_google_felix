@@ -13,6 +13,9 @@
 &max77759_fg {
 	/delete-property/ maxim,force-batt-id;
 	maxim,dual-battery = "maxfg_base";
+	maxim,rc-enable;
+	maxim,rc-soc = <20>;
+	maxim,rc-temp = <50>;
 
 //	maxim,filtercfg-temp = <100>;
 //	maxim,filtercfg-temp-hysteresis = <30>;
