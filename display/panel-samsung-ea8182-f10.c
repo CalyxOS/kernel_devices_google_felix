@@ -178,6 +178,18 @@ static void ea8182_f10_set_nolp_mode(struct exynos_panel *ctx,
 	dev_info(ctx->dev, "exit LP mode\n");
 }
 
+static void ea8182_f10_panel_reset(struct exynos_panel *ctx)
+{
+	dev_dbg(ctx->dev, "%s +\n", __func__);
+
+	gpiod_set_value(ctx->reset_gpio, 1);
+	usleep_range(10100, 10110);
+
+	dev_dbg(ctx->dev, "%s -\n", __func__);
+
+	exynos_panel_init(ctx);
+}
+
 static int ea8182_f10_enable(struct drm_panel *panel)
 {
 	struct exynos_panel *ctx = container_of(panel, struct exynos_panel, panel);
@@ -190,7 +202,7 @@ static int ea8182_f10_enable(struct drm_panel *panel)
 
 	dev_dbg(ctx->dev, "%s\n", __func__);
 
-	exynos_panel_reset(ctx);
+	ea8182_f10_panel_reset(ctx);
 
 	EXYNOS_DCS_WRITE_SEQ(ctx, 0x9D, 0x01);  /* Compression Enable */
 	EXYNOS_PPS_LONG_WRITE(ctx);             /* PPS_SETTING */
@@ -287,7 +299,66 @@ static void ea8182_f10_get_panel_rev(struct exynos_panel *ctx, u32 id)
 	dev_info(ctx->dev, "panel_rev: 0x%x\n", ctx->panel_rev);
 }
 
-/* TODO: set power */
+static int ea8182_f10_set_power(struct exynos_panel *ctx, bool enable)
+{
+	int ret;
+
+	if (enable) {
+		if (ctx->vddi) {
+			ret = regulator_enable(ctx->vddi);
+			if (ret) {
+				dev_err(ctx->dev, "vddi enable failed\n");
+				return ret;
+			}
+		}
+
+		if (ctx->vddd) {
+			ret = regulator_enable(ctx->vddd);
+			if (ret) {
+				dev_err(ctx->dev, "vddd enable failed\n");
+				return ret;
+			}
+		}
+
+		if (ctx->vci) {
+			ret = regulator_enable(ctx->vci);
+			if (ret) {
+				dev_err(ctx->dev, "vci enable failed\n");
+				return ret;
+			}
+			usleep_range(11000, 11010);
+		}
+	} else {
+		gpiod_set_value(ctx->reset_gpio, 0);
+		usleep_range(10000, 10010);
+
+		if (ctx->vci) {
+			ret = regulator_disable(ctx->vci);
+			if (ret) {
+				dev_err(ctx->dev, "vci disable failed\n");
+				return ret;
+			}
+		}
+
+		if (ctx->vddd) {
+			ret = regulator_disable(ctx->vddd);
+			if (ret) {
+				dev_err(ctx->dev, "vddd disable failed\n");
+				return ret;
+			}
+		}
+
+		if (ctx->vddi) {
+			ret = regulator_disable(ctx->vddi);
+			if (ret) {
+				dev_err(ctx->dev, "vddi disable failed\n");
+				return ret;
+			}
+		}
+	}
+
+	return 0;
+}
 
 static void ea8182_f10_panel_init(struct exynos_panel *ctx)
 {
@@ -413,6 +484,7 @@ static const struct exynos_panel_funcs ea8182_f10_exynos_funcs = {
 	.mode_set = ea8182_f10_mode_set,
 	.panel_init = ea8182_f10_panel_init,
 	.get_panel_rev = ea8182_f10_get_panel_rev,
+	.set_power = ea8182_f10_set_power,
 };
 
 const struct brightness_capability ea8182_f10_brightness_capability = {
