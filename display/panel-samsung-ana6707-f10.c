@@ -163,10 +163,6 @@ static const struct exynos_dsi_cmd ana6707_f10_lp_low_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(0x93, 0x01),
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x01),
 	EXYNOS_DSI_CMD_SEQ(0x60, 0x01),
-	EXYNOS_DSI_CMD_SEQ(0xB0, 0x4C),
-	EXYNOS_DSI_CMD_SEQ(0xBD, 0x00, 0x18),
-	EXYNOS_DSI_CMD_SEQ(0xB0, 0x4C),
-	EXYNOS_DSI_CMD_SEQ(0xC8, 0x01, 0x02, 0xB7),
 	EXYNOS_DSI_CMD(aod_on_10nit, 0), /* 10 nit */
 
 	EXYNOS_DSI_CMD0(early_exit_global_para),
@@ -180,9 +176,7 @@ static const struct exynos_dsi_cmd ana6707_f10_lp_low_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x04), /* global para */
 	EXYNOS_DSI_CMD_SEQ(0xBD, 0xC6), /* frame insertion HLPM on */
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x14), /* global para */
-	EXYNOS_DSI_CMD_SEQ(0xBD, 0x00, 0x80, 0x18, 0x00, 0x0C, 0x04), /* frame insertion 10Hz */
-	EXYNOS_DSI_CMD_SEQ(0xB0, 0x4A), /* global para */
-	EXYNOS_DSI_CMD_SEQ(0xBD, 0x00, 0x00, 0x00, 0x18), /* HLPM main 30Hz set */
+	EXYNOS_DSI_CMD_SEQ(0xBD, 0x00, 0x80, 0x08, 0x00, 0x04, 0x04), /* frame insertion 10Hz */
 
 	EXYNOS_DSI_CMD(display_on, 0),
 	EXYNOS_DSI_CMD0(update_key),
@@ -192,8 +186,6 @@ static const struct exynos_dsi_cmd ana6707_f10_lp_low_cmds[] = {
 static const struct exynos_dsi_cmd ana6707_f10_lp_high_cmds[] = {
 	EXYNOS_DSI_CMD0(unlock_cmd_f0),
 	EXYNOS_DSI_CMD_SEQ(0x93, 0x01),
-	EXYNOS_DSI_CMD_SEQ(0xB0, 0x4C),
-	EXYNOS_DSI_CMD_SEQ(0xBD, 0x00, 0x18),
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x01),
 	EXYNOS_DSI_CMD_SEQ(0x60, 0x01),
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x4C),
@@ -211,9 +203,7 @@ static const struct exynos_dsi_cmd ana6707_f10_lp_high_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x04), /* global para */
 	EXYNOS_DSI_CMD_SEQ(0xBD, 0xC6), /* frame insertion HLPM on */
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x14), /* global para */
-	EXYNOS_DSI_CMD_SEQ(0xBD, 0x00, 0x80, 0x18, 0x00, 0x0C, 0x04), /* frame insertion 10Hz */
-	EXYNOS_DSI_CMD_SEQ(0xB0, 0x4A), /* global para */
-	EXYNOS_DSI_CMD_SEQ(0xBD, 0x00, 0x00, 0x00, 0x18), /* HLPM main 30Hz set */
+	EXYNOS_DSI_CMD_SEQ(0xBD, 0x00, 0x80, 0x08, 0x00, 0x04, 0x04), /* frame insertion 10Hz */
 
 	EXYNOS_DSI_CMD(display_on, 0),
 	EXYNOS_DSI_CMD0(update_key),
@@ -447,10 +437,6 @@ static void ana6707_f10_set_nolp_mode(struct exynos_panel *ctx,
 	spanel->early_exit.status = EARLY_EXIT_OFF;
 
 	ana6707_f10_update_wrctrld(ctx); /* backlight control */
-	if (ctx->panel_rev >= PANEL_REV_EVT1) {
-		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x4C);
-		EXYNOS_DCS_WRITE_SEQ(ctx, 0xC8, 0x00);
-	}
 	EXYNOS_DCS_WRITE_TABLE(ctx, update_key);
 	EXYNOS_DCS_WRITE_TABLE(ctx, lock_cmd_f0);
 	ana6707_f10_change_frequency(ctx, pmode);
