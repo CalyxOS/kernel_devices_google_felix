@@ -76,7 +76,7 @@
 		st,irq-gpio = <&gpa6 7 0>;
 		st,reset-gpio = <&gpp23 3 0>;
 		st,dchip_id = /bits/ 8 <0x36 0x40>;
-		st,max-coords = <1079 2099>;
+		st,max-coords = <1079 2091>;
 		st,device_name = "fts_ext";
 		st,firmware_names = "ftm5_fw_f10_ext.ftb";
 		st,limits_names = "stm_fts_production_limits_f10_ext.csv";
