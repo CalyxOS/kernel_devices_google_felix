@@ -24,6 +24,7 @@
 #include "gs201-felix-aoc.dtsi"
 #include "gs201-felix-camera-pmic.dtsi"
 #include "gs201-felix-camera.dtsi"
+#include "gs201-felix-ldaf.dtsi"
 #include "gs201-felix-display.dtsi"
 #include "gs201-felix-hall-sensor.dtsi"
 #include "gs201-felix-pmic.dtsi"
