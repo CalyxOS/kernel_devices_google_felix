@@ -21,8 +21,8 @@ ext_modules += nfc
 ext_modules += power/reset
 ext_modules += sensors/hall_sensor
 ext_modules += touch/common
-ext_modules += touch/fts/ftm5
-ext_modules += touch/fts/fst2
+ext_modules += ../devices/google/felix/touch/ftm5
+ext_modules += ../devices/google/felix/touch/fst2
 ext_modules += wlan/bcmdhd4389
 ext_modules += video/gchips
 ext_modules += ../devices/google/felix/display
@@ -44,7 +44,8 @@ endif
 
 allmodules: $(ext_modules) $(install_uapi_headers_targets) depmod
 
-touch/fts/ftm5: | touch/common
+../devices/google/felix/touch/ftm5: | touch/common
+../devices/google/felix/touch/fst2: | touch/common
 
 aoc/alsa: | aoc
 
