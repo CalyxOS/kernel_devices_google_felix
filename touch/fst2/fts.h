@@ -69,6 +69,20 @@
 #define TOUCH_TYPE_GLOVE			0x02	/* /< Glove touch */
 #define TOUCH_TYPE_LARGE			0x03	/* /< Large touch */
 
+#define GTI_PM_WAKELOCK_TYPE_LOCK_MASK 0xFFFF
+/**
+ * @brief: wakelock type.
+ */
+enum pm_wakelock_type {
+	PM_WAKELOCK_TYPE_SCREEN_ON = 	0x01,
+	PM_WAKELOCK_TYPE_IRQ = 		0x02,
+	PM_WAKELOCK_TYPE_FW_UPDATE = 	0x04,
+	PM_WAKELOCK_TYPE_SYSFS = 	0x08,
+	PM_WAKELOCK_TYPE_FORCE_ACTIVE = 0x10,
+	PM_WAKELOCK_TYPE_BUGREPORT = 	0x20,
+	PM_WAKELOCK_TYPE_SYSINIT = 	0x40,
+};
+
 /*
   * Forward declaration
   */
@@ -121,9 +135,12 @@ struct fts_ts_info {
 						 * work threads */
 	event_dispatch_handler_t *event_dispatch_table;
 	int resume_bit;	/* /< Indicate if screen off/on */
+	struct completion bus_resumed;		/* resume_work complete */
 	unsigned int mode;	/* /< Device operating mode (bitmask: msb
 				 * indicate if active or lpm) */
 	struct drm_bridge panel_bridge;
+	u8 pm_wake_locks;
+	struct mutex pm_wakelock_mutex;	/* Protect access to the bus_ref */
 	struct drm_connector *connector;
 	bool is_panel_lp_mode;
 	unsigned long touch_id;	/* /< Bitmask for touch id (mapped to input
@@ -138,9 +155,14 @@ struct fts_ts_info {
 #endif
 };
 
-extern int fts_proc_init(void);
+extern int fts_proc_init(struct fts_ts_info *info);
 extern int fts_proc_remove(void);
 int fts_enable_interrupt(void);
 int fts_disable_interrupt(void);
+
+int pm_wake_lock(struct fts_ts_info *info, enum pm_wakelock_type type);
+int pm_wake_unlock(struct fts_ts_info *info, enum pm_wakelock_type type);
+
+
 
 #endif

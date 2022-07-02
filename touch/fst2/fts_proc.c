@@ -144,7 +144,11 @@ cat /proc/fts/driver_test ==>  this api shall write 1 and will
 be auto cleared with a time out when command is completed ,
 < cmdid , 2bytes fw reg address , 1byte bitset position, 2bytes timeout in ms */
 /**@}*/
-
+#define CMD_FORCE_TOUCH_ACTIVE			0x21
+/*!<usage: echo 20 _/00/01> /proc/fts/driver_test;
+cat /proc/fts/driver_test ==> Prevent the driver
+from transitioning the ownership of the bus to SLPI.
+Single parameter indicates force touch state */
 
 
 
@@ -329,6 +333,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 	struct force_update_flag force_burn_flag;
 	struct mutual_total_cx_data mutual_total_cx;
 	struct self_total_cx_data self_total_cx;
+	struct fts_ts_info *info = PDE_DATA(file_inode(file));
 
 	pbuf = (u8 *)kmalloc(count * sizeof(u8), GFP_KERNEL);
 	if (pbuf == NULL) {
@@ -979,6 +984,25 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
+		case CMD_FORCE_TOUCH_ACTIVE:
+			if (number_param == 2) {
+				if (cmd[1] > 1) {
+					log_info(1, "Parameter should be 1 or 0\n");
+					res = ERROR_OP_NOT_ALLOW;
+				} else {
+					log_info(1, "FTS_FORCE_TOUCH_ACTIVE: %s\n",
+						cmd[1] ? "ON" : "OFF");
+					if (cmd[1])
+						pm_wake_lock(info, PM_WAKELOCK_TYPE_FORCE_ACTIVE);
+					else
+						pm_wake_unlock(info, PM_WAKELOCK_TYPE_FORCE_ACTIVE);
+					res = OK;
+				}
+			}  else {
+				log_info(1, "Wrong number of parameters!\n");
+				res = ERROR_OP_NOT_ALLOW;
+			}
+			break;
 		default:
 			log_info(1, "%s: COMMAND ID NOT VALID!!!\n", __func__);
 			res = ERROR_OP_NOT_ALLOW;
@@ -1064,19 +1088,18 @@ static const struct proc_ops fts_driver_test_ops = {
   * file system
   * @return OK if success or an error code which specify the type of error
   */
-int fts_proc_init(void)
-{
+int fts_proc_init(struct fts_ts_info *info) {
 	struct proc_dir_entry *entry;
 	int retval = 0;
 
-	fts_dir = proc_mkdir_data("fts", 0777, NULL, NULL);
+	fts_dir = proc_mkdir_data("fts", 0555, NULL, info);
 	if (fts_dir == NULL) {	/* directory creation failed */
 		retval = -ENOMEM;
 		goto out;
 	}
 
-	entry = proc_create(DRIVER_TEST_FILE_NODE, 0777, fts_dir,
-		&fts_driver_test_ops);
+	entry = proc_create_data(DRIVER_TEST_FILE_NODE, 0666, fts_dir,
+		&fts_driver_test_ops, info);
 
 	if (entry)
 		log_info(1, "%s: proc entry CREATED!\n", __func__);

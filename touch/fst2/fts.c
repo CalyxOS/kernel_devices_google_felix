@@ -55,6 +55,7 @@
 
 #include "fts.h"
 #include "fts_lib/fts_flash.h"
+#include "fts_lib/fts_io.h"
 #include "fts_lib/fts_test.h"
 #include "fts_lib/fts_error.h"
 spinlock_t fts_int;
@@ -285,8 +286,9 @@ static void fts_event_handler(struct work_struct *work)
 	unsigned char event_id;
 
 	event_dispatch_handler_t event_handler;
-
 	info = container_of(work, struct fts_ts_info, work);
+
+	if (pm_wake_lock(info, PM_WAKELOCK_TYPE_IRQ)) return;
 	pm_wakeup_event(info->dev, jiffies_to_msecs(HZ));
 	for (count = 0; count < MAX_FIFO_EVENT; count++) {
 		error = fts_read_fw_reg(FIFO_READ_ADDR, data, 8);
@@ -300,6 +302,8 @@ static void fts_event_handler(struct work_struct *work)
 			event_handler(info, (data));
 		}
 	}
+	pm_wake_unlock(info, PM_WAKELOCK_TYPE_IRQ);
+
 	input_sync(info->input_dev);
 	fts_interrupt_enable(info);
 }
@@ -654,12 +658,12 @@ static void fts_resume_work(struct work_struct *work)
 
 	pm_wakeup_event(info->dev, jiffies_to_msecs(HZ));
 	info->resume_bit = 1;
-	fts_disable_interrupt();
 	fts_system_reset(1);
 	release_all_touches(info);
 	fts_mode_handler(info, 0);
 	info->sensor_sleep = false;
 	fts_enable_interrupt();
+	complete_all(&info->bus_resumed);
 }
 
 /**
@@ -677,6 +681,7 @@ static void fts_suspend_work(struct work_struct *work)
 
 	pr_info("%s\n", __func__);
 
+	reinit_completion(&info->bus_resumed);
 	pm_wakeup_event(info->dev, jiffies_to_msecs(HZ));
 	info->resume_bit = 0;
 	fts_mode_handler(info, 0);
@@ -686,6 +691,69 @@ static void fts_suspend_work(struct work_struct *work)
 
 	info->sensor_sleep = true;
 	fts_enable_interrupt();
+}
+
+int pm_wake_lock(struct fts_ts_info *info, enum pm_wakelock_type wakelock_type) {
+	log_info(1, "%s: Wake lock: %d\n", __func__, wakelock_type);
+	mutex_lock(&info->pm_wakelock_mutex);
+	if (info->pm_wake_locks & wakelock_type) {
+		log_info(1, "%s: Already locked! Wakelock: %d, Lock: %d\n", \
+			__func__, info->pm_wake_locks, wakelock_type);
+		mutex_unlock(&info->pm_wakelock_mutex);
+		return ERROR_OP_NOT_ALLOW;
+	}
+	/* IRQs can only keep the bus active. IRQs received while the
+	* bus is transferred to SLPI should be ignored.
+	*/
+	if (wakelock_type == PM_WAKELOCK_TYPE_IRQ && info->pm_wake_locks == 0) {
+		log_info(1, "%s: IRQ received when suspended.\n", __func__);
+		mutex_unlock(&info->pm_wakelock_mutex);
+		return ERROR_OP_NOT_ALLOW;
+	}
+	info->pm_wake_locks |= wakelock_type;
+
+	mutex_unlock(&info->pm_wakelock_mutex);
+
+	if (wakelock_type == PM_WAKELOCK_TYPE_IRQ) return OK;
+
+	/* Complete or cancel any outstanding transitions */
+	cancel_work_sync(&info->suspend_work);
+	cancel_work_sync(&info->resume_work);
+
+	queue_work(info->event_wq, &info->resume_work);
+
+	if (wakelock_type != PM_WAKELOCK_TYPE_SCREEN_ON) {
+		wait_for_completion_timeout(&info->bus_resumed, HZ);
+		if (info->sensor_sleep) {
+			log_info(1, "%s: Waking up is taking more than a sec. \
+				Returning without waiting.\n", __func__);
+			mutex_unlock(&info->pm_wakelock_mutex);
+			return ERROR_TIMEOUT;
+		}
+	}
+
+	return OK;
+}
+
+int pm_wake_unlock(struct fts_ts_info *info, enum pm_wakelock_type wakelock_type) {
+	log_info(1, "%s: Wake unlock: %d\n", __func__, wakelock_type);
+	mutex_lock(&info->pm_wakelock_mutex);
+	if ((info->pm_wake_locks & wakelock_type) == 0) {
+		log_info(1, "%s: Already unlocked! Wakelock: %d, Lock: %d", \
+			__func__, info->pm_wake_locks, wakelock_type);
+		mutex_unlock(&info->pm_wakelock_mutex);
+		return ERROR_OP_NOT_ALLOW;
+	}
+	info->pm_wake_locks &= ~wakelock_type;
+
+	mutex_unlock(&info->pm_wakelock_mutex);
+	/* Complete or cancel any outstanding transitions */
+	cancel_work_sync(&info->suspend_work);
+	cancel_work_sync(&info->resume_work);
+	if (!info->pm_wake_locks && !info->sensor_sleep)
+		queue_work(info->event_wq, &info->suspend_work);
+
+	return OK;
 }
 
 struct drm_connector *get_bridge_connector(struct drm_bridge *bridge)
@@ -702,8 +770,7 @@ struct drm_connector *get_bridge_connector(struct drm_bridge *bridge)
 	return connector;
 }
 
-static bool bridge_is_lp_mode(struct drm_connector *connector)
-{
+static bool bridge_is_lp_mode(struct drm_connector *connector) {
 	if (connector && connector->state) {
 		struct exynos_drm_connector_state *s =
 			to_exynos_connector_state(connector->state);
@@ -712,21 +779,22 @@ static bool bridge_is_lp_mode(struct drm_connector *connector)
 	return false;
 }
 
-static void panel_bridge_enable(struct drm_bridge *bridge)
-{
+static void panel_bridge_enable(struct drm_bridge *bridge) {
 	struct fts_ts_info *info =
 			container_of(bridge, struct fts_ts_info, panel_bridge);
 
+	log_info(1, "%s: Entry\n", __func__);
 	pr_debug("%s\n", __func__);
 	if (!info->is_panel_lp_mode)
-		queue_work(info->event_wq, &info->resume_work);
+		pm_wake_lock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
+	log_info(1, "%s: Exit\n", __func__);
 }
 
-static void panel_bridge_disable(struct drm_bridge *bridge)
-{
+static void panel_bridge_disable(struct drm_bridge *bridge) {
 	struct fts_ts_info *info =
 			container_of(bridge, struct fts_ts_info, panel_bridge);
 
+	log_info(1, "%s: Entry\n", __func__);
 	if (bridge->encoder && bridge->encoder->crtc) {
 		const struct drm_crtc_state *crtc_state = bridge->encoder->crtc->state;
 
@@ -735,16 +803,16 @@ static void panel_bridge_disable(struct drm_bridge *bridge)
 	}
 
 	pr_debug("%s\n", __func__);
-	queue_work(info->event_wq, &info->suspend_work);
+	pm_wake_unlock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
+	log_info(1, "%s: Exit\n", __func__);
 }
 
 static void panel_bridge_mode_set(struct drm_bridge *bridge,
 				  const struct drm_display_mode *mode,
-				  const struct drm_display_mode *adjusted_mode)
-{
+				  const struct drm_display_mode *adjusted_mode) {
 	struct fts_ts_info *info =
 			container_of(bridge, struct fts_ts_info, panel_bridge);
-
+	log_info(1, "%s: Entry\n", __func__);
 	pr_debug("%s\n", __func__);
 
 	if (!info->connector || !info->connector->state) {
@@ -754,9 +822,10 @@ static void panel_bridge_mode_set(struct drm_bridge *bridge,
 
 	info->is_panel_lp_mode = bridge_is_lp_mode(info->connector);
 	if (info->is_panel_lp_mode)
-		queue_work(info->event_wq, &info->suspend_work);
+		pm_wake_unlock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
 	else
-		queue_work(info->event_wq, &info->resume_work);
+		pm_wake_lock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
+	log_info(1, "%s: Exit\n", __func__);
 }
 
 static const struct drm_bridge_funcs panel_bridge_funcs = {
@@ -876,10 +945,11 @@ static int fts_chip_init(struct fts_ts_info *info)
 		struct exynos_panel *ctx = container_of(info->board->panel,
 							struct exynos_panel,
 							panel);
+		log_info(1, "%s: Boot status align.", __func__);
 		if (ctx->enabled)
-			queue_work(info->event_wq, &info->resume_work);
+			pm_wake_lock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
 		else
-			queue_work(info->event_wq, &info->suspend_work);
+			pm_wake_unlock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
 	}
 
 	return res;
@@ -898,6 +968,7 @@ static void flash_update_auto(struct work_struct *work)
 	struct fts_ts_info *info = container_of(fwu_work, struct fts_ts_info,
 						fwu_work);
 	fts_chip_init(info);
+	pm_wake_unlock(info, PM_WAKELOCK_TYPE_SYSINIT);
 }
 #endif
 
@@ -1359,6 +1430,7 @@ static int fts_probe(struct spi_device *client)
 
 	info->client = client;
 	info->dev = &info->client->dev;
+	info->pm_wake_locks = PM_WAKELOCK_TYPE_SYSINIT;
 
 	dev_set_drvdata(info->dev, info);
 
@@ -1416,6 +1488,10 @@ static int fts_probe(struct spi_device *client)
 	INIT_WORK(&info->work, fts_event_handler);
 	INIT_WORK(&info->resume_work, fts_resume_work);
 	INIT_WORK(&info->suspend_work, fts_suspend_work);
+
+	mutex_init(&info->pm_wakelock_mutex);
+	init_completion(&info->bus_resumed);
+	complete_all(&info->bus_resumed);
 
 	log_info(1, "%s: SET Input Device Property:\n", __func__);
 	info->input_dev = input_allocate_device();
@@ -1477,7 +1553,7 @@ static int fts_probe(struct spi_device *client)
 		goto probe_error_exit_6;
 	}
 
-	ret_val = fts_proc_init();
+	ret_val = fts_proc_init(info);
 	if (ret_val < OK)
 		log_info(1, "%s: Cannot create /proc filenode..\n", __func__);
 
@@ -1488,6 +1564,7 @@ static int fts_probe(struct spi_device *client)
 			 __func__);
 		goto probe_error_exit_6;
 	}
+	pm_wake_unlock(info, PM_WAKELOCK_TYPE_SYSINIT);
 #else
 	log_info(1, "%s: SET Auto Fw Update:\n", __func__);
 	info->fwu_workqueue = alloc_workqueue("fts-fwu-queue", WQ_UNBOUND |
