@@ -1232,6 +1232,12 @@ int full_panel_init(struct force_update_flag *force_update)
 	}
 
 	if (force_update->panel_init) {
+
+		//Save MPFlag
+		u8 data = MP_FLAG_BOOT;
+		log_info(1, "%s: Saving MP Flag Boot..\n", __func__);
+		fts_write_fw_reg(MP_FLAG_ADDR, &data, 1);
+
 		log_info(1, "%s: Starting Init..\n", __func__);
 		res = fts_fw_request(PI_ADDR, 1, 1, TIMEOUT_FPI);
 		if (res < OK) {

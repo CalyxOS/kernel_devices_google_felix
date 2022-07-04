@@ -160,6 +160,7 @@
 							 * status  address */
 #define FIFO_READ_ADDR			0x0060 /* /< FW reg FIFO read
 							 * address */
+#define MP_FLAG_ADDR			0x0070 /* /< FW MP FLAG address*/
 
 /* EVENT ID */
 /** @defgroup events_group	 FW Event IDs and Types
@@ -218,6 +219,24 @@
 						* Data for Active  */
 #define HDM_REQ_TOT_IX_SS_TOUCH_IDLE	0x53 /* /< Load HDM TOT SS Init Data
 						 *  for Low power Mode */
+
+/* @defgroup mp_flags MP Flags value
+ * @ingroup mp_test
+ * Specify the MP flags value which are written into the flash after performing
+ * a full panel initialization which pass all the tests.
+ * @{
+ */
+#define MP_FLAG_UNSET		0x00	/* /< Original value when a panel module
+					 * just got built. */
+#define MP_FLAG_FACTORY		0xA5	/* /< Full Panel Init done in factory */
+#define MP_FLAG_BOOT		0x5A	/* /< Full Panel Init done at boot */
+#define MP_FLAG_OTHERS		0xFF	/* /< Full Panel Init done somewhere else */
+#define MP_FLAG_NEED_FPI	0xDF	/* /< Manual firmware update with keep_cx=0
+					 * and Full Panel Init is not executed yet */
+#define MP_FLAG_CX_AFE_CHG	0xCF	/* /< Need to do Full Panel Init when cx_afe
+					 * version change during auto firmware update. */
+/** @}*/
+
 
 
 #define SYSTEM_RESET_VAL		0x80 /* /< System reset Value*/
