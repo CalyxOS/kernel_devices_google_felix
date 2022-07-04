@@ -1718,7 +1718,7 @@ int fts_production_test_ms_cx_lp(char *path_limits, int stop_on_fail,
 	log_info(1, "%s: MS TOTAL CX LP DATA TEST STARTING...\n", __func__);
 	if (tests->mutual_cx_lp || tests->mutual_cx_lp_adj) {
 		log_info(1, "%s: Collecting MS CX LP data...\n", __func__);
-		res = get_mutual_total_cx_data(HDM_REQ_TOT_CX_MS_TOUCH,
+		res = get_mutual_total_cx_data(HDM_REQ_TOT_CX_MS_LOW_POWER,
 			 &ms_cx_data);
 		if (res < OK) {
 			res |= ERROR_PROD_TEST_CX;
