@@ -288,7 +288,7 @@ static void fts_event_handler(struct work_struct *work)
 	event_dispatch_handler_t event_handler;
 	info = container_of(work, struct fts_ts_info, work);
 
-	if (pm_wake_lock(info, PM_WAKELOCK_TYPE_IRQ)) return;
+//	if (pm_wake_lock(info, PM_WAKELOCK_TYPE_IRQ)) return;
 	pm_wakeup_event(info->dev, jiffies_to_msecs(HZ));
 	for (count = 0; count < MAX_FIFO_EVENT; count++) {
 		error = fts_read_fw_reg(FIFO_READ_ADDR, data, 8);
@@ -302,7 +302,7 @@ static void fts_event_handler(struct work_struct *work)
 			event_handler(info, (data));
 		}
 	}
-	pm_wake_unlock(info, PM_WAKELOCK_TYPE_IRQ);
+//	pm_wake_unlock(info, PM_WAKELOCK_TYPE_IRQ);
 
 	input_sync(info->input_dev);
 	fts_interrupt_enable(info);
@@ -684,6 +684,7 @@ static void fts_suspend_work(struct work_struct *work)
 	reinit_completion(&info->bus_resumed);
 	pm_wakeup_event(info->dev, jiffies_to_msecs(HZ));
 	info->resume_bit = 0;
+	fts_disable_interrupt();
 	fts_mode_handler(info, 0);
 	release_all_touches(info);
 
@@ -694,10 +695,10 @@ static void fts_suspend_work(struct work_struct *work)
 }
 
 int pm_wake_lock(struct fts_ts_info *info, enum pm_wakelock_type wakelock_type) {
-	log_info(1, "%s: Wake lock: %d\n", __func__, wakelock_type);
+	log_info(0, "%s: Wake lock: %d\n", __func__, wakelock_type);
 	mutex_lock(&info->pm_wakelock_mutex);
 	if (info->pm_wake_locks & wakelock_type) {
-		log_info(1, "%s: Already locked! Wakelock: %d, Lock: %d\n", \
+		log_info(0, "%s: Already locked! Wakelock: %d, Lock: %d\n", \
 			__func__, info->pm_wake_locks, wakelock_type);
 		mutex_unlock(&info->pm_wakelock_mutex);
 		return ERROR_OP_NOT_ALLOW;
@@ -706,7 +707,7 @@ int pm_wake_lock(struct fts_ts_info *info, enum pm_wakelock_type wakelock_type) 
 	* bus is transferred to SLPI should be ignored.
 	*/
 	if (wakelock_type == PM_WAKELOCK_TYPE_IRQ && info->pm_wake_locks == 0) {
-		log_info(1, "%s: IRQ received when suspended.\n", __func__);
+		log_info(0, "%s: IRQ received when suspended.\n", __func__);
 		mutex_unlock(&info->pm_wakelock_mutex);
 		return ERROR_OP_NOT_ALLOW;
 	}
@@ -736,10 +737,10 @@ int pm_wake_lock(struct fts_ts_info *info, enum pm_wakelock_type wakelock_type) 
 }
 
 int pm_wake_unlock(struct fts_ts_info *info, enum pm_wakelock_type wakelock_type) {
-	log_info(1, "%s: Wake unlock: %d\n", __func__, wakelock_type);
+	log_info(0, "%s: Wake unlock: %d\n", __func__, wakelock_type);
 	mutex_lock(&info->pm_wakelock_mutex);
 	if ((info->pm_wake_locks & wakelock_type) == 0) {
-		log_info(1, "%s: Already unlocked! Wakelock: %d, Lock: %d", \
+		log_info(0, "%s: Already unlocked! Wakelock: %d, Lock: %d", \
 			__func__, info->pm_wake_locks, wakelock_type);
 		mutex_unlock(&info->pm_wakelock_mutex);
 		return ERROR_OP_NOT_ALLOW;
@@ -783,18 +784,18 @@ static void panel_bridge_enable(struct drm_bridge *bridge) {
 	struct fts_ts_info *info =
 			container_of(bridge, struct fts_ts_info, panel_bridge);
 
-	log_info(1, "%s: Entry\n", __func__);
+	log_info(0, "%s: Entry\n", __func__);
 	pr_debug("%s\n", __func__);
 	if (!info->is_panel_lp_mode)
 		pm_wake_lock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
-	log_info(1, "%s: Exit\n", __func__);
+	log_info(0, "%s: Exit\n", __func__);
 }
 
 static void panel_bridge_disable(struct drm_bridge *bridge) {
 	struct fts_ts_info *info =
 			container_of(bridge, struct fts_ts_info, panel_bridge);
 
-	log_info(1, "%s: Entry\n", __func__);
+	log_info(0, "%s: Entry\n", __func__);
 	if (bridge->encoder && bridge->encoder->crtc) {
 		const struct drm_crtc_state *crtc_state = bridge->encoder->crtc->state;
 
@@ -804,7 +805,7 @@ static void panel_bridge_disable(struct drm_bridge *bridge) {
 
 	pr_debug("%s\n", __func__);
 	pm_wake_unlock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
-	log_info(1, "%s: Exit\n", __func__);
+	log_info(0, "%s: Exit\n", __func__);
 }
 
 static void panel_bridge_mode_set(struct drm_bridge *bridge,
@@ -812,7 +813,7 @@ static void panel_bridge_mode_set(struct drm_bridge *bridge,
 				  const struct drm_display_mode *adjusted_mode) {
 	struct fts_ts_info *info =
 			container_of(bridge, struct fts_ts_info, panel_bridge);
-	log_info(1, "%s: Entry\n", __func__);
+	log_info(0, "%s: Entry\n", __func__);
 	pr_debug("%s\n", __func__);
 
 	if (!info->connector || !info->connector->state) {
@@ -825,7 +826,7 @@ static void panel_bridge_mode_set(struct drm_bridge *bridge,
 		pm_wake_unlock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
 	else
 		pm_wake_lock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
-	log_info(1, "%s: Exit\n", __func__);
+	log_info(0, "%s: Exit\n", __func__);
 }
 
 static const struct drm_bridge_funcs panel_bridge_funcs = {
