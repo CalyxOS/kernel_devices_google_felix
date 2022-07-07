@@ -19,4 +19,6 @@
 	/* for OTG related usecase*/
 	max77759,rx-to-rx-otg-en; /* support RX -> RX+OTG */
 	max77759,ext-otg-only; /* use external OTG only */
+
+	max77759,wlc-otg-extbst-en; /* Only WLC+OTG to enable extbst mode */
 };
