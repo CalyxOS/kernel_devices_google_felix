@@ -58,10 +58,9 @@
 #include "fts_lib/fts_io.h"
 #include "fts_lib/fts_test.h"
 #include "fts_lib/fts_error.h"
-spinlock_t fts_int;
+
 static int system_reseted_up;
 static int system_reseted_down;
-static int disable_irq_count = 1;
 
 char fts_ts_phys[64];
 extern struct test_to_do tests;
@@ -116,81 +115,35 @@ void set_system_reseted_down(int val)
 	system_reseted_down = val;
 }
 
-/**
-  * Enable the host side interrupt
-  */
-static void fts_interrupt_enable(struct fts_ts_info *info)
+/* Set the interrupt state
+ * @param enable Indicates whether interrupts should enabled.
+ * @return OK if success
+ */
+int fts_set_interrupt(struct fts_ts_info *info, bool enable)
 {
-	enable_irq(info->client->irq);
-}
-
-/**
-  * Disable the interrupt so the ISR of the driver can not be called
-  * @return OK if success or an error code which specify the type of error
-  */
-int fts_disable_interrupt(void)
-{
-	unsigned long flag;
-
-	if (get_client() != NULL) {
-		spin_lock_irqsave(&fts_int, flag);
-		log_info(1, "%s: Number of disable = %d\n", __func__,
-			disable_irq_count);
-		if (disable_irq_count == 0) {
-			log_info(1, "%s Executing Disable...\n", __func__);
-			disable_irq(get_client()->irq);
-			disable_irq_count++;
-		}
-		/* disable_irq is re-entrant so it is required to keep track
-		  * of the number of calls of this when reenabling */
-		  spin_unlock_irqrestore(&fts_int, flag);
-		log_info(1, "%s: Interrupt Disabled!\n", __func__);
-		return OK;
+	if (info->client == NULL) {
+		dev_err(info->dev, "Cannot get client irq. Error = %08X\n",
+			ERROR_OP_NOT_ALLOW);
+		return ERROR_OP_NOT_ALLOW;
 	}
-	log_info(1, "%s: Impossible get client irq... ERROR %08X\n",
-		__func__, ERROR_OP_NOT_ALLOW);
-	return ERROR_OP_NOT_ALLOW;
-}
 
-/**
-  * Reset the disable_irq count
-  * @return OK
-  */
-int fts_reset_disable_irq_count(void)
-{
-	disable_irq_count = 0;
+	mutex_lock(&info->fts_int_mutex);
+	if (enable == info->irq_enabled) {
+		dev_dbg(info->dev, "Interrupt is already set (enable = %d).\n", enable);
+	} else {
+		info->irq_enabled = enable;
+		if (enable) {
+			enable_irq(info->client->irq);
+			dev_dbg(info->dev, "Interrupt enabled.\n");
+		} else {
+			disable_irq_nosync(info->client->irq);
+			dev_dbg(info->dev, "Interrupt disabled.\n");
+		}
+	}
+
+	mutex_unlock(&info->fts_int_mutex);
 	return OK;
 }
-
-/**
-  * Enable the interrupt so the ISR of the driver can be called
-  * @return OK if success or an error code which specify the type of error
-  */
-int fts_enable_interrupt(void)
-{
-	unsigned long flag;
-
-	if (get_client() != NULL) {
-		spin_lock_irqsave(&fts_int, flag);
-		log_info(1, "%s: Number of re-enable = %d\n", __func__,
-			 disable_irq_count);
-		while (disable_irq_count > 0) {
-			/* loop N times according on the pending number of
-			 * disable_irq to truly re-enable the int */
-			log_info(1, "%s: Executing Enable...\n", __func__);
-			enable_irq(get_client()->irq);
-			disable_irq_count--;
-		}
-
-		spin_unlock_irqrestore(&fts_int, flag);
-		log_info(1, "%s: Interrupt Enabled!\n", __func__);
-		return OK;
-	}
-	log_info(1, "%s: Impossible get client irq... ERROR %08X\n",
-		 __func__, ERROR_OP_NOT_ALLOW);
-	return ERROR_OP_NOT_ALLOW;
-}
-
 /**
   * Release all the touches in the linux input subsystem
   * @param info pointer to fts_ts_info which contains info about the device and
@@ -200,7 +153,7 @@ void release_all_touches(struct fts_ts_info *info)
 {
 	unsigned int type = MT_TOOL_FINGER;
 	int i;
-
+	mutex_lock(&info->input_report_mutex);
 	for (i = 0; i < TOUCH_ID_MAX + PEN_ID_MAX ; i++) {
 		type = i < TOUCH_ID_MAX ? MT_TOOL_FINGER : MT_TOOL_PEN;
 		input_mt_slot(info->input_dev, i);
@@ -210,6 +163,7 @@ void release_all_touches(struct fts_ts_info *info)
 	}
 	input_report_key(info->input_dev, BTN_TOUCH, 0);
 	input_sync(info->input_dev);
+	mutex_unlock(&info->input_report_mutex);
 	info->touch_id = 0;
 }
 
@@ -278,18 +232,16 @@ static int fts_mode_handler(struct fts_ts_info *info, int force)
   * the FIFO and dispatch them to the proper event handler according the event
   * ID
   */
-static void fts_event_handler(struct work_struct *work)
+static irqreturn_t fts_interrupt_handler(int irq, void *handle)
 {
-	struct fts_ts_info *info;
+	struct fts_ts_info *info = handle;
 	int error = 0, count = 0;
 	unsigned char data[FIFO_EVENT_SIZE] = { 0 };
 	unsigned char event_id;
-
 	event_dispatch_handler_t event_handler;
-	info = container_of(work, struct fts_ts_info, work);
+	if (pm_wake_lock(info, PM_WAKELOCK_TYPE_IRQ)) return IRQ_HANDLED;
 
-//	if (pm_wake_lock(info, PM_WAKELOCK_TYPE_IRQ)) return;
-	pm_wakeup_event(info->dev, jiffies_to_msecs(HZ));
+	mutex_lock(&info->input_report_mutex);
 	for (count = 0; count < MAX_FIFO_EVENT; count++) {
 		error = fts_read_fw_reg(FIFO_READ_ADDR, data, 8);
 		if (error == OK && data[0] != EVT_ID_NOEVENT)
@@ -302,12 +254,16 @@ static void fts_event_handler(struct work_struct *work)
 			event_handler(info, (data));
 		}
 	}
-//	pm_wake_unlock(info, PM_WAKELOCK_TYPE_IRQ);
+	pm_wake_unlock(info, PM_WAKELOCK_TYPE_IRQ);
 
+	if (info->touch_id == 0)
+		input_report_key(info->input_dev, BTN_TOUCH, 0);
+
+	input_set_timestamp(info->input_dev, info->timestamp);
 	input_sync(info->input_dev);
-	fts_interrupt_enable(info);
+	mutex_unlock(&info->input_report_mutex);
+	return IRQ_HANDLED;
 }
-
 
 /**
   * Top half Interrupt handler function
@@ -315,13 +271,11 @@ static void fts_event_handler(struct work_struct *work)
   * in its work queue
   * @see fts_event_handler()
   */
-static irqreturn_t fts_interrupt_handler(int irq, void *handle)
+static irqreturn_t fts_isr(int irq, void *handle)
 {
 	struct fts_ts_info *info = handle;
-
-	disable_irq_nosync(info->client->irq);
-	queue_work(info->event_wq, &info->work);
-	return IRQ_HANDLED;
+	info->timestamp = ktime_get();
+	return IRQ_WAKE_THREAD;
 }
 
 /**
@@ -470,10 +424,10 @@ static void fts_error_event_handler(struct fts_ts_info *info, unsigned
 	{
 		/* before reset clear all slots */
 		release_all_touches(info);
-		fts_disable_interrupt();
+		fts_set_interrupt(info, false);
 		error = fts_system_reset(1);
 		error |= fts_mode_handler(info, 0);
-		error |= fts_enable_interrupt();
+		error |= fts_set_interrupt(info, true);
 		if (error < OK)
 			log_info(1,
 				 "%s: Cannot reset the device ERROR %08X\n",
@@ -615,16 +569,19 @@ static int fts_interrupt_install(struct fts_ts_info *info)
 	install_handler(info, LEAVE_PEN, leave_pen);
 	install_handler(info, MOTION_PEN, motion_pen);
 
-	error = fts_disable_interrupt();
+	/* disable interrupts in any case */
+	error = fts_set_interrupt(info, false);
+	if (error) return error;
 
 	log_info(1, "%s: Interrupt Mode\n", __func__);
-	if (request_irq(info->client->irq, fts_interrupt_handler,
-			IRQF_TRIGGER_LOW, FTS_TS_DRV_NAME, info)) {
+	if (request_threaded_irq(info->client->irq, fts_isr,
+			fts_interrupt_handler, IRQF_ONESHOT | IRQF_TRIGGER_LOW,
+			FTS_TS_DRV_NAME, info)) {
 		log_info(1, "%s: Request irq failed\n", __func__);
 		kfree(info->event_dispatch_table);
 		error = -EBUSY;
 	}
-
+	info->irq_enabled = true;
 	return error;
 }
 
@@ -632,9 +589,8 @@ static int fts_interrupt_install(struct fts_ts_info *info)
   *	Clean the dispatch table and the free the IRQ.
   *	This function is called when the driver need to be removed
   */
-static void fts_interrupt_uninstall(struct fts_ts_info *info)
-{
-	fts_disable_interrupt();
+static void fts_interrupt_uninstall(struct fts_ts_info *info) {
+	fts_set_interrupt(info, false);
 	kfree(info->event_dispatch_table);
 	free_irq(info->client->irq, info);
 }
@@ -662,7 +618,7 @@ static void fts_resume_work(struct work_struct *work)
 	release_all_touches(info);
 	fts_mode_handler(info, 0);
 	info->sensor_sleep = false;
-	fts_enable_interrupt();
+	fts_set_interrupt(info, true);
 	complete_all(&info->bus_resumed);
 }
 
@@ -683,18 +639,18 @@ static void fts_suspend_work(struct work_struct *work)
 
 	reinit_completion(&info->bus_resumed);
 	pm_wakeup_event(info->dev, jiffies_to_msecs(HZ));
+	fts_set_interrupt(info, false);
 	info->resume_bit = 0;
-	fts_disable_interrupt();
 	fts_mode_handler(info, 0);
 	release_all_touches(info);
 
 	fts_pinctrl_setup(info, false);
 
 	info->sensor_sleep = true;
-	fts_enable_interrupt();
 }
 
-int pm_wake_lock(struct fts_ts_info *info, enum pm_wakelock_type wakelock_type) {
+int pm_wake_lock(struct fts_ts_info *info, enum pm_wakelock_type wakelock_type)
+{
 	log_info(0, "%s: Wake lock: %d\n", __func__, wakelock_type);
 	mutex_lock(&info->pm_wakelock_mutex);
 	if (info->pm_wake_locks & wakelock_type) {
@@ -728,7 +684,6 @@ int pm_wake_lock(struct fts_ts_info *info, enum pm_wakelock_type wakelock_type) 
 		if (info->sensor_sleep) {
 			log_info(1, "%s: Waking up is taking more than a sec. \
 				Returning without waiting.\n", __func__);
-			mutex_unlock(&info->pm_wakelock_mutex);
 			return ERROR_TIMEOUT;
 		}
 	}
@@ -771,7 +726,8 @@ struct drm_connector *get_bridge_connector(struct drm_bridge *bridge)
 	return connector;
 }
 
-static bool bridge_is_lp_mode(struct drm_connector *connector) {
+static bool bridge_is_lp_mode(struct drm_connector *connector)
+{
 	if (connector && connector->state) {
 		struct exynos_drm_connector_state *s =
 			to_exynos_connector_state(connector->state);
@@ -780,7 +736,8 @@ static bool bridge_is_lp_mode(struct drm_connector *connector) {
 	return false;
 }
 
-static void panel_bridge_enable(struct drm_bridge *bridge) {
+static void panel_bridge_enable(struct drm_bridge *bridge)
+{
 	struct fts_ts_info *info =
 			container_of(bridge, struct fts_ts_info, panel_bridge);
 
@@ -791,7 +748,8 @@ static void panel_bridge_enable(struct drm_bridge *bridge) {
 	log_info(0, "%s: Exit\n", __func__);
 }
 
-static void panel_bridge_disable(struct drm_bridge *bridge) {
+static void panel_bridge_disable(struct drm_bridge *bridge)
+{
 	struct fts_ts_info *info =
 			container_of(bridge, struct fts_ts_info, panel_bridge);
 
@@ -810,7 +768,8 @@ static void panel_bridge_disable(struct drm_bridge *bridge) {
 
 static void panel_bridge_mode_set(struct drm_bridge *bridge,
 				  const struct drm_display_mode *mode,
-				  const struct drm_display_mode *adjusted_mode) {
+				  const struct drm_display_mode *adjusted_mode)
+{
 	struct fts_ts_info *info =
 			container_of(bridge, struct fts_ts_info, panel_bridge);
 	log_info(0, "%s: Entry\n", __func__);
@@ -885,7 +844,7 @@ static int fts_init_sensing(struct fts_ts_info *info)
 	error |= fts_interrupt_install(info);
 	log_info(1, "%s: Sensing on..\n", __func__);
 	error |= fts_mode_handler(info, 0);
-	error |= fts_reset_disable_irq_count();
+	error |= fts_set_interrupt(info, true); /* enable the interrupt */
 
 	res = fts_write_fw_reg(add, &int_data, 1);
 	if (res < OK) {
@@ -1486,10 +1445,11 @@ static int fts_probe(struct spi_device *client)
 		error = -ENOMEM;
 		goto probe_error_exit_2;
 	}
-	INIT_WORK(&info->work, fts_event_handler);
 	INIT_WORK(&info->resume_work, fts_resume_work);
 	INIT_WORK(&info->suspend_work, fts_suspend_work);
 
+	mutex_init(&(info->input_report_mutex));
+	mutex_init(&info->fts_int_mutex);
 	mutex_init(&info->pm_wakelock_mutex);
 	init_completion(&info->bus_resumed);
 	complete_all(&info->bus_resumed);
@@ -1536,8 +1496,6 @@ static int fts_probe(struct spi_device *client)
 						DISTANCE_MAX, 0, 0);
 	input_set_abs_params(info->input_dev, ABS_TILT_Y, DISTANCE_MIN,
 						DISTANCE_MAX, 0, 0);
-	mutex_init(&(info->input_report_mutex));
-	spin_lock_init(&fts_int);
 	error = input_register_device(info->input_dev);
 	if (error) {
 		log_info(1, "%s: ERROR: No such input device\n", __func__);
