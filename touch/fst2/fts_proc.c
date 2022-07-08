@@ -554,9 +554,9 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 		case CMD_INTERRUPT:
 			if (number_param == 2) {
 				if (cmd[1] == 1)
-					res = fts_enable_interrupt();
+					res = fts_set_interrupt(info, true);
 				else
-					res = fts_disable_interrupt();
+					res = fts_set_interrupt(info, false);
 			} else {
 				log_info(1, "%s: wrong number of parameters\n",
 				__func__);

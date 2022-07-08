@@ -20,7 +20,6 @@
 #define _LINUX_FTS_I2C_H_
 
 #include <linux/device.h>
-#include "fts_lib/fts_io.h"
 #include <drm/drm_bridge.h>
 
 #define FTS_TS_DRV_NAME		"fst2"
@@ -123,11 +122,14 @@ struct fts_ts_info {
 	struct pinctrl_state *pinctrl_state_suspend;	/* Suspend pin state*/
 	struct pinctrl_state *pinctrl_state_release;	/* Release pin state*/
 
+	ktime_t timestamp; /* time that the event was first received from the
+		touch IC, acquired during hard interrupt, in CLOCK_MONOTONIC */
+	struct mutex fts_int_mutex;
+	bool irq_enabled;	/* Interrupt state */
 
 	struct input_dev *input_dev; /* /< Input device structure */
 	struct mutex input_report_mutex;/* /< mutex for handling the report
 						 * of the pressure of keys */
-	struct work_struct work;	/* /< Event work thread */
 	struct work_struct suspend_work;	/* /< Suspend work thread */
 	struct work_struct resume_work;	/* /< Resume work thread */
 	struct workqueue_struct *event_wq;	/* /< Workqueue used for event
@@ -157,8 +159,7 @@ struct fts_ts_info {
 
 extern int fts_proc_init(struct fts_ts_info *info);
 extern int fts_proc_remove(void);
-int fts_enable_interrupt(void);
-int fts_disable_interrupt(void);
+int fts_set_interrupt(struct fts_ts_info *info, bool enable);
 
 int pm_wake_lock(struct fts_ts_info *info, enum pm_wakelock_type type);
 int pm_wake_unlock(struct fts_ts_info *info, enum pm_wakelock_type type);
