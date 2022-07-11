@@ -869,28 +869,28 @@ const struct brightness_capability ana6707_f10_brightness_capability = {
 	.normal = {
 		.nits = {
 			.min = 2,
-			.max = 500,
+			.max = 600,
 		},
 		.level = {
-			.min = 9,
+			.min = 7,
 			.max = 2047,
 		},
 		.percentage = {
 			.min = 0,
-			.max = 62,
+			.max = 60,
 		},
 	},
 	.hbm = {
 		.nits = {
-			.min = 500,
-			.max = 800,
+			.min = 600,
+			.max = 1000,
 		},
 		.level = {
-			.min = 2048,
-			.max = 3276,
+			.min = 2052,
+			.max = 3410,
 		},
 		.percentage = {
-			.min = 62,
+			.min = 60,
 			.max = 100,
 		},
 	},
@@ -900,8 +900,8 @@ const struct exynos_panel_desc samsung_ana6707_f10 = {
 	.dsc_pps = PPS_SETTING,
 	.dsc_pps_len = ARRAY_SIZE(PPS_SETTING),
 	.data_lane_cnt = 4,
-	.max_brightness = 3276,
-	.min_brightness = 9,
+	.max_brightness = 3410,
+	.min_brightness = 7,
 	.dft_brightness = 1023,
 	.brt_capability = &ana6707_f10_brightness_capability,
 	/* supported HDR format bitmask : 1(DOLBY_VISION), 2(HDR10), 3(HLG) */

@@ -491,7 +491,7 @@ const struct brightness_capability ea8182_f10_brightness_capability = {
 	.normal = {
 		.nits = {
 			.min = 2,
-			.max = 500,
+			.max = 600,
 		},
 		.level = {
 			.min = 4,
@@ -499,20 +499,20 @@ const struct brightness_capability ea8182_f10_brightness_capability = {
 		},
 		.percentage = {
 			.min = 0,
-			.max = 62,
+			.max = 60,
 		},
 	},
 	.hbm = {
 		.nits = {
-			.min = 500,
-			.max = 800,
+			.min = 600,
+			.max = 1000,
 		},
 		.level = {
 			.min = 2048,
-			.max = 3152,
+			.max = 3652,
 		},
 		.percentage = {
-			.min = 62,
+			.min = 60,
 			.max = 100,
 		},
 	},
@@ -522,7 +522,7 @@ const struct exynos_panel_desc samsung_ea8182_f10 = {
 	.dsc_pps = PPS_SETTING,
 	.dsc_pps_len = ARRAY_SIZE(PPS_SETTING),
 	.data_lane_cnt = 4,
-	.max_brightness = 3152,
+	.max_brightness = 3652,
 	.min_brightness = 4,
 	.dft_brightness = 1023,
 	.brt_capability = &ea8182_f10_brightness_capability,
