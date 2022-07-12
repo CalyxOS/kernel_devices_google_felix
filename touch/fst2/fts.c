@@ -239,7 +239,11 @@ static irqreturn_t fts_interrupt_handler(int irq, void *handle)
 	unsigned char data[FIFO_EVENT_SIZE] = { 0 };
 	unsigned char event_id;
 	event_dispatch_handler_t event_handler;
-	if (pm_wake_lock(info, PM_WAKELOCK_TYPE_IRQ)) return IRQ_HANDLED;
+
+	if (pm_wake_lock(info, PM_WAKELOCK_TYPE_IRQ)) {
+		log_info(0, "%s: IRQ received while suspending!", __func__);
+		return IRQ_HANDLED;
+	}
 
 	mutex_lock(&info->input_report_mutex);
 	for (count = 0; count < MAX_FIFO_EVENT; count++) {
@@ -619,7 +623,6 @@ static void fts_resume_work(struct work_struct *work)
 	fts_mode_handler(info, 0);
 	info->sensor_sleep = false;
 	fts_set_interrupt(info, true);
-	complete_all(&info->bus_resumed);
 }
 
 /**
@@ -637,7 +640,6 @@ static void fts_suspend_work(struct work_struct *work)
 
 	pr_info("%s\n", __func__);
 
-	reinit_completion(&info->bus_resumed);
 	pm_wakeup_event(info->dev, jiffies_to_msecs(HZ));
 	fts_set_interrupt(info, false);
 	info->resume_bit = 0;
@@ -659,6 +661,7 @@ int pm_wake_lock(struct fts_ts_info *info, enum pm_wakelock_type wakelock_type)
 		mutex_unlock(&info->pm_wakelock_mutex);
 		return ERROR_OP_NOT_ALLOW;
 	}
+
 	/* IRQs can only keep the bus active. IRQs received while the
 	* bus is transferred to SLPI should be ignored.
 	*/
@@ -667,31 +670,23 @@ int pm_wake_lock(struct fts_ts_info *info, enum pm_wakelock_type wakelock_type)
 		mutex_unlock(&info->pm_wakelock_mutex);
 		return ERROR_OP_NOT_ALLOW;
 	}
+
 	info->pm_wake_locks |= wakelock_type;
 
+	if (wakelock_type != PM_WAKELOCK_TYPE_IRQ) {
+		cancel_work_sync(&info->suspend_work);
+		queue_work(info->event_wq, &info->resume_work);
+	}
 	mutex_unlock(&info->pm_wakelock_mutex);
 
-	if (wakelock_type == PM_WAKELOCK_TYPE_IRQ) return OK;
-
-	/* Complete or cancel any outstanding transitions */
-	cancel_work_sync(&info->suspend_work);
-	cancel_work_sync(&info->resume_work);
-
-	queue_work(info->event_wq, &info->resume_work);
-
-	if (wakelock_type != PM_WAKELOCK_TYPE_SCREEN_ON) {
-		wait_for_completion_timeout(&info->bus_resumed, HZ);
-		if (info->sensor_sleep) {
-			log_info(1, "%s: Waking up is taking more than a sec. \
-				Returning without waiting.\n", __func__);
-			return ERROR_TIMEOUT;
-		}
-	}
+	if (wakelock_type != PM_WAKELOCK_TYPE_SCREEN_ON)
+		flush_workqueue(info->event_wq);
 
 	return OK;
 }
 
-int pm_wake_unlock(struct fts_ts_info *info, enum pm_wakelock_type wakelock_type) {
+int pm_wake_unlock(struct fts_ts_info *info, enum pm_wakelock_type wakelock_type)
+{
 	log_info(0, "%s: Wake unlock: %d\n", __func__, wakelock_type);
 	mutex_lock(&info->pm_wakelock_mutex);
 	if ((info->pm_wake_locks & wakelock_type) == 0) {
@@ -702,12 +697,12 @@ int pm_wake_unlock(struct fts_ts_info *info, enum pm_wakelock_type wakelock_type
 	}
 	info->pm_wake_locks &= ~wakelock_type;
 
-	mutex_unlock(&info->pm_wakelock_mutex);
-	/* Complete or cancel any outstanding transitions */
-	cancel_work_sync(&info->suspend_work);
-	cancel_work_sync(&info->resume_work);
-	if (!info->pm_wake_locks && !info->sensor_sleep)
+	if (!info->pm_wake_locks) {
+		cancel_work_sync(&info->resume_work);
 		queue_work(info->event_wq, &info->suspend_work);
+	}
+
+	mutex_unlock(&info->pm_wakelock_mutex);
 
 	return OK;
 }
@@ -1451,8 +1446,6 @@ static int fts_probe(struct spi_device *client)
 	mutex_init(&(info->input_report_mutex));
 	mutex_init(&info->fts_int_mutex);
 	mutex_init(&info->pm_wakelock_mutex);
-	init_completion(&info->bus_resumed);
-	complete_all(&info->bus_resumed);
 
 	log_info(1, "%s: SET Input Device Property:\n", __func__);
 	info->input_dev = input_allocate_device();

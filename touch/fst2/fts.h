@@ -137,7 +137,6 @@ struct fts_ts_info {
 						 * work threads */
 	event_dispatch_handler_t *event_dispatch_table;
 	int resume_bit;	/* /< Indicate if screen off/on */
-	struct completion bus_resumed;		/* resume_work complete */
 	unsigned int mode;	/* /< Device operating mode (bitmask: msb
 				 * indicate if active or lpm) */
 	struct drm_bridge panel_bridge;
