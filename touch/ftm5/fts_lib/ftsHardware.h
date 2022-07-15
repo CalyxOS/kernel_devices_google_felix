@@ -107,7 +107,12 @@
 #define FLASH_ERASE_CODE1		0xC0
 #define FLASH_DMA_CODE1			0xC0
 #define FLASH_ERASE_UNLOCK_CODE0	0xDE
+#define FTS_GPIO6_UNUSED	/* /< uncomment this if GPIO6 is unused */
+#ifdef FTS_GPIO6_UNUSED
+#define FLASH_ERASE_UNLOCK_CODE1	0x83
+#else
 #define FLASH_ERASE_UNLOCK_CODE1	0x03
+#endif
 #define FLASH_ERASE_CODE0		0x6A
 #define FLASH_DMA_CODE0			0x71
 #define FLASH_DMA_CONFIG		0x72
