@@ -6,10 +6,6 @@
  *
  */
 
-&google_battery {
-	google,chg-battery-capacity = <4665>;
-};
-
 &max77759_fg {
 	/delete-property/ maxim,force-batt-id;
 	maxim,dual-battery = "maxfg_base";
@@ -34,19 +30,20 @@
 
 			google_battery: google,battery {
 				google,fg-psy-name = "dualbatt";
+				google,chg-battery-capacity = <4727>;
 
 				/* charge table */
 				google,chg-temp-limits = <0 100 200 420 460 480 550>;
-				google,chg-cv-limits = <4200000 4250000 4300000 4450000>;
+				google,chg-cv-limits = <4100000 4200000 4250000 4300000 4480000>;
 				google,chg-cc-limits = <
-					 30  10  10   0
-					 50  30  30  30
-					100  70  70  50
-					 80  50  50  50
-					 50  50   0   0
-					 30   0   0   0
+					 30  30  10  10   0
+					 50  50  30  30  30
+					100 100  70  70  50
+					 80  80  50  50  50
+					 50  50  50   0   0
+					 30   0   0   0   0
 				>;
-				google,chg-topoff-limits = <250 250 250 500 500 500>;
+				google,chg-topoff-limits = <250 250 250 500 250 250>;
 
 				google,ttf-temp-idx= <2>;
 				google,ttf-adapter = <3000>;
