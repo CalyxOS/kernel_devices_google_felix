@@ -511,9 +511,10 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 			}
 			break;
 		case CMD_SYSTEMRESET:
-			if (number_param == 1)
+			if (number_param == 1) {
+				fts_set_interrupt(info, false);
 				res = fts_system_reset(1);
-			else {
+			} else {
 				log_info(1, "%s: wrong number of parameters\n",
 					__func__);
 				res = ERROR_OP_NOT_ALLOW;
