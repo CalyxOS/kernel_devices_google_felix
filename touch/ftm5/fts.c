@@ -5341,21 +5341,16 @@ static int fts_init(struct fts_ts_info *info)
 
 
 	error = fts_system_reset(info);
-	if (error < OK && isI2cError(error)) {
+	if (error < OK) {
 		dev_err(info->dev, "Cannot reset the device! ERROR %08X\n", error);
 		return error;
 	} else {
-		if (error == (ERROR_TIMEOUT | ERROR_SYSTEM_RESET_FAIL)) {
-			dev_err(info->dev, "Setting default Sys INFO!\n");
-			error = defaultSysInfo(info, 0);
-		} else {
-			error = readSysInfo(info, 0);	/* system reset OK */
-			if (error < OK) {
-				if (!isI2cError(error))
-					error = OK;
-				dev_err(info->dev, "Cannot read Sys Info! ERROR %08X\n",
-					error);
-			}
+		error = readSysInfo(info, 0);	/* system reset OK */
+		if (error < OK) {
+			if (!isI2cError(error))
+				error = OK;
+			dev_err(info->dev, "Cannot read Sys Info! ERROR %08X\n",
+				error);
 		}
 	}
 
