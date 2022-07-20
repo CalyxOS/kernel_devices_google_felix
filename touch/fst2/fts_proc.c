@@ -766,13 +766,16 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 			}
 			break;
 		case CMD_ITOTEST:
-			if (number_param == 1) {
-				res = fts_production_test_ito(LIMITS_FILE,
-								&tests);
-				if (res < OK)
-					log_info(1,
-					"%s: Error running production tests: %08X\n",
-					__func__, res);
+			if (number_param == 1 || number_param == 2) {
+				int tries = number_param == 1 ? 1 : cmd[1];
+				res = ERROR_TIMEOUT;
+				while(res < OK && tries--) {
+				        res = fts_production_test_ito(LIMITS_FILE, &tests);
+					log_info(1, "%s: Error running production tests: %08X\n",
+					        __func__, res);
+                                        log_info(1, "%s: Tries Remaining: %d\n",
+					        __func__, tries);
+                                }
 			} else {
 				log_info(1,
 				"%s: wrong number of parameters\n", __func__);
