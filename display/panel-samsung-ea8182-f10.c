@@ -106,7 +106,7 @@ static const struct exynos_dsi_cmd ea8182_f10_init_cmds[] = {
 	/* TE2 Setting */
 	EXYNOS_DSI_CMD0(unlock_cmd_f0),
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x15),
-	EXYNOS_DSI_CMD_SEQ(0xE2, 0x02),
+	EXYNOS_DSI_CMD_SEQ(0xE2, 0x03),
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x1A),
 	EXYNOS_DSI_CMD_SEQ(0xE2, 0x00, 0x0B, 0x01, 0x0A),
 	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1, 0xB0, 0x70),
