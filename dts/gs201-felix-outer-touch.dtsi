@@ -20,6 +20,15 @@
 	/delete-property/ regulator-always-on;
 };
 
+&pinctrl_5 {
+	ext_ts_reset: ext_ts_reset {
+		samsung,pins = "gpp23-3";
+		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
+		samsung,pin-con-pdn = <EXYNOS_PIN_PDN_PREV>;
+		samsung,pin-pud-pdn = <EXYNOS_PIN_PULL_NONE>;
+	};
+};
+
 &pinctrl_4 {
 	ext_ts_spi_bus_active: ext_ts_spi_bus_active {
 		samsung,pins = "gpp12-0", "gpp12-1", "gpp12-2";
@@ -69,7 +78,7 @@
 		compatible = "st,fts";
 		spi-max-frequency = <10000000>;
 		pinctrl-names = "pmx_ts_active", "pmx_ts_suspend";
-		pinctrl-0 = <&ext_ts_spi_bus_active
+		pinctrl-0 = <&ext_ts_reset &ext_ts_spi_bus_active
 			&ext_ts_spi_cs_active>;
 		pinctrl-1 = <&ext_ts_spi_bus_sleep &ext_ts_spi_miso_sleep
 			&ext_ts_spi_cs_sleep>;
