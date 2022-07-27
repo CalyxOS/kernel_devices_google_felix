@@ -79,10 +79,6 @@
 #define TOUCHSIM_SLOT_ID		0
 #define TOUCHSIM_TIMER_INTERVAL_NS	8333333
 
-/* Switch GPIO values */
-#define FTS_SWITCH_GPIO_VALUE_AP_MASTER		0
-#define FTS_SWITCH_GPIO_VALUE_SLPI_MASTER	1
-
 /**
   * Event handler installer helpers
   */
@@ -5741,28 +5737,6 @@ static void check_finger_status(struct fts_ts_info *info)
 }
 
 /**
-  * Configure the switch GPIO to toggle bus master between AP and SLPI.
-  * gpio_value takes one of
-  * { FTS_SWITCH_GPIO_VALUE_SLPI_MASTER, FTS_SWITCH_GPIO_VALUE_AP_MASTER }
-  */
-static void fts_set_switch_gpio(struct fts_ts_info *info, int gpio_value)
-{
-	int retval;
-	unsigned int gpio = info->board->switch_gpio;
-
-	if (!gpio_is_valid(gpio))
-		return;
-
-	dev_dbg(info->dev, "%s: toggling i2c switch to %s\n", __func__,
-		 gpio_value == FTS_SWITCH_GPIO_VALUE_AP_MASTER ? "AP" : "SLPI");
-
-	retval = gpio_direction_output(gpio, gpio_value);
-	if (retval < 0)
-		dev_err(info->dev, "%s: Failed to toggle switch_gpio, err = %d\n",
-			__func__, retval);
-}
-
-/**
   * Resume work function which perform a system reset, clean all the touches
   * from the linux input system and prepare the ground for enabling the sensing
   */
@@ -5771,13 +5745,13 @@ static void fts_resume_work(struct work_struct *work)
 	struct fts_ts_info *info;
 	info = container_of(work, struct fts_ts_info, resume_work);
 	if (!info->sensor_sleep) return;
+	__pm_stay_awake(info->wakesrc);
 
 #if IS_ENABLED(CONFIG_TOUCHSCREEN_TBN)
 	if (info->tbn_register_mask)
 		tbn_request_bus(info->tbn_register_mask);
 #endif
-	__pm_stay_awake(info->wakesrc);
-	fts_set_switch_gpio(info, FTS_SWITCH_GPIO_VALUE_AP_MASTER);
+
 	fts_pinctrl_setup(info, true);
 	if (info->board->udfps_x != 0 && info->board->udfps_y != 0)
 		check_finger_status(info);
@@ -5828,7 +5802,6 @@ static void fts_suspend_work(struct work_struct *work)
 	fts_mode_handler(info, 0);
 	fts_pinctrl_setup(info, false);
 	release_all_touches(info);
-	fts_set_switch_gpio(info, FTS_SWITCH_GPIO_VALUE_SLPI_MASTER);
 
 #if IS_ENABLED(CONFIG_TOUCHSCREEN_TBN)
 	if (info->tbn_register_mask)
@@ -6185,14 +6158,6 @@ static int fts_set_gpio(struct fts_ts_info *info)
 		goto err_gpio_irq;
 	}
 
-	if (gpio_is_valid(bdata->switch_gpio)) {
-		retval = fts_gpio_setup(bdata->switch_gpio, true, 1,
-					FTS_SWITCH_GPIO_VALUE_AP_MASTER);
-		if (retval < 0)
-			dev_err(info->dev, "%s: Failed to configure I2C switch\n",
-				__func__);
-	}
-
 #ifdef DYNAMIC_REFRESH_RATE
 	if (gpio_is_valid(bdata->disp_rate_gpio)) {
 		retval = fts_gpio_setup(bdata->disp_rate_gpio, true, 1,
@@ -6379,9 +6344,6 @@ static int parse_dt(struct device *dev, struct fts_hw_platform_data *bdata)
 			}
 		}
 	}
-
-	bdata->switch_gpio = of_get_named_gpio(np, "st,switch_gpio", 0);
-	dev_info(dev, "switch_gpio = %d\n", bdata->switch_gpio);
 
 	bdata->irq_gpio = of_get_named_gpio_flags(np, "st,irq-gpio", 0, NULL);
 	dev_info(dev, "irq_gpio = %d\n", bdata->irq_gpio);
@@ -7064,8 +7026,6 @@ static int fts_remove(struct spi_device *client)
 	/* free gpio */
 	if (gpio_is_valid(info->board->irq_gpio))
 		gpio_free(info->board->irq_gpio);
-	if (gpio_is_valid(info->board->switch_gpio))
-		gpio_free(info->board->switch_gpio);
 	if (gpio_is_valid(info->board->reset_gpio))
 		gpio_free(info->board->reset_gpio);
 	if (gpio_is_valid(info->board->disp_rate_gpio))
