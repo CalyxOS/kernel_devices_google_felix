@@ -4541,8 +4541,6 @@ static irqreturn_t fts_interrupt_handler(int irq, void *handle)
 	/* prevent CPU from entering deep sleep */
 	cpu_latency_qos_update_request(&info->pm_qos_req, 100);
 
-	__pm_wakeup_event(info->wakesrc, jiffies_to_msecs(HZ));
-
 	/* Read the first FIFO event and the number of events remaining */
 	error = fts_writeReadU8UX(info, regAdd, 0, 0, data, FIFO_EVENT_SIZE,
 				  DUMMY_FIFO);
@@ -5520,6 +5518,8 @@ static int fts_mode_handler(struct fts_ts_info *info, int force)
 #endif
 
 		setSystemResetedDown(info, 0);
+		fts_system_reset(info);
+		flushFIFO(info);
 		break;
 
 	case 1:	/* screen up */
@@ -5769,35 +5769,21 @@ static void fts_set_switch_gpio(struct fts_ts_info *info, int gpio_value)
 static void fts_resume_work(struct work_struct *work)
 {
 	struct fts_ts_info *info;
-
 	info = container_of(work, struct fts_ts_info, resume_work);
-
-	if (!info->sensor_sleep)
-		return;
+	if (!info->sensor_sleep) return;
 
 #if IS_ENABLED(CONFIG_TOUCHSCREEN_TBN)
 	if (info->tbn_register_mask)
 		tbn_request_bus(info->tbn_register_mask);
 #endif
-
+	__pm_stay_awake(info->wakesrc);
 	fts_set_switch_gpio(info, FTS_SWITCH_GPIO_VALUE_AP_MASTER);
-
 	fts_pinctrl_setup(info, true);
-
-	__pm_wakeup_event(info->wakesrc, jiffies_to_msecs(HZ));
-
-	info->resume_bit = 1;
-
 	if (info->board->udfps_x != 0 && info->board->udfps_y != 0)
 		check_finger_status(info);
-
 	fts_system_reset(info);
-
-	release_all_touches(info);
-
+	info->resume_bit = 1;
 	fts_mode_handler(info, 0);
-
-	info->sensor_sleep = false;
 
 #if IS_ENABLED(CONFIG_TOUCHSCREEN_HEATMAP)
 	/* heatmap must be enabled after every chip reset (fts_system_reset) */
@@ -5821,7 +5807,7 @@ static void fts_resume_work(struct work_struct *work)
 #endif
 
 	fts_enableInterrupt(info, true);
-
+	info->sensor_sleep = false;
 	complete_all(&info->bus_resumed);
 }
 
@@ -5832,30 +5818,16 @@ static void fts_resume_work(struct work_struct *work)
 static void fts_suspend_work(struct work_struct *work)
 {
 	struct fts_ts_info *info;
-
 	info = container_of(work, struct fts_ts_info, suspend_work);
-
-	if (info->sensor_sleep)
-		return;
+	if (info->sensor_sleep) return;
 
 	reinit_completion(&info->bus_resumed);
-
-	__pm_stay_awake(info->wakesrc);
-
-	info->resume_bit = 0;
-
-	fts_mode_handler(info, 0);
-
-	release_all_touches(info);
-
+	info->sensor_sleep = true;
 	fts_enableInterrupt(info, false);
-
-	/* Flush any outstanding touch events */
-	fts_system_reset(info);
-	flushFIFO(info);
-
+	info->resume_bit = 0;
+	fts_mode_handler(info, 0);
 	fts_pinctrl_setup(info, false);
-
+	release_all_touches(info);
 	fts_set_switch_gpio(info, FTS_SWITCH_GPIO_VALUE_SLPI_MASTER);
 
 #if IS_ENABLED(CONFIG_TOUCHSCREEN_TBN)
@@ -5863,7 +5835,6 @@ static void fts_suspend_work(struct work_struct *work)
 		tbn_release_bus(info->tbn_register_mask);
 #endif
 
-	info->sensor_sleep = true;
 	__pm_relax(info->wakesrc);
 }
 /** @}*/

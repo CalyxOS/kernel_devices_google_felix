@@ -606,23 +606,17 @@ static void fts_interrupt_uninstall(struct fts_ts_info *info) {
 static void fts_resume_work(struct work_struct *work)
 {
 	struct fts_ts_info *info;
-
 	info = container_of(work, struct fts_ts_info, resume_work);
-
-	if (!info->sensor_sleep)
-		return;
-
-	fts_pinctrl_setup(info, true);
-
+	if (!info->sensor_sleep) return;
 	pr_info("%s\n", __func__);
 
-	pm_wakeup_event(info->dev, jiffies_to_msecs(HZ));
-	info->resume_bit = 1;
+	pm_stay_awake(info->dev);
+	fts_pinctrl_setup(info, true);
 	fts_system_reset(1);
-	release_all_touches(info);
+	info->resume_bit = 1;
 	fts_mode_handler(info, 0);
-	info->sensor_sleep = false;
 	fts_set_interrupt(info, true);
+	info->sensor_sleep = false;
 }
 
 /**
@@ -632,23 +626,17 @@ static void fts_resume_work(struct work_struct *work)
 static void fts_suspend_work(struct work_struct *work)
 {
 	struct fts_ts_info *info;
-
 	info = container_of(work, struct fts_ts_info, suspend_work);
-
-	if (info->sensor_sleep)
-		return;
-
+	if (info->sensor_sleep) return;
 	pr_info("%s\n", __func__);
 
-	pm_wakeup_event(info->dev, jiffies_to_msecs(HZ));
+	info->sensor_sleep = true;
 	fts_set_interrupt(info, false);
 	info->resume_bit = 0;
 	fts_mode_handler(info, 0);
-	release_all_touches(info);
-
 	fts_pinctrl_setup(info, false);
-
-	info->sensor_sleep = true;
+	release_all_touches(info);
+	pm_relax(info->dev);
 }
 
 int pm_wake_lock(struct fts_ts_info *info, enum pm_wakelock_type wakelock_type)
