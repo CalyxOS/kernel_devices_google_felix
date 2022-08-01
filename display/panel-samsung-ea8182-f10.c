@@ -383,8 +383,8 @@ static const struct exynos_panel_mode ea8182_f10_modes[] = {
 			.vsync_end = 2092 + 24 + 6, // add vsa
 			.vtotal = 2092 + 24 + 6 + 28, // add vbp
 			.flags = 0,
-			.width_mm = 72,
-			.height_mm = 136,
+			.width_mm = 67,
+			.height_mm = 130,
 		},
 		.exynos_mode = {
 			.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
@@ -412,8 +412,8 @@ static const struct exynos_panel_mode ea8182_f10_modes[] = {
 			.vsync_end = 2092 + 24 + 6, // add vsa
 			.vtotal = 2092 + 24 + 6 + 28, // add vbp
 			.flags = 0,
-			.width_mm = 72,
-			.height_mm = 136,
+			.width_mm = 67,
+			.height_mm = 130,
 		},
 		.exynos_mode = {
 			.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
@@ -444,8 +444,8 @@ static const struct exynos_panel_mode ea8182_f10_lp_mode = {
 		.vsync_end = 2092 + 24 + 6, // add vsa
 		.vtotal = 2092 + 24 + 6 + 28, // add vbp
 		.flags = 0,
-		.width_mm = 72,
-		.height_mm = 136,
+		.width_mm = 67,
+		.height_mm = 130,
 	},
 	.exynos_mode = {
 		.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
