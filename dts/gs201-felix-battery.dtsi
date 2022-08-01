@@ -38,7 +38,7 @@
 				google,chg-cc-limits = <
 					 30  30  10  10   0
 					 50  50  30  30  30
-					100 100  70  70  50
+					100 100 100  70  50
 					 80  80  50  50  50
 					 50  50  50   0   0
 					 30   0   0   0   0
@@ -56,8 +56,21 @@
 				status = "okay";
 				compatible = "google,dual_batt_gauge";
 				google,first-fg-psy-name = "maxfg_base";
-				google,second-fg-psy-name = "maxfg_flip";
+				google,second-fg-psy-name = "maxfg_secondary";
+				google,vfloat-offset-max-idx = <1>;
+				google,cc-balance-ratio = <80>; /* 80% */
 				google,psy-type-unknown;
+				google,chg-base-battery-capacity = <1460>;
+				google,chg-sec-battery-capacity = <3267>;
+
+				google,chg-pack-cc-limits = <
+				         30  30  10  10   0
+					 50  50  30  30  30
+					100 100 100  70  50
+					 80  80  50  50  50
+					 50  50  50   0   0
+					 30   0   0   0   0
+				>;
 			};
 		};
 	};
@@ -102,7 +115,7 @@
 		maxim,batt-id-range-pct = <0>;
 		maxim,psy-type-unknown;
 
-		maxim,dual-battery = "maxfg_flip";
+		maxim,dual-battery = "maxfg_secondary";
 		maxim,read-batt-sn = <1>;
 
 		maxim,filtercfg-temp = <100>;
