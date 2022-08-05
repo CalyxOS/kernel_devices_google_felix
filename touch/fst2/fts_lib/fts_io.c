@@ -1128,6 +1128,20 @@ int fts_fw_request(u16 address, u8 bit_to_set, u8 auto_clear,
 	int res = 0;
 	u8 data = 0x00;
 
+	if (address == PI_ADDR) {
+		/* This is a SW WA to do sense-on and sense-off before FPI.
+		 * TODO(b/241527933#comment4): Asking vendor to provide the
+		 * final solution when they find the root cause.
+		 */
+		u8 sense_on;
+		pr_info("sensing on and sense off before FPI.");
+		sense_on = 0x01;
+		fts_write_fw_reg(0x10, &sense_on, 1);
+		msleep(20);
+		sense_on = 0x00;
+		fts_write_fw_reg(0x10, &sense_on, 1);
+		msleep(20);
+	}
 	res = fts_read_fw_reg(address, &data, 1);
 	if (res < OK) {
 		log_info(1, "%s ERROR %08X\n", __func__, res);
