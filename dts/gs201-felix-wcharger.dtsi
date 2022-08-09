@@ -65,9 +65,11 @@
 		idt,irq_gpio = <&gpa9 5 GPIO_ACTIVE_LOW>;
 		idt,gpio_slct = <&s2mpg12_gpio 0 GPIO_ACTIVE_HIGH>;
 		idt,gpio_slct_value = <1>;
-
-		google,epp_rp_value = <15000>; /* mW */
 		idt,max_vout_mv = <10000>;  /* max voltage in mV */
+
+		google,q_value = <37>;
+		fod = [A8 26 88 31 A5 04 92 24 A1 08 A1 0F];
+		fod_epp = [8B 60 99 21 95 20 98 0E 95 14 97 0B 01 01 00 55];
 
 		p9xxx_gpio: p9xxx_gpio {
 			gpio-controller;
