@@ -49,28 +49,11 @@ struct ana6707_f10_early_exit {
  */
 struct ana6707_f10_mode_data {
 	/**
-	 * @auto_mode_cmd_set:
-	 *
-	 * This cmd set is sent to panel during mode switch to enable auto mode. This mode is
-	 * typically enabled when driver is allowed to change modes while idle. In this mode, the
-	 * panel will automatically drop down to lowest refresh rate when it becomes idle (no user
-	 * updates) without any sw/user involvement.
-	 *
-	 * If auto mode is being enabled, then we also assume early exit is also enabled in order to
-	 * get out of low refresh rate with minimal latency.
-	 *
-	 * If auto mode is not supported for a particular mode, then idle/wakeup cmd sets should be
-	 * defined to go into a lower refresh rate when sw detects idleness.
-	 */
-	const struct exynos_dsi_cmd_set *auto_mode_cmd_set;
-
-	/**
 	 * @auto_mode_pre_cmd_set:
 	 *
-	 * This is optional for another cmd sets needed to be sent before auto_mode_cmd_set.
+	 * This cmd set needs to be sent before enabling auto_mode.
 	 */
 	const struct exynos_dsi_cmd_set *auto_mode_pre_cmd_set;
-
 	/**
 	 * @manual_mode_cmd_set:
 	 *
@@ -94,11 +77,14 @@ struct ana6707_f10_panel {
 	/** @base: base panel struct */
 	struct exynos_panel base;
 
-	/** @current_mdata: panel mdata for current mode */
-	const struct ana6707_f10_mode_data *current_mdata;
-
 	/** @early_exit: current early exit info */
 	struct ana6707_f10_early_exit early_exit;
+
+	/**
+	 * @auto_mode_vrefresh: indicates current minimum refresh rate while in auto mode,
+	 *			if 0 it means that auto mode is not enabled
+	 */
+	u32 auto_mode_vrefresh;
 };
 
 #define to_spanel(ctx) container_of(ctx, struct ana6707_f10_panel, base)
@@ -226,26 +212,23 @@ static const struct exynos_dsi_cmd ana6707_f10_early_exit_post_enable_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(0xB9, 0x02, 0x02), /* fixed TE */
 };
 static DEFINE_EXYNOS_CMD_SET(ana6707_f10_early_exit_post_enable);
-
-static const struct exynos_dsi_cmd ana6707_f10_mode_idle_10hz_cmds[] = {
-	EXYNOS_DSI_CMD_SEQ(0xB0, 0x04),
-	EXYNOS_DSI_CMD_SEQ(0xBD, 0x82),
-	EXYNOS_DSI_CMD_SEQ(0xB0, 0x0E), /* global para */
-	/* 10Hz auto frame insertion */
-	EXYNOS_DSI_CMD_SEQ(0xBD, 0x02, 0x80, 0x14, 0x00, 0x03, 0x02),
+static const struct exynos_dsi_cmd ana6707_f10_60hz_auto_mode_pre_cmds[] = {
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x62), /* global para */
+	EXYNOS_DSI_CMD_SEQ(0xBD, 0x00), /* OSC setting */
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x01), /* global para */
+	EXYNOS_DSI_CMD0(mode_set_60hz),
+	EXYNOS_DSI_CMD0(update_key),
 };
-static DEFINE_EXYNOS_CMD_SET(ana6707_f10_mode_idle_10hz);
-
-static const struct exynos_dsi_cmd ana6707_f10_mode_manual_120hz_cmds[] = {
+static DEFINE_EXYNOS_CMD_SET(ana6707_f10_60hz_auto_mode_pre);
+static const struct exynos_dsi_cmd ana6707_f10_120hz_auto_mode_pre_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x62), /* global para */
 	EXYNOS_DSI_CMD_SEQ(0xBD, 0x00), /* OSC setting */
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x01), /* global para */
 	EXYNOS_DSI_CMD0(mode_set_120hz),
 	EXYNOS_DSI_CMD0(update_key),
 };
-static DEFINE_EXYNOS_CMD_SET(ana6707_f10_mode_manual_120hz);
-
-static const struct exynos_dsi_cmd ana6707_f10_mode_60_manual_cmds[] = {
+static DEFINE_EXYNOS_CMD_SET(ana6707_f10_120hz_auto_mode_pre);
+static const struct exynos_dsi_cmd ana6707_f10_60hz_manual_mode_cmds[] = {
 	/* auto off */
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x04),
 	EXYNOS_DSI_CMD_SEQ(0xBD, 0x80),
@@ -262,20 +245,66 @@ static const struct exynos_dsi_cmd ana6707_f10_mode_60_manual_cmds[] = {
 	EXYNOS_DSI_CMD0(mode_set_60hz),
 	EXYNOS_DSI_CMD0(update_key),
 };
-static DEFINE_EXYNOS_CMD_SET(ana6707_f10_mode_60_manual);
+static DEFINE_EXYNOS_CMD_SET(ana6707_f10_60hz_manual_mode);
+static const struct exynos_dsi_cmd ana6707_f10_120hz_manual_mode_cmds[] = {
+	/* auto off */
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x04),
+	EXYNOS_DSI_CMD_SEQ(0xBD, 0x80),
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x0E), /* global para */
+	EXYNOS_DSI_CMD_SEQ(0xBD, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+
+	EXYNOS_DSI_CMD_SEQ(0xB9, 0x00, 0x00), /* changeable TE */
+	EXYNOS_DSI_CMD0(early_exit_global_para),
+	EXYNOS_DSI_CMD_SEQ(0xBD, 0x80), /* early exit off */
+
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x62), /* global para */
+	EXYNOS_DSI_CMD_SEQ(0xBD, 0x00), /* OSC setting */
+	EXYNOS_DSI_CMD_SEQ(0xB0, 0x01), /* global para */
+	EXYNOS_DSI_CMD0(mode_set_120hz),
+	EXYNOS_DSI_CMD0(update_key),
+};
+static DEFINE_EXYNOS_CMD_SET(ana6707_f10_120hz_manual_mode);
 
 static const struct ana6707_f10_mode_data ana6707_f10_mode_120 = {
-	.auto_mode_pre_cmd_set = &ana6707_f10_mode_manual_120hz_cmd_set,
-	.auto_mode_cmd_set = &ana6707_f10_mode_idle_10hz_cmd_set,
+	.auto_mode_pre_cmd_set = &ana6707_f10_120hz_auto_mode_pre_cmd_set,
+	.manual_mode_cmd_set = &ana6707_f10_120hz_manual_mode_cmd_set,
 };
 
 static const struct ana6707_f10_mode_data ana6707_f10_mode_60 = {
-	.manual_mode_cmd_set = &ana6707_f10_mode_60_manual_cmd_set,
+	.auto_mode_pre_cmd_set = &ana6707_f10_60hz_auto_mode_pre_cmd_set,
+	.manual_mode_cmd_set = &ana6707_f10_60hz_manual_mode_cmd_set,
 };
 
 static inline bool is_auto_mode_preferred(struct exynos_panel *ctx)
 {
 	return ctx->panel_idle_enabled;
+}
+
+static u32 ana6707_f10_get_min_idle_vrefresh(struct exynos_panel *ctx,
+					 const struct exynos_panel_mode *pmode)
+{
+	const u32 vrefresh = drm_mode_vrefresh(&pmode->mode);
+	int idle_vrefresh = ctx->min_vrefresh;
+
+	if ((idle_vrefresh < 0) || !is_auto_mode_preferred(ctx))
+		return 0;
+
+	if (idle_vrefresh <= 10)
+		idle_vrefresh = 10;
+	else if (idle_vrefresh <= 30)
+		idle_vrefresh = 30;
+	else if (idle_vrefresh <= 60)
+		idle_vrefresh = 60;
+	else /* 120hz: no idle available */
+		return 0;
+
+	if (idle_vrefresh >= vrefresh) {
+		dev_dbg(ctx->dev, "idle vrefresh (%u) higher than target (%u)\n",
+			idle_vrefresh, vrefresh);
+		return 0;
+	}
+
+	return idle_vrefresh;
 }
 
 static void ana6707_f10_early_exit_enable(struct exynos_panel *ctx)
@@ -309,20 +338,44 @@ static void ana6707_f10_early_exit_enable(struct exynos_panel *ctx)
 	atomic_set(&spanel->early_exit.delayed, 2);
 }
 
-static void ana6707_f10_early_exit_post_enable(struct exynos_panel *ctx)
+static void ana6707_f10_early_exit_post_enable(struct exynos_panel *ctx, bool force_update)
 {
-	const struct exynos_dsi_cmd_set *cmdset;
+	const struct exynos_panel_mode *pmode = ctx->current_mode;
 	struct ana6707_f10_panel *spanel = to_spanel(ctx);
+	int idle_vrefresh = 0;
+	u8 step_cmd[] = {0xBD, 0x00, 0x80, 0x16, 0x00, 0x02, 0x02}; /* 10hz step setting */
+	const struct exynos_dsi_cmd auto_mode_cmds[] = {
+		EXYNOS_DSI_CMD_SEQ(0xB0, 0x04),
+		EXYNOS_DSI_CMD_SEQ(0xBD, 0x82),
+		EXYNOS_DSI_CMD_SEQ(0xB0, 0x0E), /* global para */
+		/* 10Hz auto frame insertion */
+		EXYNOS_DSI_CMD0(step_cmd),
+	};
+	DEFINE_EXYNOS_CMD_SET(auto_mode);
 	const u32 flags = PANEL_CMD_SET_IGNORE_VBLANK | PANEL_CMD_SET_BATCH;
 
-	if (!spanel->current_mdata)
+	if (unlikely(!pmode))
 		return;
 
 	if (spanel->early_exit.status != EARLY_EXIT_IN_PROGRESS)
 		return;
 
-	if (atomic_dec_if_positive(&spanel->early_exit.delayed))
+	if (!force_update && atomic_dec_if_positive(&spanel->early_exit.delayed))
 		return;
+
+	if (ctx->panel_rev <= PANEL_REV_PROTO1_1)
+		step_cmd[5] = 0x03;
+
+	idle_vrefresh = ana6707_f10_get_min_idle_vrefresh(ctx, pmode);
+	/* write auto step setting depending on target idle refresh rate */
+	if (idle_vrefresh == 30) {
+		step_cmd[3] = 0x06;
+	} else if (idle_vrefresh == 60) {
+		step_cmd[3] = 0x02;
+	} else if (idle_vrefresh == 0) {
+		dev_err(ctx->dev, "%s: invalid idle fps=%u\n", __func__, idle_vrefresh);
+		return;
+	}
 
 	dev_info(ctx->dev, "%s\n", __func__);
 
@@ -332,13 +385,17 @@ static void ana6707_f10_early_exit_post_enable(struct exynos_panel *ctx)
 	exynos_panel_send_cmd_set_flags(ctx, &ana6707_f10_early_exit_post_enable_cmd_set, flags);
 	DPU_ATRACE_END(__func__);
 
-	cmdset = spanel->current_mdata->auto_mode_cmd_set;
-	if (cmdset)
-		exynos_panel_send_cmd_set_flags(ctx, cmdset, flags);
+	dev_dbg(ctx->dev, "%s: sending step setting (idle_fps=%u)\n",
+		__func__, idle_vrefresh);
 
+	exynos_panel_send_cmd_set_flags(ctx, &auto_mode_cmd_set, flags);
 	EXYNOS_DCS_WRITE_TABLE(ctx, lock_cmd_f0);
 
 	spanel->early_exit.status = EARLY_EXIT_ON;
+	spanel->auto_mode_vrefresh = idle_vrefresh;
+
+	if (force_update)
+		atomic_set(&spanel->early_exit.delayed, 0);
 }
 
 static void ana6707_f10_flush_pending_early_exit(struct exynos_panel *ctx)
@@ -347,47 +404,54 @@ static void ana6707_f10_flush_pending_early_exit(struct exynos_panel *ctx)
 
 	if (spanel->early_exit.status == EARLY_EXIT_IN_PROGRESS) {
 		atomic_set(&spanel->early_exit.delayed, 1);
-		ana6707_f10_early_exit_post_enable(ctx);
+		ana6707_f10_early_exit_post_enable(ctx, false);
 	}
 }
 
-static void ana6707_f10_update_refresh_mode(struct exynos_panel *ctx,
-					const struct ana6707_f10_mode_data *mdata)
+static void ana6707_f10_set_manual_mode(struct exynos_panel *ctx, const struct exynos_panel_mode *pmode)
+{
+	const u32 flags = PANEL_CMD_SET_IGNORE_VBLANK | PANEL_CMD_SET_BATCH;
+	struct ana6707_f10_panel *spanel = to_spanel(ctx);
+	const struct ana6707_f10_mode_data *mdata = pmode->priv_data;
+	const struct exynos_dsi_cmd_set *cmdset = mdata->manual_mode_cmd_set;
+
+	if (cmdset)
+		exynos_panel_send_cmd_set_flags(ctx, cmdset, flags);
+
+	spanel->early_exit.status = EARLY_EXIT_OFF;
+	spanel->auto_mode_vrefresh = 0;
+}
+
+static void ana6707_f10_update_refresh_mode(struct exynos_panel *ctx, const struct ana6707_f10_mode_data *mdata,
+					const struct exynos_panel_mode *pmode, int idle_vrefresh)
 {
 	struct ana6707_f10_panel *spanel = to_spanel(ctx);
-	const bool auto_mode_preferred = is_auto_mode_preferred(ctx);
 	const u32 flags = PANEL_CMD_SET_IGNORE_VBLANK | PANEL_CMD_SET_BATCH;
 
 	ana6707_f10_flush_pending_early_exit(ctx);
 
-	if (auto_mode_preferred && mdata->auto_mode_cmd_set) {
-		dev_dbg(ctx->dev, "sending auto mode cmdset\n");
-
-		EXYNOS_DCS_WRITE_TABLE(ctx, unlock_cmd_f0);
+	EXYNOS_DCS_WRITE_TABLE(ctx, unlock_cmd_f0);
+	if (idle_vrefresh) {
+		dev_dbg(ctx->dev, "%s: mode: %s with auto mode idle_vrefresh: %d\n", __func__,
+			pmode->mode.name, idle_vrefresh);
 
 		if (mdata->auto_mode_pre_cmd_set)
 			exynos_panel_send_cmd_set_flags(ctx, mdata->auto_mode_pre_cmd_set, flags);
 
+		if (spanel->early_exit.status == EARLY_EXIT_ON)
+			spanel->early_exit.status = EARLY_EXIT_IN_PROGRESS;
+
 		ana6707_f10_early_exit_enable(ctx);
 
-		EXYNOS_DCS_WRITE_TABLE(ctx, lock_cmd_f0);
 	} else {
-		const struct exynos_dsi_cmd_set *cmdset = mdata->manual_mode_cmd_set;
+		dev_dbg(ctx->dev, "%s: mode: %s in manual mode\n", __func__, pmode->mode.name);
 
-		if (cmdset) {
-			dev_dbg(ctx->dev, "sending manual mode cmdset\n");
-
-			EXYNOS_DCS_WRITE_TABLE(ctx, unlock_cmd_f0);
-			exynos_panel_send_cmd_set_flags(ctx, cmdset, flags);
-			EXYNOS_DCS_WRITE_TABLE(ctx, lock_cmd_f0);
-
-			spanel->early_exit.status = EARLY_EXIT_OFF;
-		} else {
-			dev_warn(ctx->dev, "manual mode cmdset is not defined\n");
-		}
+		ana6707_f10_set_manual_mode(ctx, pmode);
 	}
+	EXYNOS_DCS_WRITE_TABLE(ctx, lock_cmd_f0);
 
-	spanel->current_mdata = mdata;
+	/* when mode is explicitly set (manual) panel idle effect would be disabled */
+	ctx->panel_idle_vrefresh = 0;
 }
 
 static void ana6707_f10_update_wrctrld(struct exynos_panel *ctx)
@@ -401,16 +465,16 @@ static void ana6707_f10_update_wrctrld(struct exynos_panel *ctx)
 static void ana6707_f10_change_frequency(struct exynos_panel *ctx,
 				     const struct exynos_panel_mode *pmode)
 {
-	const struct ana6707_f10_mode_data *mdata;
+	const struct ana6707_f10_mode_data *mdata = pmode->priv_data;
+	u32 idle_vrefresh = 0;
 
-	if (unlikely(!ctx))
+	if (unlikely(!ctx || !mdata))
 		return;
 
-	mdata = pmode->priv_data;
-	if (unlikely(!mdata))
-		return;
+	if (pmode->idle_mode == IDLE_MODE_ON_INACTIVITY)
+		idle_vrefresh = ana6707_f10_get_min_idle_vrefresh(ctx, pmode);
 
-	ana6707_f10_update_refresh_mode(ctx, mdata);
+	ana6707_f10_update_refresh_mode(ctx, mdata, pmode, idle_vrefresh);
 
 	dev_dbg(ctx->dev, "%s: change to %dhz\n", __func__, drm_mode_vrefresh(&pmode->mode));
 }
@@ -607,14 +671,92 @@ static void ana6707_f10_get_panel_rev(struct exynos_panel *ctx, u32 id)
 
 static void ana6707_f10_commit_done(struct exynos_panel *ctx)
 {
-	ana6707_f10_early_exit_post_enable(ctx);
+	ana6707_f10_early_exit_post_enable(ctx, false);
 }
 
 static bool ana6707_f10_set_self_refresh(struct exynos_panel *ctx, bool enable)
 {
+	const struct exynos_panel_mode *pmode = ctx->current_mode;
+	const struct ana6707_f10_mode_data *mdata;
+	struct ana6707_f10_panel *spanel = to_spanel(ctx);
+	u16 flags = PANEL_CMD_SET_IGNORE_VBLANK | PANEL_CMD_SET_BATCH;
+	u32 idle_vrefresh;
+
 	ana6707_f10_flush_pending_early_exit(ctx);
 
-	return false;
+	if (unlikely(!pmode))
+		return false;
+
+	mdata = pmode->priv_data;
+	if (unlikely(!mdata))
+		return false;
+
+	/* self refresh is not supported in lp mode since that always makes use of early exit */
+	if (pmode->exynos_mode.is_lp_mode)
+		return false;
+
+	idle_vrefresh = ana6707_f10_get_min_idle_vrefresh(ctx, pmode);
+
+	if (pmode->idle_mode != IDLE_MODE_ON_SELF_REFRESH) {
+	/*
+	 * if idle mode is on inactivity, may need to update the target fps for auto mode,
+	 * or switch to manual mode if idle should be disabled (idle_vrefresh=0)
+	 */
+		if ((pmode->idle_mode == IDLE_MODE_ON_INACTIVITY) &&
+			(spanel->auto_mode_vrefresh != idle_vrefresh)) {
+			dev_dbg(ctx->dev,
+				"early exit update needed for mode: %s (idle_vrefresh: %d)\n",
+				pmode->mode.name, idle_vrefresh);
+			spanel->early_exit.status = EARLY_EXIT_IN_PROGRESS;
+			ana6707_f10_update_refresh_mode(ctx, mdata, pmode, idle_vrefresh);
+			return true;
+		}
+		return false;
+	}
+
+	if (!enable)
+		idle_vrefresh = 0;
+
+	/* if there's no change in idle state then skip cmds */
+	if (ctx->panel_idle_vrefresh == idle_vrefresh)
+		return false;
+
+	DPU_ATRACE_BEGIN(__func__);
+	ctx->panel_idle_vrefresh = idle_vrefresh;
+
+	dev_dbg(ctx->dev, "change panel idle vrefresh: %u for mode: %s\n", idle_vrefresh,
+		pmode->mode.name);
+
+	EXYNOS_DCS_WRITE_TABLE(ctx, unlock_cmd_f0);
+	if (idle_vrefresh) {
+		unsigned int vrefresh = drm_mode_vrefresh(&pmode->mode);
+		u32 delay_us = mult_frac(1000, 1020, vrefresh);
+		if (mdata->auto_mode_pre_cmd_set)
+			exynos_panel_send_cmd_set_flags(ctx, mdata->auto_mode_pre_cmd_set, flags);
+
+		if (spanel->early_exit.status == EARLY_EXIT_ON)
+			spanel->early_exit.status = EARLY_EXIT_IN_PROGRESS;
+
+		ana6707_f10_early_exit_enable(ctx);
+		/* Because this panel requires 1 frame delay to enable early
+		 * early exit. For the set_self_refresh case, it won't have
+		 * subsequent commit_done event to trigger
+		 * ana6707_f10_early_exit_post_enable(), so we finish the full
+		 * early exit process here directly */
+		usleep_range(delay_us, delay_us + 10);
+		ana6707_f10_early_exit_post_enable(ctx, true);
+	} else {
+		dev_dbg(ctx->dev, "%s: mode: %s in manual mode\n", __func__, pmode->mode.name);
+
+		ana6707_f10_set_manual_mode(ctx, pmode);
+	}
+	EXYNOS_DCS_WRITE_TABLE(ctx, lock_cmd_f0);
+
+	backlight_state_changed(ctx->bl);
+
+	DPU_ATRACE_END(__func__);
+
+	return true;
 }
 
 static int ana6707_f10_set_power(struct exynos_panel *ctx, bool enable)
@@ -686,6 +828,7 @@ static const struct exynos_panel_mode ana6707_f10_modes[] = {
 	{
 		/* 1840x2208 @ 60Hz */
 		.mode = {
+			.name = "1840x2208x60",
 			.clock = 248400,
 			.hdisplay = 1840,
 			.hsync_start = 1840 + 0, // add hfp
@@ -712,10 +855,12 @@ static const struct exynos_panel_mode ana6707_f10_modes[] = {
 			.underrun_param = &underrun_param,
 		},
 		.priv_data = &ana6707_f10_mode_60,
+		.idle_mode = IDLE_MODE_ON_SELF_REFRESH,
 	},
 	{
 		/* 1840x2208 @ 120Hz */
 		.mode = {
+			.name = "1840x2208x120",
 			.clock = 496800,
 			.hdisplay = 1840,
 			.hsync_start = 1840 + 0, // add hfp
@@ -742,6 +887,7 @@ static const struct exynos_panel_mode ana6707_f10_modes[] = {
 			.underrun_param = &underrun_param,
 		},
 		.priv_data = &ana6707_f10_mode_120,
+		.idle_mode = IDLE_MODE_ON_INACTIVITY,
 	},
 };
 
@@ -794,7 +940,6 @@ static void ana6707_f10_panel_mode_create_cmdset(struct exynos_panel *ctx,
 		return;
 	}
 
-	exynos_panel_debugfs_create_cmdset(ctx, root, mdata->auto_mode_cmd_set, "auto_mode");
 	exynos_panel_debugfs_create_cmdset(ctx, root, mdata->auto_mode_pre_cmd_set,
 					   "auto_mode_pre");
 	exynos_panel_debugfs_create_cmdset(ctx, root, mdata->manual_mode_cmd_set, "manual_mode");
@@ -824,6 +969,8 @@ static int ana6707_f10_panel_probe(struct mipi_dsi_device *dsi)
 	spanel = devm_kzalloc(&dsi->dev, sizeof(*spanel), GFP_KERNEL);
 	if (!spanel)
 		return -ENOMEM;
+
+	spanel->auto_mode_vrefresh = 0;
 
 	return exynos_panel_common_init(dsi, &spanel->base);
 }
