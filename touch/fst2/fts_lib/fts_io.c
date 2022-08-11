@@ -1137,7 +1137,7 @@ int fts_fw_request(u16 address, u8 bit_to_set, u8 auto_clear,
 		pr_info("sensing on and sense off before FPI.");
 		sense_on = 0x01;
 		fts_write_fw_reg(0x10, &sense_on, 1);
-		msleep(20);
+		msleep(200);
 		sense_on = 0x00;
 		fts_write_fw_reg(0x10, &sense_on, 1);
 		msleep(20);
