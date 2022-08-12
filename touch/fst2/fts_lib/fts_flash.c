@@ -756,6 +756,9 @@ int flash_update_preset(void)
 	data |= 0x03;
 	/*Bit 7 in FLASH_CTRL_ADDR should be set if GPIO6 not to be used,
 	by default its 0, so gpio6 should be used*/
+#ifdef FTS_GPIO6_UNUSED
+	data |= 0x80;
+#endif
 	res = fts_write_u8ux(FTS_CMD_HW_REG_W, HW_ADDR_SIZE, FLASH_CTRL_ADDR,
 						&data, 1);
 	if (res < OK) {
