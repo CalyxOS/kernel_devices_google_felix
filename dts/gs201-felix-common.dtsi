@@ -13,7 +13,6 @@
 #include "google-base/gs201-cloudripper-cp-s5300-sit.dtsi"
 #include "google-base/gs201-cloudripper-ese.dtsi"
 #include "google-base/gs201-cloudripper-gsa-gsc.dtsi"
-#include "google-base/gs201-cloudripper-sbbm.dtsi"
 #include "google-base/gs201-cloudripper-wlan.dtsi"
 
 #include "gs201-felix-wcharger.dtsi"
@@ -36,3 +35,4 @@
 #include "gs201-felix-usb.dtsi"
 #include "gs201-felix-nfc.dtsi"
 #include "gs201-felix-uwb.dtsi"
+#include "gs201-felix-sbbm.dtsi"
