@@ -1049,6 +1049,7 @@ const struct exynos_panel_desc samsung_ana6707_f10 = {
 	.lp_cmd_set = &ana6707_f10_lp_cmd_set,
 	.binned_lp = ana6707_f10_binned_lp,
 	.num_binned_lp = ARRAY_SIZE(ana6707_f10_binned_lp),
+	.is_panel_idle_supported = true,
 	.panel_func = &ana6707_f10_drm_funcs,
 	.exynos_panel_func = &ana6707_f10_exynos_funcs,
 };
