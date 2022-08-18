@@ -73,6 +73,10 @@
 	};
 };
 
+&hsi2c_13 {
+	clock-frequency = <370000>;
+};
+
 &hsi2c_15 {
 	#address-cells = <1>;
 	#size-cells = <0>;
