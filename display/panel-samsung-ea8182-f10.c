@@ -199,7 +199,6 @@ static int ea8182_f10_enable(struct drm_panel *panel)
 
 	EXYNOS_DCS_WRITE_SEQ(ctx, 0x9D, 0x01);  /* Compression Enable */
 	EXYNOS_PPS_LONG_WRITE(ctx);             /* PPS_SETTING */
-
 	exynos_panel_send_cmd_set(ctx, &ea8182_f10_init_cmd_set);
 	usleep_range(90000, 90010);
 	EXYNOS_DCS_WRITE_TABLE(ctx, unlock_cmd_f0);
@@ -220,9 +219,24 @@ static int ea8182_f10_enable(struct drm_panel *panel)
 static void ea8182_f10_set_hbm_mode(struct exynos_panel *exynos_panel,
 				 enum exynos_hbm_mode mode)
 {
+	const bool hbm_update =
+		(IS_HBM_ON(exynos_panel->hbm_mode) != IS_HBM_ON(mode));
+	const bool irc_update =
+		(IS_HBM_ON_IRC_OFF(exynos_panel->hbm_mode) != IS_HBM_ON_IRC_OFF(mode));
+
 	exynos_panel->hbm_mode = mode;
 
-	ea8182_f10_update_wrctrld(exynos_panel);
+	if (hbm_update)
+		ea8182_f10_update_wrctrld(exynos_panel);
+
+	if (irc_update) {
+		EXYNOS_DCS_WRITE_SEQ(exynos_panel, 0xF0, 0x5A, 0x5A);
+		EXYNOS_DCS_WRITE_SEQ(exynos_panel, 0xB0, 0x01);
+		EXYNOS_DCS_WRITE_SEQ(exynos_panel, 0xC6, IS_HBM_ON_IRC_OFF(mode) ? 0x05 : 0x25);
+		EXYNOS_DCS_WRITE_SEQ(exynos_panel, 0xF0, 0xA5, 0xA5);
+	}
+	dev_info(exynos_panel->dev, "hbm_on=%d hbm_ircoff=%d\n", IS_HBM_ON(exynos_panel->hbm_mode),
+		IS_HBM_ON_IRC_OFF(exynos_panel->hbm_mode));
 }
 
 static void ea8182_f10_set_dimming_on(struct exynos_panel *exynos_panel,
