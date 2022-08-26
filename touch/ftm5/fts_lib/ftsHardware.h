@@ -52,7 +52,7 @@
 						 * a single i2c write on mem,
 						 * max allowed value is 2kB */
 
-#define READ_FILTERED_RAW	/* /< To understand
+#undef READ_FILTERED_RAW	/* /< To understand
 				* which type of RAW data to read
 				* OCTA panel needs to read Filtered RAW */
 
