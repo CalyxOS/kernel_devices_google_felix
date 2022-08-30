@@ -58,7 +58,7 @@ int init_test_to_do(void)
 	tests.mutual_raw = 1;
 	tests.mutual_raw_lp = 1;
 	tests.self_force_raw = 1;
-	tests.self_force_raw_lp = 1;
+	tests.self_force_raw_lp = 0;
 	tests.self_sense_raw = 1;
 	tests.self_sense_raw_lp = 1;
 	tests.mutual_cx_lp = 1;
