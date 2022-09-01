@@ -89,6 +89,7 @@
 		st,device_name = "fts_ext";
 		st,firmware_names = "ftm5_fw_f10_ext.ftb";
 		st,limits_names = "stm_fts_production_limits_f10_ext.csv";
+		st,heatmap_mode_full;
 		/* st,panel_map = <&samsung_ea8182 0>; */
 		st,sensor_inverted_x;
 		st,sensor_inverted_y;

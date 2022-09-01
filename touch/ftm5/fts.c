@@ -6385,8 +6385,9 @@ static int parse_dt(struct device *dev, struct fts_hw_platform_data *bdata)
 	bdata->heatmap_mode_full_init = false;
 	if (of_property_read_bool(np, "st,heatmap_mode_full")) {
 		bdata->heatmap_mode_full_init = true;
-		dev_info(dev, "Full heatmap enabled\n");
 	}
+	dev_info(dev, "%s heatmap enabled\n", bdata->heatmap_mode_full_init ?
+		"Full" : "Partial");
 #endif
 
 	if (panel && panel->funcs && panel->funcs->get_timings &&
