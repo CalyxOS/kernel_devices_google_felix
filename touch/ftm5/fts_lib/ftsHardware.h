@@ -41,14 +41,15 @@
 #define DCHIP_FW_VER_BYTE		2	/* /< number of bytes of the fw
 						 * versions */
 
-/* CHUNKS */
-#define READ_CHUNK			1024	/* /< chunk dimension of
+/* CHUNKS. It can support up to 2048 bytes. Set as 2040 to make sure it still less
+   than 2048 after adding byte_to_skip and 4 bytes alignment. */
+#define READ_CHUNK			2040	/* /< chunk dimension of
 						 * a single i2c read,
 						 * max allowed value is 2kB */
-#define WRITE_CHUNK			1024	/* /< chunk dimension of
+#define WRITE_CHUNK			2040	/* /< chunk dimension of
 						 * a single i2c write,
 						 * max allowed value is 2kB */
-#define MEMORY_CHUNK			1024	/* /< chunk dimenasion of
+#define MEMORY_CHUNK			2040	/* /< chunk dimenasion of
 						 * a single i2c write on mem,
 						 * max allowed value is 2kB */
 

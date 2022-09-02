@@ -989,7 +989,7 @@ struct fts_ts_info {
 	u8 io_write_buf[WRITE_CHUNK + BITS_64 + DUMMY_FIFO];
 	/* Preallocated i/o extra write buffer */
 	u8 io_extra_write_buf[WRITE_CHUNK + BITS_64 + DUMMY_FIFO];
-
+	bool dma_mode;
 };
 
 /* DSI display function used to read panel extinfo */
