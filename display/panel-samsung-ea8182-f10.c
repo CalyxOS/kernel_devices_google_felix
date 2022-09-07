@@ -242,7 +242,13 @@ static void ea8182_f10_set_hbm_mode(struct exynos_panel *exynos_panel,
 static void ea8182_f10_set_dimming_on(struct exynos_panel *exynos_panel,
 				 bool dimming_on)
 {
+	const struct exynos_panel_mode *pmode = exynos_panel->current_mode;
+
 	exynos_panel->dimming_on = dimming_on;
+	if (pmode->exynos_mode.is_lp_mode) {
+		dev_info(exynos_panel->dev,"in lp mode, skip to update");
+		return;
+	}
 
 	ea8182_f10_update_wrctrld(exynos_panel);
 }
