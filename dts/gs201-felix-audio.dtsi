@@ -230,7 +230,7 @@
 
 		cirrus,boost-peak-milliamp = <3500>;
 		cirrus,boost-ind-nanohenry = <1000>;
-		cirrus,boost-cap-microfarad = <30>;
+		cirrus,boost-cap-microfarad = <4>;
 
 		cirrus,asp-sdout-hiz = <3>;
 		cirrus,tuning-has-prefix;
@@ -274,7 +274,7 @@
 
 		cirrus,boost-peak-milliamp = <3500>;
 		cirrus,boost-ind-nanohenry = <1000>;
-		cirrus,boost-cap-microfarad = <30>;
+		cirrus,boost-cap-microfarad = <4>;
 
 		cirrus,asp-sdout-hiz = <3>;
 		cirrus,tuning-has-prefix;
@@ -317,7 +317,7 @@
 
 		cirrus,boost-peak-milliamp = <3500>;
 		cirrus,boost-ind-nanohenry = <1000>;
-		cirrus,boost-cap-microfarad = <30>;
+		cirrus,boost-cap-microfarad = <4>;
 
 		cirrus,asp-sdout-hiz = <3>;
 		cirrus,tuning-has-prefix;
