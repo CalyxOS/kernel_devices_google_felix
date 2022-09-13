@@ -1362,11 +1362,14 @@ static int fts_probe(struct spi_device *client)
 #ifndef SPI4_WIRE
 	client->mode |= SPI_3WIRE;
 #endif
-	client->bits_per_word = 8;
-	if (spi_setup(client) < 0) {
-		log_info(1, "%s: Unsupported SPI functionality\n", __func__);
-		error = -EIO;
-		goto probe_error_exit_1;
+	if (client->controller->rt == false) {
+		client->rt = true;
+		ret_val = spi_setup(client);
+		if (ret_val < 0) {
+			log_info(1, "%s: setup SPI rt failed(%d)\n", __func__, ret_val);
+			error = -EIO;
+			goto probe_error_exit_1;
+		}
 	}
 /*
  *  TODO(b/246500977), need to unmark the macro when driver supports GTI.
