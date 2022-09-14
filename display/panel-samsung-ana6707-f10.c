@@ -125,8 +125,9 @@ static const unsigned char PPS_SETTING[] = {
 static const u8 unlock_cmd_f0[] = { 0xF0, 0x5A, 0x5A };
 static const u8 lock_cmd_f0[]   = { 0xF0, 0xA5, 0xA5 };
 static const u8 update_key[] = { 0xF7, 0x07 };
-static const u8 aod_on_50nit[] = { 0x53, 0x24 };
-static const u8 aod_on_10nit[] = { 0x53, 0x25 };
+static const u8 aod_on[] = { 0x53, 0x24 };
+static const u8 aod_default[] = { 0x51, 0x07, 0xFF };
+static const u8 aod_10nits[] = { 0x51, 0x01, 0x99 };
 static const u8 display_off[] = { MIPI_DCS_SET_DISPLAY_OFF };
 static const u8 display_on[] = { MIPI_DCS_SET_DISPLAY_ON };
 static const u8 sleep_in[] = { MIPI_DCS_ENTER_SLEEP_MODE };
@@ -160,14 +161,18 @@ static const struct exynos_dsi_cmd ana6707_f10_lp_off_cmds[] = {
 
 static const struct exynos_dsi_cmd ana6707_f10_lp_low_cmds[] = {
 	EXYNOS_DSI_CMD0(unlock_cmd_f0),
-	EXYNOS_DSI_CMD_SEQ(0x93, 0x01),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_LT(PANEL_REV_EVT1), 0x93, 0x01),
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x01),
 	EXYNOS_DSI_CMD_SEQ(0x60, 0x01),
-	EXYNOS_DSI_CMD(aod_on_10nit, 0), /* 10 nit */
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1, 0xB0, 0x4C),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1, 0xC8, 0x01, 0x07, 0x67, 0x02),
+	EXYNOS_DSI_CMD0_REV(aod_on, PANEL_REV_ALL_BUT(PANEL_REV_PROTO1_1)), /* AOD on */
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1_1, 0x53, 0x25), /* AOD on */
 
 	EXYNOS_DSI_CMD0(early_exit_global_para),
 	EXYNOS_DSI_CMD_SEQ(0xBD, 0x00), /* early exit on */
-	EXYNOS_DSI_CMD_SEQ_DELAY(101, 0x51, 0x07, 0xFF),
+	EXYNOS_DSI_CMD_REV(aod_default, 34, PANEL_REV_LT(PANEL_REV_EVT1)),
+	EXYNOS_DSI_CMD_REV(aod_10nits, 34, PANEL_REV_GE(PANEL_REV_EVT1)),
 	EXYNOS_DSI_CMD_SEQ(0xB9, 0x02, 0x02), /* fixed TE */
 
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x01), /* global para */
@@ -185,16 +190,16 @@ static const struct exynos_dsi_cmd ana6707_f10_lp_low_cmds[] = {
 
 static const struct exynos_dsi_cmd ana6707_f10_lp_high_cmds[] = {
 	EXYNOS_DSI_CMD0(unlock_cmd_f0),
-	EXYNOS_DSI_CMD_SEQ(0x93, 0x01),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_LT(PANEL_REV_EVT1), 0x93, 0x01),
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x01),
 	EXYNOS_DSI_CMD_SEQ(0x60, 0x01),
-	EXYNOS_DSI_CMD_SEQ(0xB0, 0x4C),
-	EXYNOS_DSI_CMD_SEQ(0xC8, 0x00),
-	EXYNOS_DSI_CMD(aod_on_50nit, 0), /* 50 nit */
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_LT(PANEL_REV_EVT1), 0xB0, 0x4C),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_LT(PANEL_REV_EVT1), 0xC8, 0x00),
+	EXYNOS_DSI_CMD0(aod_on), /* AOD on */
 
 	EXYNOS_DSI_CMD0(early_exit_global_para),
 	EXYNOS_DSI_CMD_SEQ(0xBD, 0x00), /* early exit on */
-	EXYNOS_DSI_CMD_SEQ_DELAY(101, 0x51, 0x07, 0xFF),
+	EXYNOS_DSI_CMD(aod_default, 34),
 	EXYNOS_DSI_CMD_SEQ(0xB9, 0x02, 0x02), /* fixed TE */
 
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x01), /* global para */
@@ -428,7 +433,14 @@ static void ana6707_f10_set_nolp_mode(struct exynos_panel *ctx,
 	EXYNOS_DCS_WRITE_TABLE(ctx, display_off);
 	usleep_range(delay_us, delay_us + 10);
 	EXYNOS_DCS_WRITE_TABLE(ctx, unlock_cmd_f0);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0x93, 0x02); /* normal mode on */
+
+	if (ctx->panel_rev == PANEL_REV_PROTO1) {
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x4C);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xC8, 0x00); /* normal mode set */
+	}
+
+	if (ctx->panel_rev <= PANEL_REV_PROTO1_1)
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0x93, 0x02); /* normal mode on */
 
 	/* disable early exit while exiting AOD mode */
 	EXYNOS_DCS_WRITE_SEQ(ctx, 0xB9, 0x00, 0x00); /* changeable TE */
