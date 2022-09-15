@@ -66,6 +66,8 @@
 		idt,gpio_slct = <&s2mpg12_gpio 0 GPIO_ACTIVE_HIGH>;
 		idt,gpio_slct_value = <1>;
 		idt,max_vout_mv = <10000>;  /* max voltage in mV */
+		google,epp_rp_value = <11000>; /* mW */
+		google,epp_rp_low_value = <10000>; /* mW */
 
 		google,q_value = <37>;
 		fod = [A8 26 88 31 A5 04 92 24 A1 08 A1 0F];
