@@ -58,6 +58,12 @@
 #include "fts_lib/fts_io.h"
 #include "fts_lib/fts_test.h"
 #include "fts_lib/fts_error.h"
+/*
+ *  TODO(b/246500977), need to unmark the macro when driver supports GTI.
+ */
+//#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+#include <goog_touch_interface.h>
+//#endif
 
 static int system_reseted_up;
 static int system_reseted_down;
@@ -1334,42 +1340,48 @@ static int fts_probe(struct spi_device *client)
 	log_info(1, "%s: driver probe begin!\n", __func__);
 	log_info(1, "%s: driver ver. %s\n", __func__, FTS_TS_DRV_VERSION);
 
+	info = kzalloc(sizeof(struct fts_ts_info), GFP_KERNEL);
+	if (!info) {
+		dev_err(&client->dev, "Out of memory... Impossible to allocate struct info!\n");
+		error = -ENOMEM;
+		goto probe_error_exit_0;
+	}
 
-	log_info(1, "%s: SET Bus Functionality :\n", __func__);
 #ifdef I2C_INTERFACE
 	log_info(1, "%s: I2C interface...\n", __func__);
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		log_info(1, "%s: Unsupported I2C functionality\n", __func__);
 		error = -EIO;
-		goto probe_error_exit_0;
+		goto probe_error_exit_1;
 	}
 
 	log_info(1, "%s: I2C address: %x\n", __func__, client->addr);
 	bus_type = BUS_I2C;
 #else
-	log_info(1, "%s: SPI interface...\n", __func__);
 	client->mode = SPI_MODE_0;
 #ifndef SPI4_WIRE
 	client->mode |= SPI_3WIRE;
 #endif
-	client->bits_per_word = 8;
-	if (spi_setup(client) < 0) {
-		log_info(1, "%s: Unsupported SPI functionality\n", __func__);
-		error = -EIO;
-		goto probe_error_exit_0;
+	if (client->controller->rt == false) {
+		client->rt = true;
+		ret_val = spi_setup(client);
+		if (ret_val < 0) {
+			log_info(1, "%s: setup SPI rt failed(%d)\n", __func__, ret_val);
+			error = -EIO;
+			goto probe_error_exit_1;
+		}
 	}
+/*
+ *  TODO(b/246500977), need to unmark the macro when driver supports GTI.
+ */
+//#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	info->dma_mode = goog_check_spi_dma_enabled(client);
+//#endif
+	log_info(1, "%s: SPI interface: dma_mode %d.\n", __func__, info->dma_mode );
 	bus_type = BUS_SPI;
 #endif
 
 	log_info(1, "%s SET Device driver INFO:\n", __func__);
-	info = kzalloc(sizeof(struct fts_ts_info), GFP_KERNEL);
-	if (!info) {
-		log_info(1,
-			 "%s: Out of memory... Impossible to allocate struct info!\n",
-			 __func__);
-		error = -ENOMEM;
-		goto probe_error_exit_0;
-	}
 
 	info->client = client;
 	info->dev = &info->client->dev;

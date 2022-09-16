@@ -81,11 +81,11 @@
 							 * address in memory */
 #define SPI_REG_W_CHUNK			128 /* /< chunk dimension of a
 						  * single SPI register write*/
-#define SPI_REG_R_CHUNK			1024 /* /< chunk dimension of
+#define SPI_REG_R_CHUNK			2040 /* /< chunk dimension of
 						  * a single SPI register read*/
-#define SPI_HDM_W_CHUNK			1024 /* /< chunk dimension of
+#define SPI_HDM_W_CHUNK			2040 /* /< chunk dimension of
 						  * a single SPI HDM write*/
-#define SPI_HDM_R_CHUNK			1024 /* /< chunk dimension of
+#define SPI_HDM_R_CHUNK			2040 /* /< chunk dimension of
 						  * a single SPI HDM read*/
 #define READ_CHUNK			SPI_HDM_R_CHUNK /* /< chunk dimension of
 						  * a single SPI  read*/
@@ -248,6 +248,9 @@
 						* Value */
 #define SCAN_MODE_LOCK_LP_ACTIVE	0x14 /* /<  can mode lock LP Active
 						* Value */
+
+#define spi_len_dma_align(len, sz) ((len) >= 64) ? ALIGN(len, sz) : (len)
+#define spi_bits_dma_align(len) ((len) >= 64) ? (32) : (8)
 
 /*#define MS_GV_METHOD
 #define SS_GV_METHOD*/

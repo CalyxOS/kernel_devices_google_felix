@@ -20,6 +20,13 @@
 	/delete-property/ regulator-always-on;
 };
 
+&spi_0 {
+	status = "okay";
+	dma-mode;
+	dmas = <&pdma0 0 &pdma0 1>;
+	swap-mode = <1> ;
+};
+
 &spitouch {
 	status = "ok";
 	compatible = "st,fst2";

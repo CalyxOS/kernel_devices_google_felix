@@ -32,17 +32,15 @@
 #else
 #include <linux/spi/spidev.h>
 #endif
-
-static void *client;	/* /< bus client retrived by the OS and
-				  * used to execute the bus transfers */
-
 #include "fts_io.h"
 #include "fts_error.h"
+#include "../fts.h"
 
 /*#define DEBUG_LOG*/
 extern struct sys_info system_info;
 static int reset_gpio = GPIO_NOT_DEFINED;
-
+static void *client;	/* /< bus client retrieved by the OS and
+				  * used to execute the bus transfers */
 #ifdef I2C_INTERFACE
 /**
   * Retrieve the pointer of the i2c_client struct representing the IC as i2c
@@ -140,12 +138,17 @@ int fts_read(u8 *out_buf, int byte_to_read)
 	I2CMsg[0].len = (__u16)byte_to_read;
 	I2CMsg[0].buf = (__u8 *)out_buf;
 #else
+	struct fts_ts_info *info = dev_get_drvdata(&(get_client()->dev));
 	struct spi_message msg;
 	struct spi_transfer transfer[1] = { { 0 } };
 
 	spi_message_init(&msg);
-
-	transfer[0].len = byte_to_read;
+	if (info && info->dma_mode) {
+		transfer[0].len = spi_len_dma_align(byte_to_read, 4);
+		transfer[0].bits_per_word = spi_bits_dma_align(byte_to_read);
+	} else {
+		transfer[0].len = byte_to_read;
+	}
 	transfer[0].delay_usecs = SPI_DELAY_CS;
 	transfer[0].tx_buf = NULL;
 	transfer[0].rx_buf = out_buf;
@@ -204,17 +207,28 @@ int fts_write_read(u8 *cmd, int cmd_length, u8 *out_buf, int byte_to_read)
 #ifdef DEBUG_LOG
 	int i = 0;
 #endif
+	struct fts_ts_info *info = dev_get_drvdata(&(get_client()->dev));
 	struct spi_message msg;
 	struct spi_transfer transfer[2] = { { 0 }, { 0 } };
 
 	spi_message_init(&msg);
 
-	transfer[0].len = cmd_length;
+	if (info && info->dma_mode) {
+		transfer[0].len = spi_len_dma_align(cmd_length, 4);
+		transfer[0].bits_per_word = spi_bits_dma_align(cmd_length);
+	} else {
+		transfer[0].len = cmd_length;
+	}
 	transfer[0].tx_buf = cmd;
 	transfer[0].rx_buf = NULL;
 	spi_message_add_tail(&transfer[0], &msg);
 
-	transfer[1].len = byte_to_read;
+	if (info && info->dma_mode) {
+		transfer[1].len = spi_len_dma_align(byte_to_read, 4);
+		transfer[1].bits_per_word = spi_bits_dma_align(byte_to_read);
+	} else {
+		transfer[1].len = byte_to_read;
+	}
 	transfer[1].delay_usecs = SPI_DELAY_CS;
 	transfer[1].tx_buf = NULL;
 	transfer[1].rx_buf = out_buf;
@@ -275,12 +289,18 @@ int fts_write(u8 *cmd, int cmd_length)
 #ifdef DEBUG_LOG
 	int i = 0;
 #endif
+	struct fts_ts_info *info = dev_get_drvdata(&(get_client()->dev));
 	struct spi_message msg;
 	struct spi_transfer transfer[1] = { { 0 } };
 
 	spi_message_init(&msg);
 
-	transfer[0].len = cmd_length;
+	if (info && info->dma_mode) {
+		transfer[0].len = spi_len_dma_align(cmd_length, 4);
+		transfer[0].bits_per_word = spi_bits_dma_align(cmd_length);
+	} else {
+		transfer[0].len = cmd_length;
+	}
 	transfer[0].delay_usecs = SPI_DELAY_CS;
 	transfer[0].tx_buf = cmd;
 	transfer[0].rx_buf = NULL;

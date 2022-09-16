@@ -74,6 +74,7 @@
 #include "fts_lib/ftsTest.h"
 #include "fts_lib/ftsTime.h"
 #include "fts_lib/ftsTool.h"
+#include <goog_touch_interface.h>
 
 /* Touch simulation MT slot */
 #define TOUCHSIM_SLOT_ID		0
@@ -6492,12 +6493,20 @@ static int fts_probe(struct spi_device *client)
 	dev_info(&client->dev, "driver ver. %s\n", FTS_TS_DRV_VERSION);
 
 	dev_info(&client->dev, "SET Bus Functionality :\n");
+
+	info = kzalloc(sizeof(struct fts_ts_info), GFP_KERNEL);
+	if (!info) {
+		dev_err(&client->dev, "Out of memory... Impossible to allocate struct info!\n");
+		error = -ENOMEM;
+		goto ProbeErrorExit_0;
+	}
+
 #ifdef I2C_INTERFACE
 	dev_info(&client->dev, "I2C interface...\n");
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
 		dev_err(&client->dev, "Unsupported I2C functionality\n");
 		error = -EIO;
-		goto ProbeErrorExit_0;
+		goto ProbeErrorExit_1;
 	}
 
 	dev_info(&client->dev, "i2c address: %x\n", client->addr);
@@ -6511,17 +6520,11 @@ static int fts_probe(struct spi_device *client)
 				__func__, retval);
 		}
 	}
-	dev_info(&client->dev, "SPI interface...\n");
+	info->dma_mode = goog_check_spi_dma_enabled(client);
+	dev_info(&client->dev, "SPI interface: dma_mode %d.\n", info->dma_mode);
 	bus_type = BUS_SPI;
 #endif
 	dev_info(&client->dev, "SET Device driver INFO:\n");
-
-	info = kzalloc(sizeof(struct fts_ts_info), GFP_KERNEL);
-	if (!info) {
-		dev_err(&client->dev, "Out of memory... Impossible to allocate struct info!\n");
-		error = -ENOMEM;
-		goto ProbeErrorExit_0;
-	}
 
 	info->client = client;
 	info->dev = &info->client->dev;

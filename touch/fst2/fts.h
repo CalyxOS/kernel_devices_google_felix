@@ -154,6 +154,7 @@ struct fts_ts_info {
 	struct workqueue_struct  *fwu_workqueue;/* /< Fw update work
 							 * queue */
 #endif
+	bool dma_mode;
 };
 
 extern int fts_proc_init(struct fts_ts_info *info);
