@@ -14,6 +14,7 @@
 #include "google-base/gs201-cloudripper-ese.dtsi"
 #include "google-base/gs201-cloudripper-gsa-gsc.dtsi"
 #include "google-base/gs201-cloudripper-wlan.dtsi"
+#include "google-base/gs101-faceauth-dma-heap.dtsi"
 
 #include "google-base/gs101-faceauth-dma-heap.dtsi"
 
