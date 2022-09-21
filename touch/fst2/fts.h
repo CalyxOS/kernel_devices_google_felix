@@ -20,7 +20,6 @@
 #define _LINUX_FTS_I2C_H_
 
 #include <linux/device.h>
-#include <drm/drm_bridge.h>
 
 #define FTS_TS_DRV_NAME		"fst2"
 #define FTS_TS_DRV_VERSION	"6.0.3"
@@ -139,11 +138,8 @@ struct fts_ts_info {
 	int resume_bit;	/* /< Indicate if screen off/on */
 	unsigned int mode;	/* /< Device operating mode (bitmask: msb
 				 * indicate if active or lpm) */
-	struct drm_bridge panel_bridge;
 	u8 pm_wake_locks;
 	struct mutex pm_wakelock_mutex;	/* Protect access to the bus_ref */
-	struct drm_connector *connector;
-	bool is_panel_lp_mode;
 	unsigned long touch_id;	/* /< Bitmask for touch id (mapped to input
 				 * slots) */
 	bool sensor_sleep;	/* /< if true suspend was called while if false

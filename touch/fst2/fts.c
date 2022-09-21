@@ -49,10 +49,6 @@
 #include <linux/fb.h>
 #include <linux/spi/spi.h>
 
-#include <drm/drm_panel.h>
-#include <samsung/exynos_drm_connector.h>
-#include <samsung/panel/panel-samsung-drv.h>
-
 #include "fts.h"
 #include "fts_lib/fts_flash.h"
 #include "fts_lib/fts_io.h"
@@ -701,121 +697,6 @@ int pm_wake_unlock(struct fts_ts_info *info, enum pm_wakelock_type wakelock_type
 	return OK;
 }
 
-struct drm_connector *get_bridge_connector(struct drm_bridge *bridge)
-{
-	struct drm_connector *connector;
-	struct drm_connector_list_iter conn_iter;
-
-	drm_connector_list_iter_begin(bridge->dev, &conn_iter);
-	drm_for_each_connector_iter(connector, &conn_iter) {
-		if (connector->encoder == bridge->encoder)
-			break;
-	}
-	drm_connector_list_iter_end(&conn_iter);
-	return connector;
-}
-
-static bool bridge_is_lp_mode(struct drm_connector *connector)
-{
-	if (connector && connector->state) {
-		struct exynos_drm_connector_state *s =
-			to_exynos_connector_state(connector->state);
-		return s->exynos_mode.is_lp_mode;
-	}
-	return false;
-}
-
-static void panel_bridge_enable(struct drm_bridge *bridge)
-{
-	struct fts_ts_info *info =
-			container_of(bridge, struct fts_ts_info, panel_bridge);
-
-	log_info(0, "%s: Entry\n", __func__);
-	pr_debug("%s\n", __func__);
-	if (!info->is_panel_lp_mode)
-		pm_wake_lock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
-	log_info(0, "%s: Exit\n", __func__);
-}
-
-static void panel_bridge_disable(struct drm_bridge *bridge)
-{
-	struct fts_ts_info *info =
-			container_of(bridge, struct fts_ts_info, panel_bridge);
-
-	log_info(0, "%s: Entry\n", __func__);
-	if (bridge->encoder && bridge->encoder->crtc) {
-		const struct drm_crtc_state *crtc_state = bridge->encoder->crtc->state;
-
-		if (drm_atomic_crtc_effectively_active(crtc_state))
-			return;
-	}
-
-	pr_debug("%s\n", __func__);
-	pm_wake_unlock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
-	log_info(0, "%s: Exit\n", __func__);
-}
-
-static void panel_bridge_mode_set(struct drm_bridge *bridge,
-				  const struct drm_display_mode *mode,
-				  const struct drm_display_mode *adjusted_mode)
-{
-	struct fts_ts_info *info =
-			container_of(bridge, struct fts_ts_info, panel_bridge);
-	log_info(0, "%s: Entry\n", __func__);
-	pr_debug("%s\n", __func__);
-
-	if (!info->connector || !info->connector->state) {
-		pr_info("%s: Get bridge connector.\n", __func__);
-		info->connector = get_bridge_connector(bridge);
-	}
-
-	info->is_panel_lp_mode = bridge_is_lp_mode(info->connector);
-	if (info->is_panel_lp_mode)
-		pm_wake_unlock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
-	else
-		pm_wake_lock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
-	log_info(0, "%s: Exit\n", __func__);
-}
-
-static const struct drm_bridge_funcs panel_bridge_funcs = {
-	.enable = panel_bridge_enable,
-	.disable = panel_bridge_disable,
-	.mode_set = panel_bridge_mode_set,
-};
-
-static int register_panel_bridge(struct fts_ts_info *info)
-{
-
-#ifdef CONFIG_OF
-	info->panel_bridge.of_node = info->client->dev.of_node;
-#endif
-	info->panel_bridge.funcs = &panel_bridge_funcs;
-	drm_bridge_add(&info->panel_bridge);
-
-	return 0;
-}
-
-static void unregister_panel_bridge(struct drm_bridge *bridge)
-{
-	struct drm_bridge *node;
-
-	drm_bridge_remove(bridge);
-
-	if (!bridge->dev) /* not attached */
-		return;
-
-	drm_modeset_lock(&bridge->dev->mode_config.connection_mutex, NULL);
-	list_for_each_entry(node, &bridge->encoder->bridge_chain, chain_node)
-		if (node == bridge) {
-			if (bridge->funcs->detach)
-				bridge->funcs->detach(bridge);
-			list_del(&bridge->chain_node);
-			break;
-		}
-	drm_modeset_unlock(&bridge->dev->mode_config.connection_mutex);
-	bridge->dev = NULL;
-}
-
 /**
   * Complete the boot up process, initializing the sensing of the IC according
   * to the current setting chosen by the host
@@ -829,7 +710,6 @@ static int fts_init_sensing(struct fts_ts_info *info)
 	uint8_t int_data = 0x01;
 	int res = 0;
 
-	error |= register_panel_bridge(info);
 	error |= fts_interrupt_install(info);
 	log_info(1, "%s: Sensing on..\n", __func__);
 	error |= fts_mode_handler(info, 0);
@@ -887,18 +767,6 @@ static int fts_chip_init(struct fts_ts_info *info)
 		log_info(1, "%s: [3]: TOUCH INIT FAILED..\n",
 				__func__, res);
 		return res;
-	}
-
-	/* Align the touch and display status during boot. */
-	if (!IS_ERR_OR_NULL(info->board->panel)) {
-		struct exynos_panel *ctx = container_of(info->board->panel,
-							struct exynos_panel,
-							panel);
-		log_info(1, "%s: Boot status align.", __func__);
-		if (ctx->enabled)
-			pm_wake_lock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
-		else
-			pm_wake_unlock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
 	}
 
 	return res;
@@ -1524,7 +1392,7 @@ static int fts_probe(struct spi_device *client)
 	if (!info->fwu_workqueue) {
 		log_info(1, "%s ERROR: Cannot create fwu work thread\n",
 			__func__);
-		goto probe_error_exit_7;
+		goto probe_error_exit_6;
 	}
 	INIT_DELAYED_WORK(&info->fwu_work, flash_update_auto);
 #endif
@@ -1534,9 +1402,6 @@ static int fts_probe(struct spi_device *client)
 #endif
 	log_info(1, "%s: Probe Finished!\n", __func__);
 	return OK;
-
-probe_error_exit_7:
-	unregister_panel_bridge(&info->panel_bridge);
 
 probe_error_exit_6:
 	input_unregister_device(info->input_dev);
@@ -1576,7 +1441,6 @@ static int fts_remove(struct spi_device *client)
 
 	fts_proc_remove();
 	fts_interrupt_uninstall(info);
-	unregister_panel_bridge(&info->panel_bridge);
 	input_unregister_device(info->input_dev);
 	destroy_workqueue(info->event_wq);
 #ifndef FW_UPDATE_ON_PROBE
