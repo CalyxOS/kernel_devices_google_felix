@@ -47,6 +47,7 @@
 					 area. Unit: pixels */
 	vdd-supply = <&s_ldo22_reg>; /* VIO 1.8V, different from common. */
 	avdd-supply = <&s_ldo6_reg>; /* AVDD 3.3V, different from common. */
+	goog,tbn-enabled;
 	controller-data {
 		cs-gpio = <&gpp20 3 0>;
 		samsung,spi-feedback-delay = <1>;
