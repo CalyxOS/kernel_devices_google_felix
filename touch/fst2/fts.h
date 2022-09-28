@@ -20,6 +20,11 @@
 #define _LINUX_FTS_I2C_H_
 
 #include <linux/device.h>
+#include "fts_lib/fts_io.h"
+
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+#include <goog_touch_interface.h>
+#endif
 
 #define FTS_TS_DRV_NAME		"fst2"
 #define FTS_TS_DRV_VERSION	"6.0.3"
@@ -31,7 +36,8 @@
 
 #define MAX_FIFO_EVENT	100 /* /< max number of events that the FIFO can
 				 * collect  */
-
+#define EVENT_DATA_SIZE (FIFO_EVENT_SIZE * MAX_FIFO_EVENT) /* /< event data
+                                                            * buffer size */
 /* **** PANEL SPECIFICATION **** */
 #define X_AXIS_MAX	2207	/* /< Max X coordinate of the display */
 #define X_AXIS_MIN	0	/* /< min X coordinate of the display */
@@ -66,20 +72,6 @@
 #define TOUCH_TYPE_FINGER			0x01	/* /< Finger touch */
 #define TOUCH_TYPE_GLOVE			0x02	/* /< Glove touch */
 #define TOUCH_TYPE_LARGE			0x03	/* /< Large touch */
-
-#define GTI_PM_WAKELOCK_TYPE_LOCK_MASK 0xFFFF
-/**
- * @brief: wakelock type.
- */
-enum pm_wakelock_type {
-	PM_WAKELOCK_TYPE_SCREEN_ON = 	0x01,
-	PM_WAKELOCK_TYPE_IRQ = 		0x02,
-	PM_WAKELOCK_TYPE_FW_UPDATE = 	0x04,
-	PM_WAKELOCK_TYPE_SYSFS = 	0x08,
-	PM_WAKELOCK_TYPE_FORCE_ACTIVE = 0x10,
-	PM_WAKELOCK_TYPE_BUGREPORT = 	0x20,
-	PM_WAKELOCK_TYPE_SYSINIT = 	0x40,
-};
 
 /*
   * Forward declaration
@@ -127,19 +119,13 @@ struct fts_ts_info {
 	bool irq_enabled;	/* Interrupt state */
 
 	struct input_dev *input_dev; /* /< Input device structure */
-	struct mutex input_report_mutex;/* /< mutex for handling the report
-						 * of the pressure of keys */
-	struct work_struct suspend_work;	/* /< Suspend work thread */
-	struct work_struct resume_work;	/* /< Resume work thread */
-	struct workqueue_struct *event_wq;	/* /< Workqueue used for event
-						 * handler, suspend and resume
-						 * work threads */
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	struct goog_touch_interface *gti;
+#endif
 	event_dispatch_handler_t *event_dispatch_table;
 	int resume_bit;	/* /< Indicate if screen off/on */
 	unsigned int mode;	/* /< Device operating mode (bitmask: msb
 				 * indicate if active or lpm) */
-	u8 pm_wake_locks;
-	struct mutex pm_wakelock_mutex;	/* Protect access to the bus_ref */
 	unsigned long touch_id;	/* /< Bitmask for touch id (mapped to input
 				 * slots) */
 	bool sensor_sleep;	/* /< if true suspend was called while if false
@@ -151,15 +137,11 @@ struct fts_ts_info {
 							 * queue */
 #endif
 	bool dma_mode;
+	unsigned char evt_data[EVENT_DATA_SIZE];
 };
 
 extern int fts_proc_init(struct fts_ts_info *info);
 extern int fts_proc_remove(void);
 int fts_set_interrupt(struct fts_ts_info *info, bool enable);
-
-int pm_wake_lock(struct fts_ts_info *info, enum pm_wakelock_type type);
-int pm_wake_unlock(struct fts_ts_info *info, enum pm_wakelock_type type);
-
-
 
 #endif
