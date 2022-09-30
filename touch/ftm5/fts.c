@@ -5334,15 +5334,23 @@ static int fts_init(struct fts_ts_info *info)
 {
 	int error;
 
-
 	error = fts_system_reset(info);
-	if (error < OK) {
+	/*
+	 * If it's not bus error, it's possible that there is no FW or FW
+	 * broken so we continue to flash.
+	 */
+	if (error < OK && isBusError(error)) {
 		dev_err(info->dev, "Cannot reset the device! ERROR %08X\n", error);
 		return error;
+	}
+
+	if (error == (ERROR_TIMEOUT | ERROR_SYSTEM_RESET_FAIL)) {
+		dev_err(info->dev, "Setting default Sys INFO!\n");
+		error = defaultSysInfo(info, 0);
 	} else {
 		error = readSysInfo(info, 0);	/* system reset OK */
 		if (error < OK) {
-			if (!isI2cError(error))
+			if (!isBusError(error))
 				error = OK;
 			dev_err(info->dev, "Cannot read Sys Info! ERROR %08X\n",
 				error);
