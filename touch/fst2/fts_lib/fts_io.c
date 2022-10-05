@@ -929,7 +929,7 @@ int fts_system_reset(int poll_event)
 	uint8_t int_data = 0x01;
 
 	if (reset_gpio == GPIO_NOT_DEFINED) {
-		res = fts_write_u8ux(FTS_CMD_HW_REG_W, BITS_32, SYS_RST_ADDR,
+		res = fts_write_u8ux(FTS_CMD_HW_REG_W, HW_ADDR_SIZE, SYS_RST_ADDR,
 			&data, 1);
 		if (res < OK) {
 			log_info(1, "%s ERROR %08X\n", __func__, res);
@@ -949,6 +949,22 @@ int fts_system_reset(int poll_event)
 			log_info(1, "%s ERROR %08X\n", __func__, res);
 	} else
 		msleep(100);
+
+#ifdef FTS_GPIO6_UNUSED
+	res = fts_write_read_u8ux(FTS_CMD_HW_REG_R, HW_ADDR_SIZE,
+				  FLASH_CTRL_ADDR, &data, 1, DUMMY_BYTE);
+	if (res < OK) {
+		log_info(1, "%s ERROR %08X\n", __func__, res);
+		return res;
+	}
+	data |= 0x80;
+	res = fts_write_u8ux(FTS_CMD_HW_REG_W, HW_ADDR_SIZE,
+			     FLASH_CTRL_ADDR, &data, 1);
+	if (res < OK) {
+		log_info(1, "%s ERROR %08X\n", __func__, res);
+		return res;
+	}
+#endif
 
 	res = fts_write_fw_reg(add, &int_data, 1);
 	if (res < OK) {

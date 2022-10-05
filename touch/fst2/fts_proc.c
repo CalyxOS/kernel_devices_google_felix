@@ -996,10 +996,12 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				} else {
 					log_info(1, "FTS_FORCE_TOUCH_ACTIVE: %s\n",
 						cmd[1] ? "ON" : "OFF");
-					if (cmd[1])
-						pm_wake_lock(info, PM_WAKELOCK_TYPE_FORCE_ACTIVE);
-					else
-						pm_wake_unlock(info, PM_WAKELOCK_TYPE_FORCE_ACTIVE);
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+					cmd[1] ? goog_pm_wake_lock(info->gti,
+						GTI_PM_WAKELOCK_TYPE_FORCE_ACTIVE, false) :
+						goog_pm_wake_unlock(info->gti,
+						GTI_PM_WAKELOCK_TYPE_FORCE_ACTIVE);
+#endif
 					res = OK;
 				}
 			}  else {

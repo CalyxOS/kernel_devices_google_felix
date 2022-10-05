@@ -252,6 +252,7 @@
 #define spi_len_dma_align(len, sz) ((len) >= 64) ? ALIGN(len, sz) : (len)
 #define spi_bits_dma_align(len) ((len) >= 64) ? (32) : (8)
 
+#define FTS_GPIO6_UNUSED	/* /< uncomment this if GPIO6 is unused */
 /*#define MS_GV_METHOD
 #define SS_GV_METHOD*/
 

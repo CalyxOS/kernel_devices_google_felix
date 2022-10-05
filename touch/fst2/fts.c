@@ -49,24 +49,20 @@
 #include <linux/fb.h>
 #include <linux/spi/spi.h>
 
+#if !IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
 #include <drm/drm_panel.h>
-#include <samsung/exynos_drm_connector.h>
-#include <samsung/panel/panel-samsung-drv.h>
+#endif
 
 #include "fts.h"
 #include "fts_lib/fts_flash.h"
-#include "fts_lib/fts_io.h"
 #include "fts_lib/fts_test.h"
 #include "fts_lib/fts_error.h"
-/*
- *  TODO(b/246500977), need to unmark the macro when driver supports GTI.
- */
-//#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
-#include <goog_touch_interface.h>
-//#endif
 
 static int system_reseted_up;
 static int system_reseted_down;
+#ifdef CONFIG_PM
+static const struct dev_pm_ops fts_pm_ops;
+#endif
 
 char fts_ts_phys[64];
 extern struct test_to_do tests;
@@ -159,6 +155,29 @@ void release_all_touches(struct fts_ts_info *info)
 {
 	unsigned int type = MT_TOOL_FINGER;
 	int i;
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	goog_input_lock(info->gti);
+	goog_input_set_timestamp(info->gti, info->input_dev, KTIME_RELEASE_ALL);
+	for (i = 0; i < TOUCH_ID_MAX + PEN_ID_MAX ; i++) {
+		type = i < TOUCH_ID_MAX ? MT_TOOL_FINGER : MT_TOOL_PEN;
+
+		if (type == MT_TOOL_FINGER) {
+			goog_input_mt_slot(info->gti, info->input_dev, i);
+			goog_input_report_abs(info->gti, info->input_dev, ABS_MT_PRESSURE, 0);
+			goog_input_mt_report_slot_state(info->gti, info->input_dev, type, 0);
+			goog_input_report_abs(info->gti, info->input_dev, ABS_MT_TRACKING_ID, -1);
+		} else {
+			input_mt_slot(info->input_dev, i);
+			input_report_abs(info->input_dev, ABS_MT_PRESSURE, 0);
+			input_mt_report_slot_state(info->input_dev, type, 0);
+			input_report_abs(info->input_dev, ABS_MT_TRACKING_ID, -1);
+		}
+	}
+	goog_input_report_key(info->gti, info->input_dev, BTN_TOUCH, 0);
+	goog_input_sync(info->gti, info->input_dev);
+
+	goog_input_unlock(info->gti);
+#else
 	mutex_lock(&info->input_report_mutex);
 	for (i = 0; i < TOUCH_ID_MAX + PEN_ID_MAX ; i++) {
 		type = i < TOUCH_ID_MAX ? MT_TOOL_FINGER : MT_TOOL_PEN;
@@ -170,6 +189,7 @@ void release_all_touches(struct fts_ts_info *info)
 	input_report_key(info->input_dev, BTN_TOUCH, 0);
 	input_sync(info->input_dev);
 	mutex_unlock(&info->input_report_mutex);
+#endif
 	info->touch_id = 0;
 }
 
@@ -242,36 +262,107 @@ static irqreturn_t fts_interrupt_handler(int irq, void *handle)
 {
 	struct fts_ts_info *info = handle;
 	int error = 0, count = 0;
-	unsigned char data[FIFO_EVENT_SIZE] = { 0 };
 	unsigned char event_id;
-	event_dispatch_handler_t event_handler;
+	unsigned char total_events = 0;
+	unsigned char *evt_data;
+	bool has_pointer_event = false;
+	int event_start_idx = -1;
 
-	if (pm_wake_lock(info, PM_WAKELOCK_TYPE_IRQ)) {
-		log_info(0, "%s: IRQ received while suspending!", __func__);
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	if (goog_pm_wake_lock(info->gti, GTI_PM_WAKELOCK_TYPE_IRQ, true) < 0) {
+		dev_warn(info->dev, "Touch device already suspended.\n");
 		return IRQ_HANDLED;
 	}
-
-	mutex_lock(&info->input_report_mutex);
+#endif
+	memset(info->evt_data, 0, EVENT_DATA_SIZE);
 	for (count = 0; count < MAX_FIFO_EVENT; count++) {
-		error = fts_read_fw_reg(FIFO_READ_ADDR, data, 8);
-		if (error == OK && data[0] != EVT_ID_NOEVENT)
-			event_id = data[0] >> 4;
-		else
+		error = fts_read_fw_reg(FIFO_READ_ADDR,
+			&info->evt_data[count * FIFO_EVENT_SIZE], FIFO_EVENT_SIZE);
+		if (error != OK) {
+			log_info(1, "%s: Failed to read fifo event (error=%d)", __func__, error);
+			break;
+		}
+
+		if (info->evt_data[count * FIFO_EVENT_SIZE] == EVT_ID_NOEVENT)
 			break;
 
-		if (event_id < NUM_EVT_ID) {
-			event_handler = info->event_dispatch_table[event_id];
-			event_handler(info, (data));
+		total_events++;
+	}
+	evt_data = &info->evt_data[0];
+	if (evt_data[0] == EVT_ID_NOEVENT)
+		goto exit;
+	if (total_events == MAX_FIFO_EVENT)
+		log_info(1, "%s: Warnning:  total_events = MAX_FIFO_EVENT(%d)",
+				__func__, MAX_FIFO_EVENT);
+	/*
+	 * Parsing all the events ID and specifically handle the
+	 * EVT_ID_CONTROLLER_READY and EVT_ID_ERROR at first.
+	 */
+	for (count = 0; count < total_events; count++) {
+		evt_data = &info->evt_data[count * FIFO_EVENT_SIZE];
+		switch (evt_data[0]) {
+		case EVT_ID_CONTROLLER_READY:
+		case EVT_ID_ERROR:
+			event_id = evt_data[0] >> 4;
+			/* Ensure event ID is within bounds */
+			if (event_id < NUM_EVT_ID)
+				info->event_dispatch_table[event_id](info, (evt_data));
+
+			has_pointer_event = false;
+			event_start_idx = count;
+			break;
+		case EVT_ID_ENTER_POINT:
+		case EVT_ID_MOTION_POINT:
+		case EVT_ID_LEAVE_POINT:
+			has_pointer_event = true;
+			break;
+		default:
+			break;
 		}
 	}
-	pm_wake_unlock(info, PM_WAKELOCK_TYPE_IRQ);
+	/* Only lock input report when there is pointer event. */
+	if (has_pointer_event) {
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+		goog_input_lock(info->gti);
+		goog_input_set_timestamp(info->gti, info->input_dev, info->timestamp);
+#else
+		mutex_lock(&info->input_report_mutex);
+		input_set_timestamp(info->input_dev, info->timestamp);
+#endif
+	}
 
-	if (info->touch_id == 0)
-		input_report_key(info->input_dev, BTN_TOUCH, 0);
+	/*
+	 * Handle the remaining events except for
+	 * EVT_ID_CONTROLLER_READY and EVT_ID_ERROR.
+	 */
+	for (count = max(event_start_idx + 1, 0); count < total_events; count++) {
+		evt_data = &info->evt_data[count * FIFO_EVENT_SIZE];
+		event_id = evt_data[0] >> 4;
 
-	input_set_timestamp(info->input_dev, info->timestamp);
-	input_sync(info->input_dev);
-	mutex_unlock(&info->input_report_mutex);
+		/* Ensure event ID is within bounds */
+		if (event_id < NUM_EVT_ID)
+			info->event_dispatch_table[event_id](info, (evt_data));
+	}
+
+	if (has_pointer_event) {
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+		if (info->touch_id == 0)
+			goog_input_report_key(info->gti, info->input_dev, BTN_TOUCH, 0);
+
+		goog_input_sync(info->gti, info->input_dev);
+		goog_input_unlock(info->gti);
+#else
+		if (info->touch_id == 0)
+			input_report_key(info->input_dev, BTN_TOUCH, 0);
+
+		input_sync(info->input_dev);
+		mutex_unlock(&info->input_report_mutex);
+#endif
+	}
+exit:
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	goog_pm_wake_unlock(info->gti, GTI_PM_WAKELOCK_TYPE_IRQ);
+#endif
 	return IRQ_HANDLED;
 }
 
@@ -332,8 +423,11 @@ static void fts_enter_pointer_event_handler(struct fts_ts_info *info, unsigned
 
 	if (y == Y_AXIS_MAX)
 		y--;
-
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	goog_input_mt_slot(info->gti, info->input_dev, touch_id);
+#else
 	input_mt_slot(info->input_dev, touch_id);
+#endif
 	switch (touch_type) {
 	/* TODO: customer can implement a different strategy for each kind of
 	 * touch */
@@ -361,6 +455,16 @@ static void fts_enter_pointer_event_handler(struct fts_ts_info *info, unsigned
 		goto no_report;
 	}
 
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	goog_input_report_key(info->gti, info->input_dev, BTN_TOUCH, touch_condition);
+	goog_input_mt_report_slot_state(info->gti, info->input_dev, tool, 1);
+	goog_input_report_abs(info->gti, info->input_dev, ABS_MT_POSITION_X, x);
+	goog_input_report_abs(info->gti, info->input_dev, ABS_MT_POSITION_Y, y);
+	goog_input_report_abs(info->gti, info->input_dev, ABS_MT_TOUCH_MAJOR, major);
+	goog_input_report_abs(info->gti, info->input_dev, ABS_MT_TOUCH_MINOR, minor);
+	goog_input_report_abs(info->gti, info->input_dev, ABS_MT_PRESSURE, z);
+	goog_input_report_abs(info->gti, info->input_dev, ABS_MT_DISTANCE, distance);
+#else
 	input_report_key(info->input_dev, BTN_TOUCH, touch_condition);
 	input_mt_report_slot_state(info->input_dev, tool, 1);
 	input_report_abs(info->input_dev, ABS_MT_POSITION_X, x);
@@ -369,6 +473,7 @@ static void fts_enter_pointer_event_handler(struct fts_ts_info *info, unsigned
 	input_report_abs(info->input_dev, ABS_MT_TOUCH_MINOR, minor);
 	input_report_abs(info->input_dev, ABS_MT_PRESSURE, z);
 	input_report_abs(info->input_dev, ABS_MT_DISTANCE, distance);
+#endif
 
 no_report:
 	return;
@@ -388,8 +493,11 @@ static void fts_leave_pointer_event_handler(struct fts_ts_info *info, unsigned
 	touch_type = event[1] & 0x0F;
 	touch_id = (event[1] & 0xF0) >> 4;
 
-
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	goog_input_mt_slot(info->gti, info->input_dev, touch_id);
+#else
 	input_mt_slot(info->input_dev, touch_id);
+#endif
 	switch (touch_type) {
 	case TOUCH_TYPE_FINGER:
 	case TOUCH_TYPE_GLOVE:
@@ -404,9 +512,15 @@ static void fts_leave_pointer_event_handler(struct fts_ts_info *info, unsigned
 		return;
 	}
 
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	goog_input_report_abs(info->gti, info->input_dev, ABS_MT_PRESSURE, 0);
+	goog_input_mt_report_slot_state(info->gti, info->input_dev, tool, 0);
+	goog_input_report_abs(info->gti, info->input_dev, ABS_MT_TRACKING_ID, -1);
+#else
 	input_report_abs(info->input_dev, ABS_MT_PRESSURE, 0);
 	input_mt_report_slot_state(info->input_dev, tool, 0);
 	input_report_abs(info->input_dev, ABS_MT_TRACKING_ID, -1);
+#endif
 }
 
 #define fts_motion_pointer_event_handler fts_enter_pointer_event_handler
@@ -584,9 +698,13 @@ static int fts_interrupt_install(struct fts_ts_info *info)
 	if (error) return error;
 
 	log_info(1, "%s: Interrupt Mode\n", __func__);
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	if (goog_request_threaded_irq(info->gti, info->client->irq, fts_isr,
+#else
 	if (request_threaded_irq(info->client->irq, fts_isr,
-			fts_interrupt_handler, IRQF_ONESHOT | IRQF_TRIGGER_LOW,
-			FTS_TS_DRV_NAME, info)) {
+#endif
+		fts_interrupt_handler, IRQF_ONESHOT | IRQF_TRIGGER_LOW,
+		FTS_TS_DRV_NAME, info)) {
 		log_info(1, "%s: Request irq failed\n", __func__);
 		kfree(info->event_dispatch_table);
 		error = -EBUSY;
@@ -605,14 +723,21 @@ static void fts_interrupt_uninstall(struct fts_ts_info *info) {
 	free_irq(info->client->irq, info);
 }
 
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+static int gti_default_handler(void *private_data, enum gti_cmd_type cmd_type,
+	struct gti_union_cmd_data *cmd)
+{
+	return -ESRCH;
+}
+#endif
+
+#ifdef CONFIG_PM
 /**
-  * Resume work function which perform a system reset, clean all the touches
+  * Resume function which perform a system reset, clean all the touches
   *from the linux input system and prepare the ground for enabling the sensing
   */
-static void fts_resume_work(struct work_struct *work)
+static void fts_resume(struct fts_ts_info *info)
 {
-	struct fts_ts_info *info;
-	info = container_of(work, struct fts_ts_info, resume_work);
 	if (!info->sensor_sleep) return;
 	pr_info("%s\n", __func__);
 
@@ -626,13 +751,11 @@ static void fts_resume_work(struct work_struct *work)
 }
 
 /**
-  * Suspend work function which clean all the touches from Linux input system
+  * Suspend function which clean all the touches from Linux input system
   *and prepare the ground to disabling the sensing or enter in gesture mode
   */
-static void fts_suspend_work(struct work_struct *work)
+static void fts_suspend(struct fts_ts_info *info)
 {
-	struct fts_ts_info *info;
-	info = container_of(work, struct fts_ts_info, suspend_work);
 	if (info->sensor_sleep) return;
 	pr_info("%s\n", __func__);
 
@@ -644,177 +767,7 @@ static void fts_suspend_work(struct work_struct *work)
 	release_all_touches(info);
 	pm_relax(info->dev);
 }
-
-int pm_wake_lock(struct fts_ts_info *info, enum pm_wakelock_type wakelock_type)
-{
-	log_info(0, "%s: Wake lock: %d\n", __func__, wakelock_type);
-	mutex_lock(&info->pm_wakelock_mutex);
-	if (info->pm_wake_locks & wakelock_type) {
-		log_info(0, "%s: Already locked! Wakelock: %d, Lock: %d\n", \
-			__func__, info->pm_wake_locks, wakelock_type);
-		mutex_unlock(&info->pm_wakelock_mutex);
-		return ERROR_OP_NOT_ALLOW;
-	}
-
-	/* IRQs can only keep the bus active. IRQs received while the
-	* bus is transferred to SLPI should be ignored.
-	*/
-	if (wakelock_type == PM_WAKELOCK_TYPE_IRQ && info->pm_wake_locks == 0) {
-		log_info(0, "%s: IRQ received when suspended.\n", __func__);
-		mutex_unlock(&info->pm_wakelock_mutex);
-		return ERROR_OP_NOT_ALLOW;
-	}
-
-	info->pm_wake_locks |= wakelock_type;
-
-	if (wakelock_type != PM_WAKELOCK_TYPE_IRQ) {
-		cancel_work_sync(&info->suspend_work);
-		queue_work(info->event_wq, &info->resume_work);
-	}
-	mutex_unlock(&info->pm_wakelock_mutex);
-
-	if (wakelock_type != PM_WAKELOCK_TYPE_SCREEN_ON)
-		flush_workqueue(info->event_wq);
-
-	return OK;
-}
-
-int pm_wake_unlock(struct fts_ts_info *info, enum pm_wakelock_type wakelock_type)
-{
-	log_info(0, "%s: Wake unlock: %d\n", __func__, wakelock_type);
-	mutex_lock(&info->pm_wakelock_mutex);
-	if ((info->pm_wake_locks & wakelock_type) == 0) {
-		log_info(0, "%s: Already unlocked! Wakelock: %d, Lock: %d", \
-			__func__, info->pm_wake_locks, wakelock_type);
-		mutex_unlock(&info->pm_wakelock_mutex);
-		return ERROR_OP_NOT_ALLOW;
-	}
-	info->pm_wake_locks &= ~wakelock_type;
-
-	if (!info->pm_wake_locks) {
-		cancel_work_sync(&info->resume_work);
-		queue_work(info->event_wq, &info->suspend_work);
-	}
-
-	mutex_unlock(&info->pm_wakelock_mutex);
-
-	return OK;
-}
-
-struct drm_connector *get_bridge_connector(struct drm_bridge *bridge)
-{
-	struct drm_connector *connector;
-	struct drm_connector_list_iter conn_iter;
-
-	drm_connector_list_iter_begin(bridge->dev, &conn_iter);
-	drm_for_each_connector_iter(connector, &conn_iter) {
-		if (connector->encoder == bridge->encoder)
-			break;
-	}
-	drm_connector_list_iter_end(&conn_iter);
-	return connector;
-}
-
-static bool bridge_is_lp_mode(struct drm_connector *connector)
-{
-	if (connector && connector->state) {
-		struct exynos_drm_connector_state *s =
-			to_exynos_connector_state(connector->state);
-		return s->exynos_mode.is_lp_mode;
-	}
-	return false;
-}
-
-static void panel_bridge_enable(struct drm_bridge *bridge)
-{
-	struct fts_ts_info *info =
-			container_of(bridge, struct fts_ts_info, panel_bridge);
-
-	log_info(0, "%s: Entry\n", __func__);
-	pr_debug("%s\n", __func__);
-	if (!info->is_panel_lp_mode)
-		pm_wake_lock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
-	log_info(0, "%s: Exit\n", __func__);
-}
-
-static void panel_bridge_disable(struct drm_bridge *bridge)
-{
-	struct fts_ts_info *info =
-			container_of(bridge, struct fts_ts_info, panel_bridge);
-
-	log_info(0, "%s: Entry\n", __func__);
-	if (bridge->encoder && bridge->encoder->crtc) {
-		const struct drm_crtc_state *crtc_state = bridge->encoder->crtc->state;
-
-		if (drm_atomic_crtc_effectively_active(crtc_state))
-			return;
-	}
-
-	pr_debug("%s\n", __func__);
-	pm_wake_unlock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
-	log_info(0, "%s: Exit\n", __func__);
-}
-
-static void panel_bridge_mode_set(struct drm_bridge *bridge,
-				  const struct drm_display_mode *mode,
-				  const struct drm_display_mode *adjusted_mode)
-{
-	struct fts_ts_info *info =
-			container_of(bridge, struct fts_ts_info, panel_bridge);
-	log_info(0, "%s: Entry\n", __func__);
-	pr_debug("%s\n", __func__);
-
-	if (!info->connector || !info->connector->state) {
-		pr_info("%s: Get bridge connector.\n", __func__);
-		info->connector = get_bridge_connector(bridge);
-	}
-
-	info->is_panel_lp_mode = bridge_is_lp_mode(info->connector);
-	if (info->is_panel_lp_mode)
-		pm_wake_unlock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
-	else
-		pm_wake_lock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
-	log_info(0, "%s: Exit\n", __func__);
-}
-
-static const struct drm_bridge_funcs panel_bridge_funcs = {
-	.enable = panel_bridge_enable,
-	.disable = panel_bridge_disable,
-	.mode_set = panel_bridge_mode_set,
-};
-
-static int register_panel_bridge(struct fts_ts_info *info)
-{
-
-#ifdef CONFIG_OF
-	info->panel_bridge.of_node = info->client->dev.of_node;
 #endif
-	info->panel_bridge.funcs = &panel_bridge_funcs;
-	drm_bridge_add(&info->panel_bridge);
-
-	return 0;
-}
-
-static void unregister_panel_bridge(struct drm_bridge *bridge)
-{
-	struct drm_bridge *node;
-
-	drm_bridge_remove(bridge);
-
-	if (!bridge->dev) /* not attached */
-		return;
-
-	drm_modeset_lock(&bridge->dev->mode_config.connection_mutex, NULL);
-	list_for_each_entry(node, &bridge->encoder->bridge_chain, chain_node)
-		if (node == bridge) {
-			if (bridge->funcs->detach)
-				bridge->funcs->detach(bridge);
-			list_del(&bridge->chain_node);
-			break;
-		}
-	drm_modeset_unlock(&bridge->dev->mode_config.connection_mutex);
-	bridge->dev = NULL;
-}
 
 /**
   * Complete the boot up process, initializing the sensing of the IC according
@@ -829,7 +782,6 @@ static int fts_init_sensing(struct fts_ts_info *info)
 	uint8_t int_data = 0x01;
 	int res = 0;
 
-	error |= register_panel_bridge(info);
 	error |= fts_interrupt_install(info);
 	log_info(1, "%s: Sensing on..\n", __func__);
 	error |= fts_mode_handler(info, 0);
@@ -889,18 +841,6 @@ static int fts_chip_init(struct fts_ts_info *info)
 		return res;
 	}
 
-	/* Align the touch and display status during boot. */
-	if (!IS_ERR_OR_NULL(info->board->panel)) {
-		struct exynos_panel *ctx = container_of(info->board->panel,
-							struct exynos_panel,
-							panel);
-		log_info(1, "%s: Boot status align.", __func__);
-		if (ctx->enabled)
-			pm_wake_lock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
-		else
-			pm_wake_unlock(info, PM_WAKELOCK_TYPE_SCREEN_ON);
-	}
-
 	return res;
 }
 
@@ -917,7 +857,7 @@ static void flash_update_auto(struct work_struct *work)
 	struct fts_ts_info *info = container_of(fwu_work, struct fts_ts_info,
 						fwu_work);
 	fts_chip_init(info);
-	pm_wake_unlock(info, PM_WAKELOCK_TYPE_SYSINIT);
+
 }
 #endif
 
@@ -1130,8 +1070,7 @@ static int fts_gpio_setup(int gpio, bool config, int dir, int state)
 static int fts_set_gpio(struct fts_ts_info *info)
 {
 	int ret_val;
-	struct fts_hw_platform_data *bdata =
-		info->board;
+	struct fts_hw_platform_data *bdata = info->board;
 
 	ret_val = fts_gpio_setup(bdata->irq_gpio, true, 0, 0);
 	if (ret_val < 0) {
@@ -1336,6 +1275,9 @@ static int fts_probe(struct spi_device *client)
 	int ret_val;
 	u16 bus_type;
 	u8 input_dev_free_flag = 0;
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	struct gti_optional_configuration *options;
+#endif
 
 	log_info(1, "%s: driver probe begin!\n", __func__);
 	log_info(1, "%s: driver ver. %s\n", __func__, FTS_TS_DRV_VERSION);
@@ -1371,12 +1313,10 @@ static int fts_probe(struct spi_device *client)
 			goto probe_error_exit_1;
 		}
 	}
-/*
- *  TODO(b/246500977), need to unmark the macro when driver supports GTI.
- */
-//#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
 	info->dma_mode = goog_check_spi_dma_enabled(client);
-//#endif
+#endif
 	log_info(1, "%s: SPI interface: dma_mode %d.\n", __func__, info->dma_mode );
 	bus_type = BUS_SPI;
 #endif
@@ -1385,8 +1325,6 @@ static int fts_probe(struct spi_device *client)
 
 	info->client = client;
 	info->dev = &info->client->dev;
-	info->pm_wake_locks = PM_WAKELOCK_TYPE_SYSINIT;
-
 	dev_set_drvdata(info->dev, info);
 
 	if (dp) {
@@ -1431,21 +1369,7 @@ static int fts_probe(struct spi_device *client)
 	if (!ret_val)
 		fts_pinctrl_setup(info, true);
 
-
-	log_info(1, "%s: SET Event Handler:\n", __func__);
-	info->event_wq = alloc_workqueue("fts-event-queue", WQ_UNBOUND |
-					 WQ_HIGHPRI | WQ_CPU_INTENSIVE, 1);
-	if (!info->event_wq) {
-		log_info(1, "%s: ERROR: Cannot create work thread\n", __func__);
-		error = -ENOMEM;
-		goto probe_error_exit_2;
-	}
-	INIT_WORK(&info->resume_work, fts_resume_work);
-	INIT_WORK(&info->suspend_work, fts_suspend_work);
-
-	mutex_init(&(info->input_report_mutex));
 	mutex_init(&info->fts_int_mutex);
-	mutex_init(&info->pm_wakelock_mutex);
 
 	log_info(1, "%s: SET Input Device Property:\n", __func__);
 	info->input_dev = input_allocate_device();
@@ -1453,7 +1377,7 @@ static int fts_probe(struct spi_device *client)
 		log_info(1, "%s: ERROR: No such input device defined!\n",
 			__func__);
 		error = -ENODEV;
-		goto probe_error_exit_4;
+		goto probe_error_exit_2;
 	}
 	info->input_dev->dev.parent = &client->dev;
 	info->input_dev->name = FTS_TS_DRV_NAME;
@@ -1516,7 +1440,6 @@ static int fts_probe(struct spi_device *client)
 			 __func__);
 		goto probe_error_exit_6;
 	}
-	pm_wake_unlock(info, PM_WAKELOCK_TYPE_SYSINIT);
 #else
 	log_info(1, "%s: SET Auto Fw Update:\n", __func__);
 	info->fwu_workqueue = alloc_workqueue("fts-fwu-queue", WQ_UNBOUND |
@@ -1524,7 +1447,7 @@ static int fts_probe(struct spi_device *client)
 	if (!info->fwu_workqueue) {
 		log_info(1, "%s ERROR: Cannot create fwu work thread\n",
 			__func__);
-		goto probe_error_exit_7;
+		goto probe_error_exit_6;
 	}
 	INIT_DELAYED_WORK(&info->fwu_work, flash_update_auto);
 #endif
@@ -1532,11 +1455,29 @@ static int fts_probe(struct spi_device *client)
 	queue_delayed_work(info->fwu_workqueue, &info->fwu_work,
 			   msecs_to_jiffies(1000));
 #endif
+
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	options = devm_kzalloc(info->dev, sizeof(struct gti_optional_configuration), GFP_KERNEL);
+	if (!options) {
+		log_info(1, "%s: GTI optional configuration kzalloc failed.\n",
+			__func__);
+		goto probe_error_exit_6;
+	}
+	info->gti = goog_touch_interface_probe(
+		info, info->dev, info->input_dev, gti_default_handler, options);
+	ret_val = goog_pm_register_notification(info->gti, &fts_pm_ops);
+	if (ret_val < 0) {
+		log_info(1, "%s: Failed to register gti pm", __func__);
+		goto probe_error_exit_7;
+	}
+#endif
+
 	log_info(1, "%s: Probe Finished!\n", __func__);
 	return OK;
-
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
 probe_error_exit_7:
-	unregister_panel_bridge(&info->panel_bridge);
+	devm_kfree(info->dev, options);
+#endif
 
 probe_error_exit_6:
 	input_unregister_device(info->input_dev);
@@ -1544,9 +1485,6 @@ probe_error_exit_6:
 probe_error_exit_5:
 	if (!input_dev_free_flag)
 		input_free_device(info->input_dev);
-
-probe_error_exit_4:
-	destroy_workqueue(info->event_wq);
 
 probe_error_exit_2:
 	fts_enable_reg(info, false);
@@ -1576,9 +1514,8 @@ static int fts_remove(struct spi_device *client)
 
 	fts_proc_remove();
 	fts_interrupt_uninstall(info);
-	unregister_panel_bridge(&info->panel_bridge);
 	input_unregister_device(info->input_dev);
-	destroy_workqueue(info->event_wq);
+
 #ifndef FW_UPDATE_ON_PROBE
 	destroy_workqueue(info->fwu_workqueue);
 #endif
@@ -1587,6 +1524,24 @@ static int fts_remove(struct spi_device *client)
 	kfree(info);
 	return OK;
 }
+
+#ifdef CONFIG_PM
+static int fts_pm_suspend(struct device *dev)
+{
+	struct fts_ts_info *info = dev_get_drvdata(dev);
+	fts_suspend(info);
+	return 0;
+}
+
+static int fts_pm_resume(struct device *dev)
+{
+	struct fts_ts_info *info = dev_get_drvdata(dev);
+	fts_resume(info);
+	return 0;
+}
+
+static SIMPLE_DEV_PM_OPS(fts_pm_ops, fts_pm_suspend, fts_pm_resume);
+#endif
 
 static struct of_device_id fts_of_match_table[] = {
 	{
@@ -1605,6 +1560,9 @@ static struct i2c_driver fts_i2c_driver = {
 	.driver			= {
 		.name		= FTS_TS_DRV_NAME,
 		.of_match_table = fts_of_match_table,
+#if IS_ENABLED(CONFIG_PM) && !IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+		.pm		= &fts_pm_ops,
+#endif
 	},
 	.probe			= fts_probe,
 	.remove			= fts_remove,
@@ -1615,6 +1573,9 @@ static struct spi_driver fts_spi_driver = {
 	.driver			= {
 		.name		= FTS_TS_DRV_NAME,
 		.of_match_table = fts_of_match_table,
+#if IS_ENABLED(CONFIG_PM) && !IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+		.pm		= &fts_pm_ops,
+#endif
 		.owner		= THIS_MODULE,
 	},
 	.probe			= fts_probe,
@@ -1622,9 +1583,6 @@ static struct spi_driver fts_spi_driver = {
 };
 
 #endif
-
-
-
 
 static int __init fts_driver_init(void)
 {
