@@ -176,6 +176,8 @@
 						* touch changed position) */
 #define EVT_ID_LEAVE_POINT		0x33	/* /< Touch leave the sensing
 						* area */
+#define EVT_ID_STATUS_UPDATE		0x43	/* /< FW report a system condition
+						* change */
 #define EVT_ID_USER_REPORT		0x53	/* /< User related events
 						* triggered (keys,
 						* gestures, proximity etc) */
@@ -194,6 +196,38 @@
 #define NUM_EVT_ID			(((EVT_ID_ERROR & 0xF0) >> 4)+1)
 /* /< Max number of unique event IDs supported */
 /** @}*/
+
+/* STATUS TYPE */
+/** @defgroup status_type	 Status Event Types
+  * @ingroup events_group
+  * Types of EVT_ID_STATUS_UPDATE events
+  * @{
+  */
+#define EVT_TYPE_STATUS_ECHO		0x01	/* /< Echo event,
+						 * contain the first 5 bytes of
+						 * the FW command sent */
+#define EVT_TYPE_STATUS_GPIO_CHAR_DET	0x02	/*/< Gpio Charger detected */
+#define EVT_TYPE_STATUS_FRAME_DROP	0x03	/* /< Some frame was skipped
+						 * during the elaboration */
+#define EVT_TYPE_STATUS_FORCE_CAL	0x05	/* /< Force Calibration has
+						 * triggered */
+#define EVT_TYPE_STATUS_WATER		0x06	/* /< Water Mode */
+#define EVT_TYPE_STATUS_SS_RAW_SAT	0x07	/* /< Self Sense data saturated */
+#define EVT_TYPE_STATUS_PRE_WAT_DET	0x08	/* /< Previous Water Detect* */
+#define EVT_TYPE_STATUS_NOISE		0x09	/* /< Noise Status* */
+#define EVT_TYPE_STATUS_STIMPAD		0x0A	/* /< Stimpad Status* */
+#define EVT_TYPE_STATUS_NO_TOUCH	0x0B	/* /< No Touch Status* */
+#define EVT_TYPE_STATUS_IDLE		0x0C	/* /< Idle Status* */
+#define EVT_TYPE_STATUS_PALM_TOUCH	0x0D	/* /< Palm Touch Status* */
+#define EVT_TYPE_STATUS_GRIP_TOUCH	0x0E	/* /< Grip Touch Status* */
+#define EVT_TYPE_STATUS_GOLDEN_RAW_VAL	0x0F	/* /< Golden Raw
+						 * Validation Status */
+#define EVT_TYPE_STATUS_GOLDEN_RAW_ERR	0x16	/* /< Golden Raw
+						 * Data Abnormal */
+#define EVT_TYPE_STATUS_MAX_NUM		EVT_TYPE_STATUS_GOLDEN_RAW_ERR + 1 /* /Max
+						 * status string1 number*/
+
+/** @} */
 
 #define BYTES_PER_NODE			2 /* /< number of data bytes for each
 						* node */

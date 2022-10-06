@@ -77,8 +77,33 @@ extern struct test_to_do tests;
 #define TYPE_B_PROTOCOL
 #endif
 
-static void fts_pinctrl_setup(struct fts_ts_info *info, bool active);
+static char *event_type_str[EVT_TYPE_STATUS_MAX_NUM] = {
+	"",				// 0x00
+	"Echo event of command",	// 0x01
+	"GPIO Charger Detect",		// 0x02
+	"Frame Drop",			// 0x03
+	"",				// 0x04
+	"Force Cal",			// 0x05
+	"Water Mode",			// 0x06
+	"SS Raw Saturated",		// 0x07
+	"Previous Water",		// 0x08
+	"Noise Status Event",		// 0x09
+	"Stimpad Status Event",		// 0x0A
+	"No Touch Status Event",	// 0x0B
+	"Idle Status Event",		// 0x0C
+	"Palm touch status",		// 0x0D
+	"Grip touch status",		// 0x0E
+	"Golden Raw Validation",	// 0x0F
+	"",				// 0x10
+	"",				// 0x11
+	"",				// 0x12
+	"",				// 0x13
+	"",				// 0x14
+	"",				// 0x15
+	"Golden Raw Data Abnormal"	// 0x16
+};
 
+static void fts_pinctrl_setup(struct fts_ts_info *info, bool active);
 
 
 /**
@@ -586,6 +611,225 @@ static void fts_controller_ready_event_handler(struct fts_ts_info *info,
 			 __func__, error);
 }
 
+#define log_status_event(force, evt_ptr) \
+do { \
+    u8 type = evt_ptr[1]; \
+    log_info(force,"%s: %s =" \
+        " %02X %02X %02X %02X %02X %02X\n", \
+        __func__, event_type_str[type], \
+        evt_ptr[2], evt_ptr[3], evt_ptr[4], \
+        evt_ptr[5], evt_ptr[6], evt_ptr[7]); \
+} while (0)
+
+#define log_status_event2(force, sub_str, evt_ptr) \
+do { \
+    u8 type = evt_ptr[1]; \
+    log_info(force,"%s: %s - %s =" \
+        " %02X %02X %02X %02X %02X %02X\n", \
+        __func__, event_type_str[type], sub_str, \
+        evt_ptr[2], evt_ptr[3], evt_ptr[4], \
+        evt_ptr[5], evt_ptr[6], evt_ptr[7]); \
+} while (0)
+
+/**
+  * Event handler for status events (EVT_ID_STATUS_UPDATE)
+  * Handle status update events
+  */
+static void fts_status_event_handler(struct fts_ts_info *info, u8 *event)
+{
+	u8 grid_touch_status;
+	static u8 scanning_frequency = 0;
+
+	switch (event[1]) {
+	case EVT_TYPE_STATUS_ECHO:
+		log_status_event(0, event);
+		break;
+
+	case EVT_TYPE_STATUS_GPIO_CHAR_DET:
+	case EVT_TYPE_STATUS_FRAME_DROP:
+	case EVT_TYPE_STATUS_NO_TOUCH:
+	case EVT_TYPE_STATUS_IDLE:
+	case EVT_TYPE_STATUS_GOLDEN_RAW_ERR:
+		log_status_event(1, event);
+		break;
+
+	case EVT_TYPE_STATUS_FORCE_CAL:
+		switch (event[2]) {
+		case 0x01:
+			log_status_event2(1, "sense on", event);
+			break;
+
+		case 0x02:
+			log_status_event2(1, "host command", event);
+			break;
+
+		case 0x10:
+			log_status_event2(1, "mutual frame drop", event);
+			break;
+
+		case 0x11:
+			log_status_event2(1, "mutual pure raw", event);
+			break;
+
+		case 0x20:
+			log_status_event2(1, "self detect negative", event);
+			break;
+
+		case 0x21:
+			log_status_event2(1, "self touch negative", event);
+			break;
+
+		case 0x22:
+			log_status_event2(1, "self detect frame flatness", event);
+			break;
+
+		case 0x23:
+			log_status_event2(1, "self touch frame flatness", event);
+			break;
+
+		case 0x30:
+			log_status_event2(1, "invalid mutual", event);
+			break;
+
+		case 0x31:
+			log_status_event2(1, "invalid differential mutual", event);
+			break;
+
+		case 0x32:
+			log_status_event2(1, "invalid Self", event);
+			break;
+
+		case 0x33:
+			log_status_event2(1, "invalid self island", event);
+			break;
+
+		case 0x34:
+			log_status_event2(1, "invalid Self force touch", event);
+			break;
+
+		case 0x35:
+			log_status_event2(1, "mutual frame flatness", event);
+			break;
+
+		default:
+			log_status_event2(1, "unknown event", event);
+			break;
+		}
+		break;
+
+	case EVT_TYPE_STATUS_SS_RAW_SAT:
+		if (event[2] == 1)
+			log_status_event2(1, "saturated", event);
+		else
+			log_status_event2(1, "no more saturated", event);
+		break;
+
+	case EVT_TYPE_STATUS_WATER:
+		switch (event[2]) {
+		case 0x00:
+			log_status_event2(1, "entry by BLD with real raw frame", event);
+			break;
+
+		case 0x01:
+			log_status_event2(1, "entry by BLD with rom raw frame", event);
+			break;
+
+		case 0x02:
+			log_status_event2(1, "entry by MID with real raw frame", event);
+			break;
+
+		case 0x03:
+			log_status_event2(1, "leave by BLD with real raw frame", event);
+			break;
+
+		case 0x04:
+			log_status_event2(1, "leave by BLD with rom raw frame", event);
+			break;
+
+		case 0x05:
+			log_status_event2(1, "leave by MID with real raw frame", event);
+			break;
+
+		default:
+			log_status_event2(1, "unknown event", event);
+			break;
+		}
+		break;
+
+	case EVT_TYPE_STATUS_PRE_WAT_DET:
+		if (event[2] == 1)
+			log_status_event2(1, "entry", event);
+		else
+			log_status_event2(1, "exit", event);
+		break;
+
+	case EVT_TYPE_STATUS_NOISE:
+		if(scanning_frequency != event[3]) {
+			log_info(1,"%s: Scanning frequency changed from %02X to %02X\n",
+				__func__, scanning_frequency, event[3]);
+			scanning_frequency = event[3];
+			log_status_event(1, event);
+		} else
+			log_status_event(0, event);
+		break;
+
+	case EVT_TYPE_STATUS_PALM_TOUCH:
+		switch (event[2]) {
+		case 0x01:
+			log_status_event2(1, "entry", event);
+			break;
+
+		case 0x02:
+			log_status_event2(1, "exit", event);
+			break;
+
+		default:
+			log_status_event2(1, "unknown event", event);
+			break;
+		}
+		break;
+
+	case EVT_TYPE_STATUS_GRIP_TOUCH:
+		grid_touch_status = (event[2] & 0xF0) >> 4;
+		switch (grid_touch_status) {
+		case 0x01:
+			log_status_event2(1, "entry", event);
+			break;
+
+		case 0x02:
+			log_status_event2(1, "exit", event);
+			break;
+
+		default:
+			log_status_event2(1, "unknown event", event);
+			break;
+		}
+		break;
+
+	case EVT_TYPE_STATUS_GOLDEN_RAW_VAL:
+		switch (event[2]) {
+		case 0x01:
+			log_status_event2(1, "pass", event);
+			break;
+
+		case 0x02:
+			log_status_event2(1, "fail", event);
+			break;
+
+		default:
+			log_status_event2(1, "unknown event", event);
+			break;
+		}
+		break;
+
+	default:
+		log_info(1, "%s: Invalid status event (%02X) ="
+			" %02X %02X %02X %02X %02X %02X\n",
+			__func__, event[1], event[2], event[3],
+			event[4], event[5], event[6], event[7]);
+		break;
+	}
+}
 
 /**
   * Event handler for enter and motion events (EVT_ID_ENTER_PEN,
@@ -689,6 +933,7 @@ static int fts_interrupt_install(struct fts_ts_info *info)
 	install_handler(info, MOTION_POINT, motion_pointer);
 	install_handler(info, ERROR, error);
 	install_handler(info, CONTROLLER_READY, controller_ready);
+	install_handler(info, STATUS_UPDATE, status);
 	install_handler(info, ENTER_PEN, enter_pen);
 	install_handler(info, LEAVE_PEN, leave_pen);
 	install_handler(info, MOTION_PEN, motion_pen);
