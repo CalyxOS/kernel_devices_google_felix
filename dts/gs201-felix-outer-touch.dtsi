@@ -8,6 +8,10 @@
 
 #include <dt-bindings/pinctrl/samsung.h>
 
+&tbn {
+	tbn,max_devices = <2>;
+};
+
 &spi_6 {
 	status = "okay";
 	dma-mode;
