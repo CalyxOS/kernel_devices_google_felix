@@ -837,7 +837,7 @@ int readSysInfo(struct fts_ts_info *info, int request)
 	return OK;
 
 FAIL:
-	defaultSysInfo(info, isI2cError(ret));
+	defaultSysInfo(info, isBusError(ret));
 	return ret;
 }
 /** @}*/
