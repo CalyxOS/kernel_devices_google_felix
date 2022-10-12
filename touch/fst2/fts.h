@@ -138,6 +138,13 @@ struct fts_ts_info {
 #endif
 	bool dma_mode;
 	unsigned char evt_data[EVENT_DATA_SIZE];
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	int16_t *mutual_data;
+	int mutual_data_size;
+	int16_t *self_data;
+	int self_data_size;
+	int16_t *fw_ms_data;
+#endif
 };
 
 extern int fts_proc_init(struct fts_ts_info *info);
