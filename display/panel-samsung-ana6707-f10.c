@@ -604,7 +604,7 @@ static int ana6707_f10_enable(struct drm_panel *panel)
 	if (pmode->exynos_mode.is_lp_mode)
 		exynos_panel_set_lp_mode(ctx, pmode);
 	else
-		EXYNOS_DCS_WRITE_SEQ_DELAY(ctx, 40, 0x29); /* display on, delay ensure ELVDD ready */
+		EXYNOS_DCS_WRITE_SEQ_DELAY(ctx, 100, 0x29); /* display on: b/253361485 */
 
 	return 0;
 }
