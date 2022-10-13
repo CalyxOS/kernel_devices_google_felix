@@ -102,7 +102,7 @@
 		st,limits_names = "stm_fts_production_limits_f10_ext.csv";
 		st,heatmap_mode_full;
 		st,touch_offload_id = /bits/ 8 <'f' '1' '0' '1'>;
-		/* st,panel_map = <&samsung_ea8182 0>; */
+		st,panel_map = <&samsung_ea8182_f10 0>;
 		st,sensor_inverted_x;
 		st,sensor_inverted_y;
 		vdd-supply = <&m_ldo25_reg>;
