@@ -338,6 +338,7 @@
 					 1000
 					 1000
 					 1000>;
+				transaction-thread-priority = <99>;
 			};
 
 			/* FRONT CAMERA MEDUSA */
@@ -417,6 +418,7 @@
 					 1000
 					 1000
 					 1000>;
+				transaction-thread-priority = <99>;
 			};
 
 			/* REAR ULTRA WIDE CAMERA SANDWORM */
@@ -496,6 +498,7 @@
 					 1000
 					 1000
 					 1000>;
+				transaction-thread-priority = <99>;
 			};
 
 			/* REAR TELE CAMERA DOKKAEBI */
@@ -597,6 +600,7 @@
 					 1000
 					 1000
 					 1000>;
+				transaction-thread-priority = <99>;
 			};
 
 			/* FRONT CAMERA DOKKAEBI */
@@ -676,6 +680,7 @@
 					 1000
 					 1000
 					 1000>;
+				transaction-thread-priority = <99>;
 			};
 
 			/* Eeprom nessie for oksoko */
@@ -938,6 +943,7 @@
 					<1000
 					 1000
 					 1000>;
+				periodic-io-thread-priority = <99>;
 			};
 
 			/* Actuator jotnar for dokkaebi tele */
@@ -997,6 +1003,7 @@
 					 1000
 					 1000
 					 1000>;
+				periodic-io-thread-priority = <99>;
 			};
 
 			/* Ois nessie for oksoko */
@@ -1046,6 +1053,7 @@
 					<1000
 					 1000
 					 1000>;
+				periodic-io-thread-priority = <99>;
 			};
 
 			/* Ois jotnar for dokkaebi tele */
@@ -1105,6 +1113,7 @@
 					 1000
 					 1000
 					 1000>;
+				periodic-io-thread-priority = <99>;
 			};
 
 			flash0: flash@0 {
