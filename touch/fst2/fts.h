@@ -54,13 +54,17 @@
 
 #define TOUCH_ID_MAX	10	/* /< Max number of simoultaneous touches
 				 * reported */
-#define PEN_ID_MAX		4	/* /< Max number of simoultaneous pen
+#define PEN_ID_MAX	4	/* /< Max number of simoultaneous pen
 				 * touches reported */
 
-#define AREA_MIN	PRESSURE_MIN	/* /< min value of Major/minor axis
-					 * reported */
-#define AREA_MAX	PRESSURE_MAX	/* /< Man value of Major/minor axis
-					 * reported */
+#define ABS_MAJOR_MIN(scale) (PRESSURE_MIN * scale)	/* /< MIN value of
+					 * Major axis reported */
+#define ABS_MINOR_MIN(scale) (PRESSURE_MIN * scale)	/* /< MIN value of
+					 * Minor axis reported */
+#define ABS_MAJOR_MAX(scale) (PRESSURE_MAX * scale)	/* /< MAX value of
+					 * Major axis reported */
+#define ABS_MINOR_MAX(scale) (PRESSURE_MAX * scale)	/* /< MAX value of
+					 * Minor axis reported */
 /* **** END **** */
 
 
@@ -92,6 +96,7 @@ struct fts_hw_platform_data {
 	int irq_gpio;
 	int reset_gpio;
 	struct drm_panel *panel;
+	u8 mm2px;
 };
 /**
   * Struct contains FTS capacitive touch screen device information
