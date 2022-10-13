@@ -49,7 +49,7 @@
 	avdd-supply = <&s_ldo6_reg>; /* AVDD 3.3V, different from common. */
 	st,mm2px = /bits/ 8 <15>; /* 2208 px / 150 mm  = 14.7 */
 	goog,tbn-enabled;
-	/* goog,offload-enabled; */
+	goog,offload-enabled;
 	goog,v4l2-enabled;
 	goog,touch_offload_id = /bits/ 8 <'f''1''0''0'>; /* outer: 1; inner 0 */
 	goog,display-resolution = /bits/ 16 <2208 1840>;
