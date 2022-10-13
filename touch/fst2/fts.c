@@ -58,6 +58,7 @@
 #include "fts_lib/fts_test.h"
 #include "fts_lib/fts_error.h"
 
+extern struct sys_info system_info;
 static int system_reseted_up;
 static int system_reseted_down;
 #ifdef CONFIG_PM
@@ -972,7 +973,231 @@ static void fts_interrupt_uninstall(struct fts_ts_info *info) {
 static int gti_default_handler(void *private_data, enum gti_cmd_type cmd_type,
 	struct gti_union_cmd_data *cmd)
 {
-	return -ESRCH;
+	int res = 0;
+
+	switch (cmd_type) {
+	case GTI_CMD_NOTIFY_DISPLAY_STATE:
+	case GTI_CMD_NOTIFY_DISPLAY_VREFRESH:
+		res = -EOPNOTSUPP;
+		break;
+	case GTI_CMD_SET_HEATMAP_ENABLED:
+		/* Heatmap is always enabled. */
+		res = 0;
+		break;
+	default:
+		res = -ESRCH;
+		break;
+	}
+
+	return res;
+}
+
+/**
+  * Read a MS Frame from frame buffer memory
+  * @param info pointer to fts_ts_info which contains info about the device and
+  * its hw setup
+  * @param type type of MS frame to read
+  * @return zero if success or an error code which specify the type of error
+  */
+int goog_get_ms_frame(struct fts_ts_info *info, ms_frame_type_t type)
+{
+	u16 offset;
+	int res = 0;
+
+	if (!info->fw_ms_data) {
+		return -ENOMEM;
+	}
+
+	switch (type) {
+	case MS_RAW:
+		offset = system_info.u16_ms_scr_raw_addr;
+		break;
+	case MS_STRENGTH:
+		offset = system_info.u16_ms_scr_strength_addr;
+		break;
+	case MS_FILTER:
+		offset = system_info.u16_ms_scr_filter_addr;
+		break;
+	case MS_BASELINE:
+		offset = system_info.u16_ms_scr_baseline_addr;
+		break;
+	default:
+		log_info(1, "%s: Invalid MS type %d\n",  __func__, type);
+		return -EINVAL;
+	}
+
+	log_info(0, "%s: type = %d Offset = 0x%04X\n", __func__, type, offset);
+
+	res = get_frame_data(offset, info->mutual_data_size, info->fw_ms_data);
+	if (res < OK) {
+		log_info(1, "%s error while reading sense data ERROR %08X\n",
+			__func__, res);
+		return -EIO;
+	}
+
+	/* if you want to access one node i,j,
+	  * compute the offset like: offset = i*columns + j = > frame[i, j] */
+
+	log_info(0, "%s Frame acquired!\n", __func__);
+	return res;
+	/* return the number of data put inside frame */
+
+}
+
+/**
+  * Read a SS Frame from frame buffer
+  * @param info pointer to fts_ts_info which contains info about the device and
+  * its hw setup
+  * @param type type of SS frame to read
+  * @return zero if success or an error code which specify the type of error
+  */
+int goog_get_ss_frame(struct fts_ts_info *info, ss_frame_type_t type)
+{
+	u16 self_force_offset = 0;
+	u16 self_sense_offset = 0;
+	int res = 0;
+	int force_len, sense_len, tmp_force_len, tmp_sense_len;
+	int16_t *ss_ptr;
+
+	if (!info->self_data) {
+		return -ENOMEM;
+	}
+
+	tmp_force_len = force_len = system_info.u8_scr_tx_len;
+	tmp_sense_len = sense_len = system_info.u8_scr_rx_len;
+
+	if (force_len == 0x00 || sense_len == 0x00 ||
+		force_len == 0xFF || sense_len == 0xFF) {
+		log_info(1, "%s: number of channels not initialized\n", __func__);
+		return -EINVAL;
+	}
+
+	switch (type) {
+	case SS_RAW:
+		self_force_offset = system_info.u16_ss_tch_tx_raw_addr;
+		self_sense_offset = system_info.u16_ss_tch_rx_raw_addr;
+		break;
+	case SS_FILTER:
+		self_force_offset = system_info.u16_ss_tch_tx_filter_addr;
+		self_sense_offset = system_info.u16_ss_tch_rx_filter_addr;
+		break;
+	case SS_BASELINE:
+		self_force_offset = system_info.u16_ss_tch_tx_baseline_addr;
+		self_sense_offset = system_info.u16_ss_tch_rx_baseline_addr;
+		break;
+	case SS_STRENGTH:
+		self_force_offset = system_info.u16_ss_tch_tx_strength_addr;
+		self_sense_offset = system_info.u16_ss_tch_rx_strength_addr;
+		break;
+	case SS_DETECT_RAW:
+		self_force_offset = system_info.u16_ss_det_tx_raw_addr;
+		self_sense_offset = system_info.u16_ss_det_rx_raw_addr;
+		tmp_force_len = (self_force_offset == 0) ? 0 : force_len;
+		tmp_sense_len = (self_sense_offset == 0) ? 0 : sense_len;
+		break;
+	case SS_DETECT_STRENGTH:
+		self_force_offset = system_info.u16_ss_det_tx_strength_addr;
+		self_sense_offset = system_info.u16_ss_det_rx_strength_addr;
+		tmp_force_len = (self_force_offset == 0) ? 0 : force_len;
+		tmp_sense_len = (self_sense_offset == 0) ? 0 : sense_len;
+		break;
+	case SS_DETECT_BASELINE:
+		self_force_offset = system_info.u16_ss_det_tx_baseline_addr;
+		self_sense_offset = system_info.u16_ss_det_rx_baseline_addr;
+		tmp_force_len = (self_force_offset == 0) ? 0 : force_len;
+		tmp_sense_len = (self_sense_offset == 0) ? 0 : sense_len;
+		break;
+	case SS_DETECT_FILTER:
+		self_force_offset = system_info.u16_ss_det_tx_filter_addr;
+		self_sense_offset = system_info.u16_ss_det_rx_filter_addr;
+		tmp_force_len = (self_force_offset == 0) ? 0 : force_len;
+		tmp_sense_len = (self_sense_offset == 0) ? 0 : sense_len;
+		break;
+	default:
+		log_info(1, "%s: Invalid SS type = %d\n", __func__, type);
+		return -EINVAL;
+	}
+
+	log_info(0, "%s: type = %d Force_len = %d Sense_len = %d"
+		" Offset_force = 0x%04X Offset_sense = 0x%04X\n",
+		__func__, type, tmp_force_len, tmp_sense_len,
+		self_force_offset, self_sense_offset);
+
+	if (self_force_offset) {
+		ss_ptr = &info->self_data[tmp_sense_len];
+		res = get_frame_data(self_force_offset,
+			tmp_force_len * BYTES_PER_NODE, ss_ptr);
+		if (res < OK) {
+			log_info(1, "%s: error while reading force data ERROR %08X\n",
+				__func__, res);
+			return -EIO;
+		}
+	}
+
+	if (self_sense_offset) {
+		ss_ptr = info->self_data;
+		res = get_frame_data(self_sense_offset,
+			tmp_sense_len * BYTES_PER_NODE, ss_ptr);
+		if (res < OK) {
+			log_info(1, "%s: error while reading sense data ERROR %08X\n",
+				__func__, res);
+			return -EIO;
+		}
+	}
+
+	log_info(0, "%s Frame acquired!\n", __func__);
+	return res;
+}
+
+static int get_mutual_sensor_data(void *private_data, struct gti_sensor_data_cmd *cmd)
+{
+	struct fts_ts_info *info = private_data;
+	int res;
+	uint32_t frame_index = 0;
+	uint16_t x, y;
+	int tx_size = system_info.u8_scr_tx_len;
+	int rx_size = system_info.u8_scr_rx_len;
+
+	if (!(cmd->type & TOUCH_SENSOR_DATA_READ_METHOD_INT))
+		return -EINVAL;
+
+	cmd->buffer = (u8 *)info->mutual_data;
+	cmd->size = info->mutual_data_size;
+
+	res = goog_get_ms_frame(info, MS_STRENGTH);
+	if (res < 0) {
+		log_info(1, "%s: failed with res=0x%08X.\n", __func__, res);
+		return res;
+	}
+
+	for (y = 0; y < rx_size; y++) {
+		for (x = 0; x < tx_size; x++) {
+			/* swap tx and rx direction. */
+			info->mutual_data[frame_index++] =
+				info->fw_ms_data[y * tx_size + x];
+		}
+	}
+	return res;
+}
+
+static int get_self_sensor_data(void *private_data, struct gti_sensor_data_cmd *cmd)
+{
+	struct fts_ts_info *info = private_data;
+	int res;
+
+	if (!(cmd->type & TOUCH_SENSOR_DATA_READ_METHOD_INT))
+		return -EINVAL;
+
+	cmd->buffer = (u8 *)info->self_data;
+	cmd->size = info->self_data_size;
+
+	res = goog_get_ss_frame(info, SS_STRENGTH);
+	if (res < 0) {
+		log_info(1, "%s: failed with res=0x%08X.\n", __func__, res);
+		return res;
+	}
+
+	return res;
 }
 #endif
 
@@ -1700,14 +1925,48 @@ static int fts_probe(struct spi_device *client)
 	queue_delayed_work(info->fwu_workqueue, &info->fwu_work,
 			   msecs_to_jiffies(1000));
 #endif
-
 #if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	if (system_info.u8_scr_tx_len > 0 && system_info.u8_scr_rx_len > 0) {
+		info->mutual_data_size =
+			system_info.u8_scr_tx_len * system_info.u8_scr_rx_len *
+			sizeof(int16_t);
+		info->mutual_data = (short *)kmalloc(info->mutual_data_size,
+			GFP_KERNEL);
+		if (!info->mutual_data) {
+			log_info(1, "Failed to allocate mutual_data.\n");
+			goto probe_error_exit_6;
+		}
+
+		info->self_data_size =
+			(system_info.u8_scr_tx_len + system_info.u8_scr_rx_len) *
+			sizeof(int16_t);
+		info->self_data = kmalloc(info->self_data_size, GFP_KERNEL);
+		if (!info->self_data) {
+			log_info(1, "Failed to allocate self data.\n");
+			goto probe_error_exit_6;
+		}
+
+		info->fw_ms_data = (short *)kmalloc(info->mutual_data_size,
+			GFP_KERNEL);
+		if (!info->fw_ms_data) {
+			log_info(1, "Failed to allocate fw mutual_data.\n");
+			goto probe_error_exit_6;
+		}
+	} else {
+		log_info(1, "Incorrect system information ForceLen=%d SenseLen=%d.\n",
+			system_info.u8_scr_tx_len, system_info.u8_scr_rx_len);
+		goto probe_error_exit_6;
+	}
+
 	options = devm_kzalloc(info->dev, sizeof(struct gti_optional_configuration), GFP_KERNEL);
 	if (!options) {
 		log_info(1, "%s: GTI optional configuration kzalloc failed.\n",
 			__func__);
 		goto probe_error_exit_6;
 	}
+	options->get_mutual_sensor_data = get_mutual_sensor_data;
+	options->get_self_sensor_data = get_self_sensor_data;
+
 	info->gti = goog_touch_interface_probe(
 		info, info->dev, info->input_dev, gti_default_handler, options);
 	ret_val = goog_pm_register_notification(info->gti, &fts_pm_ops);
@@ -1726,7 +1985,11 @@ probe_error_exit_7:
 
 probe_error_exit_6:
 	input_unregister_device(info->input_dev);
-
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	kfree(info->mutual_data);
+	kfree(info->self_data);
+	kfree(info->fw_ms_data);
+#endif
 probe_error_exit_5:
 	if (!input_dev_free_flag)
 		input_free_device(info->input_dev);
@@ -1766,6 +2029,11 @@ static int fts_remove(struct spi_device *client)
 #endif
 	fts_enable_reg(info, false);
 	fts_get_reg(info, false);
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	kfree(info->mutual_data);
+	kfree(info->self_data);
+	kfree(info->fw_ms_data);
+#endif
 	kfree(info);
 	return OK;
 }
