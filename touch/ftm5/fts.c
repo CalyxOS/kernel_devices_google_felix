@@ -4183,8 +4183,23 @@ int fts_enable_grip(struct fts_ts_info *info, bool enable)
 		res = fts_write(info, disable_cmd, sizeof(disable_cmd));
 	}
 	if (res < 0)
-		dev_err(info->dev, "%s: fts_write failed with res=%d.\n",
-			__func__, res);
+		dev_err(info->dev, "%s: %s FW grip failed, res = %d.\n",
+			__func__, enable ? "Enable" : "Disable", res);
+
+	return res;
+}
+
+int fts_enable_palm(struct fts_ts_info *info, bool enable)
+{
+	int res;
+	u8 cmd[3] = {0xC0, 0x0B, 0x00};
+
+	cmd[2] = enable ? 0x03 : 0x00;
+	res = fts_write(info, cmd, sizeof(cmd));
+
+	if (res < 0)
+		dev_err(info->dev, "%s: %s FW palm failed, res = %d.\n",
+			__func__, enable ? "Enable" : "Disable", res);
 
 	return res;
 }
@@ -4200,7 +4215,8 @@ static void fts_offload_resume_work(struct work_struct *work)
 
 	if (info->offload.config.filter_grip == 1)
 		fts_enable_grip(info, false);
-
+	if (info->offload.config.filter_palm == 1)
+		fts_enable_palm(info, false);
 }
 
 static void fts_populate_coordinate_channel(struct fts_ts_info *info,
@@ -4490,13 +4506,15 @@ static void fts_offload_set_running(struct fts_ts_info *info, bool running)
 	if (info->offload.offload_running != running) {
 		info->offload.offload_running = running;
 		if (running) {
-			dev_info(info->dev, "%s: disabling FW grip.\n",
-				 __func__);
+			dev_info(info->dev, "%s: disabling FW grip & FW palm.\n",
+				__func__);
 			fts_enable_grip(info, false);
+			fts_enable_palm(info, false);
 		} else {
-			dev_info(info->dev, "%s: enabling FW grip.\n",
-				 __func__);
+			dev_info(info->dev, "%s: enabling FW grip & FW palm.\n",
+				__func__);
 			fts_enable_grip(info, true);
+			fts_enable_palm(info, true);
 		}
 	}
 }
