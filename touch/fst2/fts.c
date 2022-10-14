@@ -426,6 +426,7 @@ static void fts_nop_event_handler(struct fts_ts_info *info,
 static void fts_enter_pointer_event_handler(struct fts_ts_info *info, unsigned
 					    char *event)
 {
+	struct fts_hw_platform_data *bdata = info->board;
 	unsigned char touch_id;
 	unsigned int touch_condition = 1, tool = MT_TOOL_FINGER;
 	int x, y, z, distance, major, minor;
@@ -486,8 +487,10 @@ static void fts_enter_pointer_event_handler(struct fts_ts_info *info, unsigned
 	goog_input_mt_report_slot_state(info->gti, info->input_dev, tool, 1);
 	goog_input_report_abs(info->gti, info->input_dev, ABS_MT_POSITION_X, x);
 	goog_input_report_abs(info->gti, info->input_dev, ABS_MT_POSITION_Y, y);
-	goog_input_report_abs(info->gti, info->input_dev, ABS_MT_TOUCH_MAJOR, major);
-	goog_input_report_abs(info->gti, info->input_dev, ABS_MT_TOUCH_MINOR, minor);
+	goog_input_report_abs(info->gti, info->input_dev, ABS_MT_TOUCH_MAJOR,
+		major * bdata->mm2px);
+	goog_input_report_abs(info->gti, info->input_dev, ABS_MT_TOUCH_MINOR,
+		minor * bdata->mm2px);
 	goog_input_report_abs(info->gti, info->input_dev, ABS_MT_PRESSURE, z);
 	goog_input_report_abs(info->gti, info->input_dev, ABS_MT_DISTANCE, distance);
 #else
@@ -495,8 +498,10 @@ static void fts_enter_pointer_event_handler(struct fts_ts_info *info, unsigned
 	input_mt_report_slot_state(info->input_dev, tool, 1);
 	input_report_abs(info->input_dev, ABS_MT_POSITION_X, x);
 	input_report_abs(info->input_dev, ABS_MT_POSITION_Y, y);
-	input_report_abs(info->input_dev, ABS_MT_TOUCH_MAJOR, major);
-	input_report_abs(info->input_dev, ABS_MT_TOUCH_MINOR, minor);
+	input_report_abs(info->input_dev, ABS_MT_TOUCH_MAJOR,
+		major * bdata->mm2px);
+	input_report_abs(info->input_dev, ABS_MT_TOUCH_MINOR,
+		minor * bdata->mm2px);
 	input_report_abs(info->input_dev, ABS_MT_PRESSURE, z);
 	input_report_abs(info->input_dev, ABS_MT_DISTANCE, distance);
 #endif
@@ -1793,6 +1798,13 @@ static int parse_dt(struct device *dev, struct fts_hw_platform_data *bdata)
 	} else
 		bdata->reset_gpio = GPIO_NOT_DEFINED;
 
+	if (of_property_read_u8(np, "st,mm2px", &bdata->mm2px)) {
+		log_info(1, "%s: Unable to get mm2px, please check dts", __func__);
+		bdata->mm2px = 1;
+	} else {
+		log_info(1, "%s: mm2px = %d", __func__, bdata->mm2px);
+	}
+
 	return OK;
 }
 
@@ -1815,6 +1827,7 @@ static int fts_probe(struct spi_device *client)
 #endif
 
 	struct fts_ts_info *info = NULL;
+	struct fts_hw_platform_data *bdata = NULL;
 	int error = 0;
 	struct device_node *dp = client->dev.of_node;
 	int ret_val;
@@ -1882,6 +1895,7 @@ static int fts_probe(struct spi_device *client)
 			goto probe_error_exit_1;
 		}
 		parse_dt(&client->dev, info->board);
+		bdata = info->board;
 	}
 
 	log_info(1, "%s: SET Regulators:\n", __func__);
@@ -1946,10 +1960,10 @@ static int fts_probe(struct spi_device *client)
 						X_AXIS_MAX, 0, 0);
 	input_set_abs_params(info->input_dev, ABS_MT_POSITION_Y, Y_AXIS_MIN,
 						Y_AXIS_MAX, 0, 0);
-	input_set_abs_params(info->input_dev, ABS_MT_TOUCH_MAJOR, AREA_MIN,
-						AREA_MAX, 0, 0);
-	input_set_abs_params(info->input_dev, ABS_MT_TOUCH_MINOR, AREA_MIN,
-						AREA_MAX, 0, 0);
+	input_set_abs_params(info->input_dev, ABS_MT_TOUCH_MAJOR,
+		ABS_MAJOR_MIN(bdata->mm2px), ABS_MAJOR_MAX(bdata->mm2px), 0, 0);
+	input_set_abs_params(info->input_dev, ABS_MT_TOUCH_MINOR,
+		ABS_MINOR_MIN(bdata->mm2px), ABS_MINOR_MAX(bdata->mm2px), 0, 0);
 	input_set_abs_params(info->input_dev, ABS_MT_PRESSURE, PRESSURE_MIN,
 						PRESSURE_MAX, 0, 0);
 	input_set_abs_params(info->input_dev, ABS_MT_DISTANCE, DISTANCE_MIN,
