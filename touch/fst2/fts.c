@@ -974,19 +974,94 @@ static int gti_default_handler(void *private_data, enum gti_cmd_type cmd_type,
 	struct gti_union_cmd_data *cmd)
 {
 	int res = 0;
+	static bool grip_enabled;
+	static bool palm_enabled;
 
 	switch (cmd_type) {
+	case GTI_CMD_GET_GRIP_MODE:
+		cmd->grip_cmd.setting = (grip_enabled) ?
+			GTI_GRIP_ENABLE : GTI_GRIP_DISABLE;
+		res = 0;
+		log_info(1, "grip %s.\n", (grip_enabled) ? "enable" : "disable");
+		break;
+
+	case GTI_CMD_GET_PALM_MODE:
+		cmd->palm_cmd.setting = (palm_enabled) ?
+			GTI_PALM_ENABLE : GTI_PALM_DISABLE;
+		res = 0;
+		log_info(1, "palm %s.\n", (palm_enabled) ? "enable" : "disable");
+		break;
+
 	case GTI_CMD_NOTIFY_DISPLAY_STATE:
 	case GTI_CMD_NOTIFY_DISPLAY_VREFRESH:
 		res = -EOPNOTSUPP;
 		break;
+
+	case GTI_CMD_SET_CONTINUOUS_REPORT: {
+		#define CONTINUOUS_ENABLE  0xBB
+		#define CONTINUOUS_DISABLE 0xAB
+		uint8_t spi_buf[4] = {0xB2, 0x09, 0x20, CONTINUOUS_DISABLE};
+
+		if (cmd->continuous_report_cmd.setting == GTI_CONTINUOUS_REPORT_ENABLE)
+			spi_buf[3] = CONTINUOUS_ENABLE;
+
+		if (fts_write(spi_buf, sizeof(spi_buf)))
+			res = -EIO;
+		log_info(1, "%s continuous report %s.\n",
+			(spi_buf[3] == CONTINUOUS_ENABLE) ? "Enable" : "Disable",
+			!res ? "successfully" : "unsuccessfully");
+	}
+		break;
+
+	case GTI_CMD_SET_GRIP_MODE: {
+		#define GRIP_ENABLE  0x01
+		#define GRIP_DISABLE 0x00
+		uint8_t spi_buf[5] = {0xB2, 0x00, 0x30, 0x12, GRIP_DISABLE};
+
+		if (cmd->grip_cmd.setting == GTI_GRIP_ENABLE)
+			spi_buf[4] = GRIP_ENABLE;
+
+		if (fts_write(spi_buf, sizeof(spi_buf)))
+			res = -EIO;
+		else
+			grip_enabled = spi_buf[4] == GRIP_ENABLE ? true : false;
+
+		log_info(1, "%s FW grip %s, status(%d).\n",
+			(spi_buf[4] == GRIP_ENABLE) ? "Enable" : "Disable",
+			!res ? "successfully" : "unsuccessfully",
+			grip_enabled);
+	}
+		break;
+
+	case GTI_CMD_SET_PALM_MODE: {
+		#define PALM_ENABLE  0x8F
+		#define PALM_DISABLE 0x8E
+		uint8_t spi_buf[4] = {0xB2, 0x08, 0x1A, PALM_DISABLE};
+
+		if (cmd->palm_cmd.setting == GTI_PALM_ENABLE)
+			spi_buf[3] = PALM_ENABLE;
+
+		if (fts_write(spi_buf, sizeof(spi_buf)))
+			res = -EIO;
+		else
+			palm_enabled = spi_buf[3] == PALM_ENABLE ? true : false;
+
+		log_info(1, "%s FW palm %s, status(%d).\n",
+			(spi_buf[3] == PALM_ENABLE) ? "Enable" : "Disable",
+			!res ? "successfully" : "unsuccessfully",
+			palm_enabled);
+	}
+		break;
+
 	case GTI_CMD_SET_HEATMAP_ENABLED:
 		/* Heatmap is always enabled. */
 		res = 0;
 		break;
+
 	default:
 		res = -ESRCH;
 		break;
+
 	}
 
 	return res;
