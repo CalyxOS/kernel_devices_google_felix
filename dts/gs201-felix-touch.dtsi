@@ -47,6 +47,7 @@
 					 area. Unit: pixels */
 	vdd-supply = <&s_ldo22_reg>; /* VIO 1.8V, different from common. */
 	avdd-supply = <&s_ldo6_reg>; /* AVDD 3.3V, different from common. */
+	st,mm2px = /bits/ 8 <15>; /* 2208 px / 150 mm  = 14.7 */
 	goog,tbn-enabled;
 	/* goog,offload-enabled; */
 	goog,v4l2-enabled;
