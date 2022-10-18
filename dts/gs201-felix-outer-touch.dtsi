@@ -98,6 +98,7 @@
 		st,dchip_id = /bits/ 8 <0x36 0x40>;
 		st,max-coords = <1079 2091>;
 		st,device_name = "fts_ext";
+		goog,offload-device-name = "fts_ext";
 		st,firmware_names = "ftm5_fw_f10_ext.ftb";
 		st,limits_names = "stm_fts_production_limits_f10_ext.csv";
 		st,heatmap_mode_full;
