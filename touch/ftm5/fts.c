@@ -4506,10 +4506,16 @@ static void fts_offload_set_running(struct fts_ts_info *info, bool running)
 	if (info->offload.offload_running != running) {
 		info->offload.offload_running = running;
 		if (running) {
-			dev_info(info->dev, "%s: disabling FW grip & FW palm.\n",
-				__func__);
-			fts_enable_grip(info, false);
-			fts_enable_palm(info, false);
+			dev_info(info->dev, "%s: %s FW grip\n",
+				__func__, info->offload.config.filter_grip ?
+				"Disable" : "Enable");
+			fts_enable_grip(info, info->offload.config.filter_grip ?
+				false : true);
+			dev_info(info->dev, "%s: %s FW palm\n",
+				__func__, info->offload.config.filter_palm ?
+				"Disable" : "Enable");
+			fts_enable_palm(info, info->offload.config.filter_palm ?
+				false : true);
 		} else {
 			dev_info(info->dev, "%s: enabling FW grip & FW palm.\n",
 				__func__);
