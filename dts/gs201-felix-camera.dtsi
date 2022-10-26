@@ -339,6 +339,7 @@
 					 1000
 					 1000>;
 				transaction-thread-priority = <99>;
+				i2c-lock-group-id = <0>;
 			};
 
 			/* FRONT CAMERA MEDUSA */
@@ -419,6 +420,7 @@
 					 1000
 					 1000>;
 				transaction-thread-priority = <99>;
+				i2c-lock-group-id = <1>;
 			};
 
 			/* REAR ULTRA WIDE CAMERA SANDWORM */
@@ -499,6 +501,7 @@
 					 1000
 					 1000>;
 				transaction-thread-priority = <99>;
+				i2c-lock-group-id = <2>;
 			};
 
 			/* REAR TELE CAMERA DOKKAEBI */
@@ -601,6 +604,7 @@
 					 1000
 					 1000>;
 				transaction-thread-priority = <99>;
+				i2c-lock-group-id = <3>;
 			};
 
 			/* FRONT CAMERA DOKKAEBI */
@@ -681,6 +685,7 @@
 					 1000
 					 1000>;
 				transaction-thread-priority = <99>;
+				i2c-lock-group-id = <4>;
 			};
 
 			/* Eeprom nessie for oksoko */
@@ -730,6 +735,7 @@
 					<1000
 					 1000
 					 1000>;
+				i2c-lock-group-id = <0>;
 			};
 
 			/* Eeprom smaug for medusa */
@@ -765,6 +771,7 @@
 					"regulator";
 				power-down-seq-delays-us =
 					<1000>;
+				i2c-lock-group-id = <1>;
 			};
 
 			/* Eeprom smaug for sandworm */
@@ -800,6 +807,7 @@
 					"regulator";
 				power-down-seq-delays-us =
 					<1000>;
+				i2c-lock-group-id = <2>;
 			};
 
 			/* Eeprom jotnar for dokkaebi tele */
@@ -859,6 +867,7 @@
 					 1000
 					 1000
 					 1000>;
+				i2c-lock-group-id = <3>;
 			};
 
 			/* Eeprom smaug for dokkaebi */
@@ -894,6 +903,7 @@
 					"regulator";
 				power-down-seq-delays-us =
 					<1000>;
+				i2c-lock-group-id = <4>;
 			};
 
 			/* Actuator nessie for oksoko */
@@ -944,6 +954,7 @@
 					 1000
 					 1000>;
 				periodic-io-thread-priority = <99>;
+				i2c-lock-group-id = <0>;
 			};
 
 			/* Actuator jotnar for dokkaebi tele */
@@ -1004,6 +1015,7 @@
 					 1000
 					 1000>;
 				periodic-io-thread-priority = <99>;
+				i2c-lock-group-id = <1>;
 			};
 
 			/* Ois nessie for oksoko */
@@ -1054,6 +1066,7 @@
 					 1000
 					 1000>;
 				periodic-io-thread-priority = <99>;
+				i2c-lock-group-id = <0>;
 			};
 
 			/* Ois jotnar for dokkaebi tele */
@@ -1114,6 +1127,7 @@
 					 1000
 					 1000>;
 				periodic-io-thread-priority = <99>;
+				i2c-lock-group-id = <1>;
 			};
 
 			flash0: flash@0 {
