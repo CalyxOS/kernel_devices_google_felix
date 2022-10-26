@@ -2656,6 +2656,100 @@ static int get_screen_protector_mode(
 		GTI_SCREEN_PROTECTOR_MODE_DISABLE;
 	return 0;
 }
+
+/**
+ * Grip parameters definition.
+ * buf[0]: FTS_CMD_CUSTOM_W
+ * buf[1]: CUSTOM_CMD_GRIP_SUPPRESSION
+ * buf[2]: Grip type tune.
+ * buf[3]: Feature enable/disable.
+ *         Bit0-7 for left/right/top/bottom/bottom left/bottom right/top left/top right.
+ * buf[4]: Feature enable/disable.
+ *         Bit0 for left edge palm, Bit1 for right edge palm.
+ *         Bit2-7 Reserved.
+ * buf[5-8]: Reserved.
+ */
+static int set_grip_mode(void *private_data, struct gti_grip_cmd *cmd)
+{
+	struct fts_ts_info *info = private_data;
+	u8 write[9] = { 0 };
+	u8 enable;
+	int ret;
+
+	enable = cmd->setting == GTI_GRIP_ENABLE ? 1 : 0;
+
+	write[0] = (u8) FTS_CMD_CUSTOM_W;
+	write[1] = (u8) CUSTOM_CMD_GRIP_SUPPRESSION;
+	write[2] = GRIP_FEATURE_ENABLE;
+	write[3] = enable ? 0xff : 0x00;
+	write[4] = enable ? 0x03 : 0x00;
+
+	ret = fts_write(info, write, sizeof(write));
+	if (ret) {
+		dev_err(info->dev, "Failed to %s firmware grip suppression.\n",
+			enable ? "enable" : "disable");
+	} else {
+		info->grip_enabled = enable;
+		dev_info(info->dev, "%s firmware grip suppression.\n",
+			info->grip_enabled ? "Enable" : "Disable");
+	}
+
+	return ret;
+}
+
+static int get_grip_mode(void *private_data, struct gti_grip_cmd *cmd)
+{
+	struct fts_ts_info *info = private_data;
+
+	cmd->setting = info->grip_enabled == 1 ? GTI_GRIP_ENABLE : GTI_GRIP_DISABLE;
+	return 0;
+}
+
+/**
+ * Palm mode definition.
+ * 0 : Palm rejection disable
+ * 1 : Palm rejection enable. All rejected after detected palm, and returned
+ *     to normal after all left.
+ * 2 : Palm rejection enable. Palm rejected only after detected palm, and
+ *     returned to normal after palm left.
+ * 3 : Palm rejection enable. All rejected after detected palm, and returned
+ *     to normal after palm left
+ */
+/* Use palm mode 3 when it's enabled. */
+#define FTS_PALM_MODE 3
+static int set_palm_mode(void *private_data, struct gti_palm_cmd *cmd)
+{
+	struct fts_ts_info *info = private_data;
+	u8 write[3];
+	u8 enable;
+	int ret;
+
+	enable = cmd->setting == GTI_PALM_ENABLE ? 1 : 0;
+
+	write[0] = (u8) FTS_CMD_CUSTOM_W;
+	write[1] = (u8) CUSTOM_CMD_PALM_REJECTION;
+	write[2] = enable ? FTS_PALM_MODE : 0;
+
+	ret = fts_write(info, write, sizeof(write));
+	if (ret) {
+		dev_err(info->dev, "Failed to %s firmware palm rejection.\n",
+			enable ? "enable" : "disable");
+	} else {
+		info->palm_enabled = enable;
+		dev_info(info->dev, "%s firmware palm rejection.\n",
+			info->palm_enabled ? "Enable" : "Disable");
+	}
+
+	return ret;
+}
+
+static int get_palm_mode(void *private_data, struct gti_palm_cmd *cmd)
+{
+	struct fts_ts_info *info = private_data;
+
+	cmd->setting = info->palm_enabled == 1 ? GTI_PALM_ENABLE : GTI_PALM_DISABLE;
+	return 0;
+}
 #endif
 
 /**
@@ -3582,40 +3676,6 @@ static bool fts_user_report_event_handler(struct fts_ts_info *info, unsigned
 		break;
 	}
 	return false;
-}
-
-int fts_enable_grip(struct fts_ts_info *info, bool enable)
-{
-	uint8_t enable_cmd[] = {
-		0xC0, 0x03, 0x10, 0xFF, 0x03, 0x00, 0x00, 0x00, 0x00};
-	uint8_t disable_cmd[] = {
-		0xC0, 0x03, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
-	uint8_t left_size_cmd[] =
-		{0xC0, 0x03, 0x20, 0x00/* unit: px */, 0x00, 0x00, 0x00, 0x5F, 0x09};
-	uint8_t right_size_cmd[] =
-		{0xC0, 0x03, 0x21, 0x00/* unit: px */, 0x00, 0x00, 0x00, 0x5F, 0x09};
-	int res;
-
-	if (enable) {
-		if (info->board->fw_grip_area) {
-			left_size_cmd[3] = info->board->fw_grip_area;
-			right_size_cmd[3] = info->board->fw_grip_area;
-			res = fts_write(info, left_size_cmd, sizeof(left_size_cmd));
-			res = fts_write(info, right_size_cmd, sizeof(right_size_cmd));
-		}
-		res = fts_write(info, enable_cmd, sizeof(enable_cmd));
-	} else {
-		if (info->board->fw_grip_area) {
-			res = fts_write(info, left_size_cmd, sizeof(left_size_cmd));
-			res = fts_write(info, right_size_cmd, sizeof(right_size_cmd));
-		}
-		res = fts_write(info, disable_cmd, sizeof(disable_cmd));
-	}
-	if (res < 0)
-		dev_err(info->dev, "%s: fts_write failed with res=%d.\n",
-			__func__, res);
-
-	return res;
 }
 
 /**
@@ -4649,7 +4709,6 @@ static int fts_mode_handler(struct fts_ts_info *info, int force)
 		res = ERROR_OP_NOT_ALLOW;
 	}
 
-
 	dev_dbg(info->dev, "%s: Mode Handler finished! res = %08X mode = %08X\n",
 		__func__, res, info->mode);
 	return res;
@@ -5494,10 +5553,6 @@ static int fts_probe(struct spi_device *client)
 		dev_err(info->dev, "Error: can not create /proc file!\n");
 	info->diag_node_open = false;
 
-	if (info->fwu_workqueue)
-		queue_delayed_work(info->fwu_workqueue, &info->fwu_work,
-				   msecs_to_jiffies(EXP_FN_WORK_DELAY_MS));
-
 	if (getSenseLen(info) > 0 && getForceLen(info) > 0) {
 		info->mutual_data = devm_kzalloc(info->dev,
 			getSenseLen(info) * getForceLen(info) * sizeof(int16_t), GFP_KERNEL);
@@ -5528,6 +5583,10 @@ static int fts_probe(struct spi_device *client)
 	options->set_continuous_report = set_continuous_report;
 	options->set_screen_protector_mode = set_screen_protector_mode;
 	options->get_screen_protector_mode = get_screen_protector_mode;
+	options->set_grip_mode = set_grip_mode;
+	options->get_grip_mode = get_grip_mode;
+	options->set_palm_mode = set_palm_mode;
+	options->get_palm_mode = get_palm_mode;
 
 	info->gti = goog_touch_interface_probe(
 		info, info->dev, info->input_dev, gti_default_handler, options);
@@ -5538,6 +5597,10 @@ static int fts_probe(struct spi_device *client)
 		goto ProbeErrorExit_6;
 	}
 #endif
+
+	if (info->fwu_workqueue)
+		queue_delayed_work(info->fwu_workqueue, &info->fwu_work,
+				   msecs_to_jiffies(EXP_FN_WORK_DELAY_MS));
 
 	dev_info(info->dev, "Probe Finished!\n");
 
