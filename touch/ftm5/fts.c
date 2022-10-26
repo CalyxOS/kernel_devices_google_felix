@@ -2992,6 +2992,7 @@ static bool fts_controller_ready_event_handler(struct fts_ts_info *info,
 	if (error < OK)
 		dev_err(info->dev, "%s Cannot restore the device status ERROR %08X\n",
 			__func__, error);
+
 	return false;
 }
 
@@ -4538,7 +4539,9 @@ static int fts_mode_handler(struct fts_ts_info *info, int force)
 		dev_dbg(info->dev, "%s: Screen ON...\n", __func__);
 
 /* Set the features from GTI if GTI is enabled. */
-#if !IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+		goog_notify_fw_status_changed(info->gti, GTI_FW_STATUS_RESET, NULL);
+#else
 #ifdef GLOVE_MODE
 		if ((info->glove_enabled == FEAT_ENABLE &&
 		     isSystemResettedUp(info)) || force == 1) {
@@ -4621,21 +4624,21 @@ static int fts_mode_handler(struct fts_ts_info *info, int force)
 				dev_info(info->dev, "%s: GRIP_MODE Disabled!\n", __func__);
 		}
 #endif
-#endif /* !IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE) */
+#endif /* IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE) */
 
 		/* If some selective scan want to be enabled can be done
-		  * an or of the following options
-		  */
-		/* settings[0] = ACTIVE_MULTI_TOUCH | ACTIVE_KEY | */
-		/*		ACTIVE_HOVER | ACTIVE_PROXIMITY | */
-		/*		ACTIVE_FORCE; */
+		 * an or of the following options
+		 */
+		/* settings[0] = ACTIVE_MULTI_TOUCH | ACTIVE_KEY |
+		 *		ACTIVE_HOVER | ACTIVE_PROXIMITY |
+		 *		ACTIVE_FORCE;
+		 */
 		settings[0] = 0xFF;	/* enable all the possible scans mode
-					  * supported by the config */
+					 * supported by the config */
 		dev_info(info->dev, "%s: Sense ON!\n", __func__);
 		res |= setScanMode(info, SCAN_MODE_ACTIVE, settings[0]);
 		info->mode |= (SCAN_MODE_ACTIVE << 24);
 		MODE_ACTIVE(info->mode, settings[0]);
-
 
 		setSystemResetedUp(info, 0);
 		break;
@@ -4775,7 +4778,6 @@ static void fts_resume(struct fts_ts_info *info)
 	fts_system_reset(info);
 	info->resume_bit = 1;
 	fts_mode_handler(info, 0);
-
 	fts_enableInterrupt(info, true);
 	info->sensor_sleep = false;
 }
