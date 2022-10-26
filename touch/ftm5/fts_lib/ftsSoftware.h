@@ -565,4 +565,6 @@ enum {
 #define FTS_KEY_6		0x40	/* /< Key 6 bit */
 #define FTS_KEY_7		0x80	/* /< Key 7 bit */
 
+#define CUSTOM_CMD_CONTINUOUS_REPORT	0x05
+
 #endif
