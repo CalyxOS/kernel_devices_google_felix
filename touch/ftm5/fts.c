@@ -2520,8 +2520,17 @@ static int get_mutual_sensor_data(void *private_data, struct gti_sensor_data_cmd
 	uint32_t x_val, y_val;
 	int16_t heatmap_value;
 
-	cmd->buffer = (u8 *)info->mutual_data;
 	cmd->size = max_x * max_y * sizeof(int16_t);
+
+	if (!info->mutual_data) {
+		info->mutual_data = devm_kzalloc(info->dev, cmd->size, GFP_KERNEL);
+		if (!info->mutual_data) {
+			dev_err(info->dev, "Failed to allocate mutual_data.\n");
+			return -ENOMEM;
+		}
+	}
+
+	cmd->buffer = (u8 *)info->mutual_data;
 
 	result = getMSFrame3(info, MS_STRENGTH, &ms_frame);
 	if (result <= 0) {
@@ -2568,8 +2577,17 @@ static int get_self_sensor_data(void *private_data, struct gti_sensor_data_cmd *
 	int tx_size = getForceLen(info);
 	int rx_size = getSenseLen(info);
 
-	cmd->buffer = (u8 *)info->self_data;
 	cmd->size = (tx_size + rx_size) * sizeof(int16_t);
+
+	if (!info->self_data) {
+		info->self_data = devm_kzalloc(info->dev, cmd->size, GFP_KERNEL);
+		if (!info->self_data) {
+			dev_err(info->dev, "Failed to allocate self_data.\n");
+			return -ENOMEM;
+		}
+	}
+
+	cmd->buffer = (u8 *)info->self_data;
 
 	result = getSSFrame3(info, SS_STRENGTH, &ss_frame);
 	if (result <= 0) {
@@ -5553,25 +5571,6 @@ static int fts_probe(struct spi_device *client)
 		dev_err(info->dev, "Error: can not create /proc file!\n");
 	info->diag_node_open = false;
 
-	if (getSenseLen(info) > 0 && getForceLen(info) > 0) {
-		info->mutual_data = devm_kzalloc(info->dev,
-			getSenseLen(info) * getForceLen(info) * sizeof(int16_t), GFP_KERNEL);
-		if (!info->mutual_data) {
-			dev_err(info->dev, "Failed to allocate mutual_data.\n");
-			goto ProbeErrorExit_6;
-		}
-		info->self_data = devm_kzalloc(info->dev,
-			(getSenseLen(info) + getForceLen(info)) * sizeof(int16_t), GFP_KERNEL);
-		if (!info->self_data) {
-			dev_err(info->dev, "Failed to allocate self_data.\n");
-			goto ProbeErrorExit_6;
-		}
-	} else {
-		dev_err(info->dev, "Incorrect system information SenseLen=%d, ForceLen=%d.\n",
-			getSenseLen(info), getForceLen(info));
-		goto ProbeErrorExit_6;
-	}
-
 #if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
 	options = devm_kzalloc(info->dev, sizeof(struct gti_optional_configuration), GFP_KERNEL);
 	if (!options) {
@@ -5609,8 +5608,6 @@ static int fts_probe(struct spi_device *client)
 
 ProbeErrorExit_6:
 	sysfs_remove_group(&client->dev.kobj, &info->attrs);
-	devm_kfree(info->dev, info->mutual_data);
-	devm_kfree(info->dev, info->self_data);
 
 ProbeErrorExit_5:
 	input_unregister_device(info->input_dev);
