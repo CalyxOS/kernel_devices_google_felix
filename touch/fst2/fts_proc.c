@@ -179,12 +179,11 @@ extern struct test_to_do tests;
   */
 static void *fts_seq_start(struct seq_file *s, loff_t *pos)
 {
-	log_info(0,
-		"%s: Entering start(), pos = %ld limit = %d printed = %d\n",
-		__func__, *pos, limit, printed);
+	LOGD("%s: Entering start(), pos = %ld limit = %d printed = %d\n",
+		__func__, (long)*pos, limit, printed);
 
 	if (test_print_buff == NULL && *pos == 0) {
-		log_info(1, "%s: No data to print!\n", __func__);
+		LOGI("%s: No data to print!\n", __func__);
 		test_print_buff = (u8 *)kmalloc(13 * sizeof(u8), GFP_KERNEL);
 		snprintf(test_print_buff, 14, "{ %08X }\n", ERROR_OP_NOT_ALLOW);
 		limit = strlen(test_print_buff);
@@ -212,7 +211,7 @@ static void *fts_seq_start(struct seq_file *s, loff_t *pos)
   */
 static int fts_seq_show(struct seq_file *s, void *v)
 {
-	log_info(0, "%s: In show()\n", __func__);
+	LOGD("%s: In show()\n", __func__);
 	seq_write(s, (u8 *)v, chunk);
 	printed += chunk;
 	return 0;
@@ -229,9 +228,8 @@ static int fts_seq_show(struct seq_file *s, void *v)
   */
 static void *fts_seq_next(struct seq_file *s, void *v, loff_t *pos)
 {
-	log_info(0,
-		"%s: Entering next(), pos = %ld limit = %d printed = %d\n",
-		__func__, *pos, limit, printed);
+	LOGD("%s: Entering next(), pos = %ld limit = %d printed = %d\n",
+		__func__, (long)*pos, limit, printed);
 	(*pos) += chunk;/* increase my position counter */
 	chunk = CHUNK_PROC;
 	if (*pos >= limit)
@@ -252,9 +250,9 @@ static void *fts_seq_next(struct seq_file *s, void *v, loff_t *pos)
   */
 static void fts_seq_stop(struct seq_file *s, void *v)
 {
-	log_info(0, "%s: In stop()\n", __func__);
+	LOGD("%s: In stop()\n", __func__);
 	if (v) {
-		log_info(1, "%s: v is %X.\n", __func__, v);
+		LOGI("%s: v is %p.\n", __func__, v);
 	} else {
 		limit = 0;
 		chunk = 0;
@@ -337,21 +335,21 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 
 	pbuf = (u8 *)kmalloc(count * sizeof(u8), GFP_KERNEL);
 	if (pbuf == NULL) {
-		log_info(1, "%s: Error allocating memory\n", __func__);
+		LOGE("%s: Error allocating memory\n", __func__);
 		res = ERROR_ALLOC;
 		goto goto_end;
 	}
 
 	cmd = (u8 *)kmalloc(count * sizeof(u8), GFP_KERNEL);
 	if (cmd == NULL) {
-		log_info(1, "%s: Error allocating memory\n", __func__);
+		LOGE("%s: Error allocating memory\n", __func__);
 		res = ERROR_ALLOC;
 		goto goto_end;
 	}
 	func_to_test = (u32 *)kmalloc(((count + 1) / 3) * sizeof(u32),
 			GFP_KERNEL);
 	if (func_to_test == NULL) {
-		log_info(1, "%s: Error allocating memory\n", __func__);
+		LOGE("%s: Error allocating memory\n", __func__);
 		res = ERROR_ALLOC;
 		goto goto_end;
 	}
@@ -372,8 +370,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 		goto goto_end;
 	}
 
-	log_info(1,
-		"%s: func_to_test[0] = %02X cmd[0]= %02X Number of Parameters = %d\n",
+	LOGI("%s: func_to_test[0] = %02X cmd[0]= %02X Number of Parameters = %d\n",
 		__func__, func_to_test[0], cmd[0], number_param);
 
 	for (; number_param < (count + 1) / 3; number_param++) {
@@ -382,15 +379,14 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 			p += 3;
 			cmd[number_param] =
 				(u8)func_to_test[number_param];
-			log_info(1,
-				"%s: func_to_test[%d] = %02X cmd[%d]= %02X\n",
+			LOGI("%s: func_to_test[%d] = %02X cmd[%d]= %02X\n",
 				__func__, number_param,
 				func_to_test[number_param],
 				number_param, cmd[number_param]);
 		}
 	}
 
-	log_info(1, "%s: Number of Parameters = %d\n", __func__, number_param);
+	LOGI("%s: Number of Parameters = %d\n", __func__, number_param);
 	if (number_param >= 1) {
 		switch (func_to_test[0]) {
 		case CMD_DRIVER_VERSION:
@@ -398,8 +394,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 			read_buf = (u8 *)kmalloc(to_read *
 				sizeof(u8), GFP_KERNEL);
 			if (read_buf == NULL) {
-				log_info(1, "%s: Error allocating memory\n",
-					__func__);
+				LOGE("%s: Error allocating memory\n", __func__);
 				to_read = 0;
 				res = ERROR_ALLOC;
 				break;
@@ -412,8 +407,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 			if (number_param >= 4)
 				res = fts_write(&cmd[1], number_param - 1);
 			else {
-				log_info(1, "%s: wrong number of parameters\n",
-					__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -422,13 +416,12 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 			if (number_param >= 6) {
 				dummy = cmd[number_param - 1];
 				u8_to_u16_be(&cmd[number_param - 3], &to_read);
-				log_info(1, "%s: Number of bytes to read = %d\n",
+				LOGI("%s: Number of bytes to read = %d\n",
 					__func__, to_read + dummy);
 				read_buf = (u8 *)kmalloc((to_read + dummy) *
 						sizeof(u8), GFP_KERNEL);
 				if (read_buf == NULL) {
-					log_info(1, "%s: Error allocating memory\n",
-						__func__);
+					LOGE("%s: Error allocating memory\n", __func__);
 					to_read = 0;
 					res = ERROR_ALLOC;
 					break;
@@ -438,8 +431,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				if (res >= OK)
 					size += (to_read * sizeof(u8));
 			} else {
-				log_info(1, "%s: wrong number of parameters\n",
-					__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -447,20 +439,18 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 			if (number_param >= 5) {
 				if (cmd[2] <= sizeof(u64)) {
 					u8_to_u64_be(&cmd[3], &address, cmd[2]);
-					log_info(1, "%s: address = %016llX %ld\n",
+					LOGI("%s: address = %016llX %ld\n",
 						__func__, address,
 						(long int)address);
 					res = fts_write_u8ux(cmd[1], cmd[2],
 						address, &cmd[3 + cmd[2]],
 						(number_param - cmd[2] - 3));
 				} else {
-					log_info(1, "%s Wrong address size!\n",
-						__func__);
+					LOGE("%s Wrong address size!\n", __func__);
 					res = ERROR_OP_NOT_ALLOW;
 				}
 			} else {
-				log_info(1, "%s: wrong number of parameters\n",
-					__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -468,19 +458,17 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 			if (number_param >= 7) {
 				dummy = cmd[number_param - 1];
 				u8_to_u16_be(&cmd[number_param - 3], &to_read);
-				log_info(1,
-					"%s: Number of bytes to read = %d\n",
-						__func__, to_read);
+				LOGI("%s: Number of bytes to read = %d\n",
+					__func__, to_read);
 				if (cmd[2] <= sizeof(u64)) {
 					u8_to_u64_be(&cmd[3], &address, cmd[2]);
-					log_info(1, "%s: address = %016llX %ld\n",
-							__func__, address,
-							(long int)address);
+					LOGI("%s: address = %016llX %ld\n",
+						__func__, address,
+						(long)address);
 					read_buf = (u8 *)kmalloc(to_read *
 						sizeof(u8), GFP_KERNEL);
 					if (read_buf == NULL) {
-						log_info(1, "%s: Error allocating memory\n",
-						__func__);
+						LOGE("%s: Error allocating memory\n", __func__);
 						to_read = 0;
 						res = ERROR_ALLOC;
 						break;
@@ -491,13 +479,11 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 					if (res >= OK)
 						size += (to_read * sizeof(u8));
 				} else {
-					log_info(1, "%s Wrong address size!\n",
-					__func__);
+					LOGE("%s Wrong address size!\n", __func__);
 					res = ERROR_OP_NOT_ALLOW;
 				}
 			} else {
-				log_info(1, "%s: wrong number of parameters\n",
-					__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -505,8 +491,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 			if (number_param == 1)
 				res = read_sys_info();
 			else {
-				log_info(1, "%s: wrong number of parameters\n",
-					__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -515,8 +500,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				fts_set_interrupt(info, false);
 				res = fts_system_reset(1);
 			} else {
-				log_info(1, "%s: wrong number of parameters\n",
-					__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -524,8 +508,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 			if (number_param == 1)
 				res = configure_spi4();
 			else {
-				log_info(1, "%s: wrong number of parameters\n",
-					__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -547,8 +530,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				}
 				res = flash_update(&force_burn_flag);
 			} else {
-				log_info(1, "%s: wrong number of parameters\n",
-					__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -559,8 +541,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				else
 					res = fts_set_interrupt(info, false);
 			} else {
-				log_info(1, "%s: wrong number of parameters\n",
-				__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -571,8 +552,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 						(cmd[2] & 0x00FF)), &cmd[3],
 						(number_param - 3));
 			else {
-				log_info(1, "%s: wrong number of parameters\n",
-				__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -582,8 +562,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				read_buf = (u8 *)kmalloc(to_read * sizeof(u8),
 						GFP_KERNEL);
 				if (read_buf == NULL) {
-					log_info(1, "%s: Error allocating memory\n",
-						__func__);
+					LOGE("%s: Error allocating memory\n", __func__);
 					to_read = 0;
 					res = ERROR_ALLOC;
 					break;
@@ -595,8 +574,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				if (res >= OK)
 					size += (to_read * sizeof(u8));
 			} else {
-				log_info(1, "%s: wrong number of parameters\n",
-					__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -604,9 +582,8 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 			if (number_param == 2) {
 				res = get_ms_frame(cmd[1], &mutual_frame);
 				if (res < OK)
-					log_info(1,
-					"%s: Error while reading mutual frame..ERROR: %08X\n",
-					__func__, res);
+					LOGE("%s: Error while reading mutual frame..ERROR: %08X\n",
+						__func__, res);
 				else {
 					res = OK;
 					print_frame_short("Mutual frame =",
@@ -618,8 +595,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 					  mutual_frame.header.sense_node);
 				}
 			} else {
-				log_info(1, "%s: wrong number of parameters\n",
-				__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -627,9 +603,8 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 			if (number_param == 2) {
 				res = get_ss_frame(cmd[1], &self_frame);
 				if (res < OK)
-					log_info(1,
-					"%s: Error while reading self frame.. ERROR: %08X\n",
-					__func__, res);
+					LOGE("%s: Error while reading self frame.. ERROR: %08X\n",
+						__func__, res);
 				else {
 					res = OK;
 					print_frame_short("Self force frame =",
@@ -646,8 +621,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 					  self_frame.header.sense_node);
 				}
 			} else {
-				log_info(1, "%s: wrong number of parameters\n",
-					__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -656,9 +630,8 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				res = get_sync_frame(cmd[1], &mutual_frame,
 							&self_frame);
 				if (res < OK)
-					log_info(1,
-					"%s: Error while reading self frame..ERROR: %08X\n",
-					__func__, res);
+					LOGE("%s: Error while reading self frame..ERROR: %08X\n",
+						__func__, res);
 				else {
 					res = OK;
 					print_frame_short("Mutual frame =",
@@ -684,8 +657,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 					  self_frame.header.sense_node);
 				}
 			} else {
-				log_info(1, "%s: wrong number of parameters\n",
-				__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -693,9 +665,9 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 			if (number_param == 2) {
 				res = get_mutual_cx_data(cmd[1], &mutual_cx);
 				if (res < OK)
-					log_info(1,
-					"%s: Error while reading mutual cx data.. ERROR: %08X\n",
-					__func__, res);
+					LOGE("%s: Error while reading mutual cx data.. "
+						"ERROR: %08X\n",
+						__func__, res);
 				else {
 					res = OK;
 					print_frame_i8("Mutual CX2 data =",
@@ -706,8 +678,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 					  mutual_cx.header.sense_node);
 				}
 			} else {
-				log_info(1, "%s: wrong number of parameters\n",
-					__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -715,9 +686,9 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 			if (number_param == 2) {
 				res = get_self_cx_data(cmd[1], &self_cx);
 				if (res < OK)
-					log_info(1,
-					"%s: Error while reading self cx data.. ERROR: %08X\n",
-					__func__, res);
+					LOGE("%s: Error while reading self cx data.. "
+						"ERROR: %08X\n",
+						__func__, res);
 				else {
 					res = OK;
 					print_frame_i8("Self ix2_tx data =",
@@ -746,8 +717,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 					  self_cx.header.sense_node);
 				}
 			} else {
-				log_info(1, "%s: wrong number of parameters\n",
-						__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -756,12 +726,10 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				res = fts_production_test_main(LIMITS_FILE,
 						 cmd[2], &tests, cmd[1]);
 				if (res < OK)
-					log_info(1,
-					"%s: Error running production tests: %08X\n",
-					__func__, res);
+					LOGE("%s: Error running <Main> tests: %08X\n",
+						__func__, res);
 			} else {
-				log_info(1,
-				"%s: wrong number of parameters\n", __func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -771,14 +739,13 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				res = ERROR_TIMEOUT;
 				while(res < OK && tries--) {
 				        res = fts_production_test_ito(LIMITS_FILE, &tests);
-					log_info(1, "%s: Error running production tests: %08X\n",
-					        __func__, res);
-                                        log_info(1, "%s: Tries Remaining: %d\n",
-					        __func__, tries);
+					if (res < OK)
+						LOGE("%s: Error running <ITO> tests: %08X, "
+							"Tries Remaining: %d\n",
+							__func__, res, tries);
                                 }
 			} else {
-				log_info(1,
-				"%s: wrong number of parameters\n", __func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -787,11 +754,10 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				res = fts_production_test_ms_raw(LIMITS_FILE,
 								&tests);
 				if (res < OK)
-					log_info(1, "%s: Error running production tests: %08X\n",
-					__func__, res);
+					LOGE("%s: Error running <MS RAW>tests: %08X\n",
+						__func__, res);
 			} else {
-				log_info(1, "%s: wrong number of parameters\n",
-					__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -801,12 +767,10 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				res = fts_production_test_ms_raw_lp(LIMITS_FILE,
 								&tests);
 				if (res < OK)
-					log_info(1,
-					"%s: Error running production tests: %08X\n",
-					__func__, res);
+					LOGE("%s: Error running <MS RAW LP> tests: %08X\n",
+						__func__, res);
 			} else {
-				log_info(1,
-				"%s: wrong number of parameters\n", __func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -816,12 +780,10 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				res = fts_production_test_ss_raw(LIMITS_FILE,
 								&tests);
 				if (res < OK)
-					log_info(1,
-					"%s: Error running production tests: %08X\n",
-					__func__, res);
+					LOGE("%s: Error running <SELF RAW> tests: %08X\n",
+						__func__, res);
 			} else {
-				log_info(1, "%s: wrong number of parameters\n",
-					__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -830,12 +792,10 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				res = fts_production_test_ss_raw_lp(LIMITS_FILE,
 									&tests);
 				if (res < OK)
-					log_info(1,
-					"%s: Error running production tests: %08X\n",
-					__func__, res);
+					LOGE("%s: Error running <SELF RAW LP> tests: %08X\n",
+						__func__, res);
 			} else {
-				log_info(1,
-				"%s: wrong number of parameters\n", __func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -843,8 +803,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 			if (number_param == 1)
 				res = fts_read_sys_errors();
 			else {
-				log_info(1, "%s: wrong number of parameters\n",
-					__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -852,8 +811,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 			if (number_param == 2)
 				res = fts_request_hdm(cmd[1]);
 			else {
-				log_info(1, "%s: wrong number of parameters\n",
-					__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -864,9 +822,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				read_buf = (u8 *)kmalloc(to_read * sizeof(u8),
 					GFP_KERNEL);
 				if (read_buf == NULL) {
-					log_info(1,
-					"%s: Error allocating memory\n",
-					__func__);
+					LOGE("%s: Error allocating memory\n", __func__);
 					to_read = 0;
 					res = ERROR_ALLOC;
 					break;
@@ -876,8 +832,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				if (res >= OK)
 					size += (to_read * sizeof(u8));
 			} else {
-				log_info(1,
-				"%s: wrong number of parameters\n", __func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -886,11 +841,10 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				res = fts_production_test_ms_cx_lp(LIMITS_FILE,
 								cmd[1], &tests);
 				if (res < OK)
-					log_info(1, "%s: Error running production tests: %08X\n",
-					__func__, res);
+					LOGE("%s: Error running <MS CX LP> tests: %08X\n",
+						__func__, res);
 			} else {
-				log_info(1, "%s: wrong number of parameters\n",
-					__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -899,11 +853,10 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				res = fts_production_test_ss_ix(LIMITS_FILE,
 								&tests);
 				if (res < OK)
-					log_info(1, "%s: Error running production tests: %08X\n",
-					__func__, res);
+					LOGE("%s: Error running <SS IX> tests: %08X\n",
+						__func__, res);
 			} else {
-				log_info(1, "%s: wrong number of parameters\n",
-					__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -912,11 +865,10 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				res = fts_production_test_ss_ix_lp(LIMITS_FILE,
 								&tests);
 				if (res < OK)
-					log_info(1, "%s: Error running production tests: %08X\n",
-					__func__, res);
+					LOGE("%s: Error running <SS IX LP> tests: %08X\n",
+						__func__, res);
 			} else {
-				log_info(1, "%s: wrong number of parameters\n",
-					__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -925,9 +877,9 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				res = get_mutual_total_cx_data(cmd[1],
 					&mutual_total_cx);
 				if (res < OK)
-					log_info(1,
-					"%s: Error while reading mutual total cx data.. ERROR: %08X\n",
-					__func__, res);
+					LOGE("%s: Error while reading mutual total cx data.. "
+						"ERROR: %08X\n",
+						__func__, res);
 				else {
 					res = OK;
 					print_frame_short(
@@ -940,19 +892,17 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 					  mutual_total_cx.header.sense_node);
 				}
 			} else {
-				log_info(1, "%s: wrong number of parameters\n",
-					__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
 		case CMD_READSSTOTALIXDATA:
 			if (number_param == 2) {
-				res = get_self_total_cx_data(cmd[1],
-&self_total_cx);
+				res = get_self_total_cx_data(cmd[1], &self_total_cx);
 				if (res < OK)
-					log_info(1,
-					"%s: Error while reading self total ix data.. ERROR: %08X\n",
-					__func__, res);
+					LOGE("%s: Error while reading self total ix data.. "
+						"ERROR: %08X\n",
+						__func__, res);
 				else {
 					res = OK;
 					print_frame_u16("Self ix_tx data =",
@@ -969,8 +919,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 					  self_total_cx.header.sense_node);
 				}
 			} else {
-				log_info(1, "%s: wrong number of parameters\n",
-						__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
@@ -983,19 +932,18 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 						(cmd[5] & 0x00FF))/10));
 			/*(actual time out in API is x10(multiple) of input)*/
 			else {
-				log_info(1, "%s: wrong number of parameters\n",
-					__func__);
+				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
 		case CMD_FORCE_TOUCH_ACTIVE:
 			if (number_param == 2) {
 				if (cmd[1] > 1) {
-					log_info(1, "Parameter should be 1 or 0\n");
+					LOGE("%s: Parameter should be 1 or 0\n", __func__);
 					res = ERROR_OP_NOT_ALLOW;
 				} else {
-					log_info(1, "FTS_FORCE_TOUCH_ACTIVE: %s\n",
-						cmd[1] ? "ON" : "OFF");
+					LOGI("%s: FTS_FORCE_TOUCH_ACTIVE: %s\n",
+						__func__, cmd[1] ? "ON" : "OFF");
 #if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
 					cmd[1] ? goog_pm_wake_lock(info->gti,
 						GTI_PM_WAKELOCK_TYPE_FORCE_ACTIVE, false) :
@@ -1005,12 +953,12 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 					res = OK;
 				}
 			}  else {
-				log_info(1, "Wrong number of parameters!\n");
+				LOGE("%s: Wrong number of parameters!\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
 			}
 			break;
 		default:
-			log_info(1, "%s: COMMAND ID NOT VALID!!!\n", __func__);
+			LOGE("%s: COMMAND ID NOT VALID!!!\n", __func__);
 			res = ERROR_OP_NOT_ALLOW;
 			break;
 		}
@@ -1022,8 +970,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 	size += 5; /*for "{", " ", " ", "}", "\n" */
 	test_print_buff = (u8 *)kmalloc(size * sizeof(u8), GFP_KERNEL);
 	if (test_print_buff == NULL) {
-		log_info(1,
-		"%s: Error allocating memory for io buff\n", __func__);
+		LOGE("%s: Error allocating memory for io buff\n", __func__);
 		res = ERROR_ALLOC;
 	}
 	snprintf(&test_print_buff[index], 3, "{ ");
@@ -1108,9 +1055,9 @@ int fts_proc_init(struct fts_ts_info *info) {
 		&fts_driver_test_ops, info);
 
 	if (entry)
-		log_info(1, "%s: proc entry CREATED!\n", __func__);
+		LOGI("%s: proc entry CREATED!\n", __func__);
 	else {
-		log_info(1, "%s: error creating proc entry!\n",	__func__);
+		LOGE("%s: error creating proc entry!\n", __func__);
 		retval = -ENOMEM;
 		goto bad_file;
 	}

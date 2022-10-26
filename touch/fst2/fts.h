@@ -26,6 +26,17 @@
 #include <goog_touch_interface.h>
 #endif
 
+#define LOG_PREFIX "[FTS] "
+
+#define LOGD(fmt, args...) \
+	pr_debug(LOG_PREFIX fmt, ##args)
+
+#define LOGI(fmt, args...) \
+	pr_info(LOG_PREFIX fmt, ##args)
+
+#define LOGE(fmt, args...) \
+	pr_err(LOG_PREFIX fmt, ##args)
+
 #define FTS_TS_DRV_NAME		"fst2"
 #define FTS_TS_DRV_VERSION	"6.0.3"
 #define FTS_TS_DRV_VER		0x06000004
@@ -66,10 +77,6 @@
 #define ABS_MINOR_MAX(scale) (PRESSURE_MAX * scale)	/* /< MAX value of
 					 * Minor axis reported */
 /* **** END **** */
-
-
-
-//#define DEBUG
 
 /* Touch Types */
 #define TOUCH_TYPE_FINGER_HOVER		0x00	/* /< Finger hover */

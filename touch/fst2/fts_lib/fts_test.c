@@ -30,6 +30,7 @@
 
 #include "fts_test.h"
 #include "fts_error.h"
+#include "../fts.h"
 
 #ifdef LIMITS_H_FILE
 #include "../fts_limits.h"
@@ -90,15 +91,13 @@ int compute_adj_horiz_total(short *data, int row, int column, u16 **result)
 	int size = row * (column - 1);
 
 	if (column < 2) {
-		log_info(1, "%s: ERROR %08X\n", __func__,
-			 ERROR_OP_NOT_ALLOW);
+		LOGE("%s: ERROR %08X\n", __func__, ERROR_OP_NOT_ALLOW);
 		return ERROR_OP_NOT_ALLOW;
 	}
 
 	*result = (u16 *)kmalloc(size * sizeof(u16), GFP_KERNEL);
 	if (*result == NULL) {
-		log_info(1, "%s: ERROR %08X\n", __func__,
-			 ERROR_ALLOC);
+		LOGE("%s: ERROR %08X\n", __func__, ERROR_ALLOC);
 		return ERROR_ALLOC;
 	}
 
@@ -130,15 +129,13 @@ int compute_adj_vert_total(short *data, int row, int column, u16 **result)
 	int size = (row - 1) * (column);
 
 	if (row < 2) {
-		log_info(1, "%s: ERROR %08X\n", __func__,
-			 ERROR_OP_NOT_ALLOW);
+		LOGE("%s: ERROR %08X\n", __func__, ERROR_OP_NOT_ALLOW);
 		return ERROR_OP_NOT_ALLOW;
 	}
 
 	*result = (u16 *)kmalloc(size * sizeof(u16), GFP_KERNEL);
 	if (*result == NULL) {
-		log_info(1, "%s: ERROR %08X\n", __func__,
-			 ERROR_ALLOC);
+		LOGE("%s: ERROR %08X\n", __func__, ERROR_ALLOC);
 		return ERROR_ALLOC;
 	}
 
@@ -170,10 +167,9 @@ int check_limits_map_adj_total(u16 *data, int row, int column, int *max)
 	for (i = 0; i < row; i++) {
 		for (j = 0; j < column; j++) {
 			if (data[i * column + j] > max[i * column + j]) {
-				log_info(1,
-				"%s: Node[%d,%d] = %d exceed limit > %d\n",
-				__func__, i, j, data[i * column + j], max[i *
-					     column + j]);
+				LOGE("%s: Node[%d,%d] = %d exceed limit > %d\n",
+					__func__, i, j, data[i * column + j], max[i *
+					column + j]);
 				count++;
 			}
 		}
@@ -205,8 +201,7 @@ int check_limits_map_total(short *data, int row, int column,
 		for (j = 0; j < column; j++) {
 			if (data[i * column + j] < min[i * column + j] ||
 				data[i * column + j] > max[i * column + j]) {
-				log_info(1,
-					"%s: Node[%d,%d] = %d exceed limit [%d, %d]\n",
+				LOGI("%s: Node[%d,%d] = %d exceed limit [%d, %d]\n",
 					__func__, i, j, data[i * column + j],
 					min[i *
 					column
@@ -233,7 +228,7 @@ void print_frame_i8(char *label, i8 **matrix, int row, int column)
 	int buff_len, index;
 	char *buff;
 
-	pr_info("%s\n", label);
+	LOGI("%s\n", label);
 
 	if (matrix == NULL)
 		return;
@@ -241,7 +236,7 @@ void print_frame_i8(char *label, i8 **matrix, int row, int column)
 	buff_len = (4 + 1) * column + 1; /* -128 str len: 4 */
 	buff = kzalloc(buff_len, GFP_KERNEL);
 	if (buff == NULL) {
-		pr_err("%s: fail to allocate buffer\n", __func__);
+		LOGE("%s: fail to allocate buffer\n", __func__);
 		return;
 	}
 
@@ -252,7 +247,7 @@ void print_frame_i8(char *label, i8 **matrix, int row, int column)
 		for (j = 0; j < column; j++)
 			index += scnprintf(buff + index, buff_len - index,
 					"%d ", matrix[i][j]);
-		pr_info("%s\n", buff);
+		LOGI("%s\n", buff);
 		kfree(matrix[i]);
 	}
 	kfree(matrix);
@@ -273,7 +268,7 @@ void print_frame_short(char *label, short **matrix, int row, int column)
 	int buff_len, index;
 	char *buff;
 
-	pr_info("%s\n", label);
+	LOGI("%s\n", label);
 
 	if (matrix == NULL)
 		return;
@@ -281,7 +276,7 @@ void print_frame_short(char *label, short **matrix, int row, int column)
 	buff_len = (6 + 1) * column + 1; /* -32768 str len: 6 */
 	buff = kzalloc(buff_len, GFP_KERNEL);
 	if (buff == NULL) {
-		pr_err("%s: fail to allocate buffer\n", __func__);
+		LOGE("%s: fail to allocate buffer\n", __func__);
 		return;
 	}
 
@@ -292,7 +287,7 @@ void print_frame_short(char *label, short **matrix, int row, int column)
 		for (j = 0; j < column; j++)
 			index += scnprintf(buff + index, buff_len - index,
 					"%d ", matrix[i][j]);
-		pr_info("%s\n", buff);
+		LOGI("%s\n", buff);
 		kfree(matrix[i]);
 	}
 	kfree(matrix);
@@ -313,7 +308,7 @@ void print_frame_u16(char *label, u16 **matrix, int row, int column)
 	int buff_len, index;
 	char *buff;
 
-	pr_info("%s\n", label);
+	LOGI("%s\n", label);
 
 	if (matrix == NULL)
 		return;
@@ -321,7 +316,7 @@ void print_frame_u16(char *label, u16 **matrix, int row, int column)
 	buff_len = (5 + 1) * column + 1; /* 65535 str len: 5 */
 	buff = kzalloc(buff_len, GFP_KERNEL);
 	if (buff == NULL) {
-		pr_err("%s: fail to allocate buffer\n", __func__);
+		LOGE("%s: fail to allocate buffer\n", __func__);
 		return;
 	}
 
@@ -332,7 +327,7 @@ void print_frame_u16(char *label, u16 **matrix, int row, int column)
 		for (j = 0; j < column; j++)
 			index += scnprintf(buff + index, buff_len - index,
 					"%d ", matrix[i][j]);
-		pr_info("%s\n", buff);
+		LOGI("%s\n", buff);
 		kfree(matrix[i]);
 	}
 	kfree(matrix);
@@ -469,14 +464,12 @@ int get_limits_file(char *path, struct limit_file *file)
 	struct device *dev = NULL;
 	int fd = -1;
 
-	log_info(1, "%s: Get Limits File starting... %s\n",
-			__func__, path);
+	LOGI("%s: Get Limits File starting... %s\n", __func__, path);
 
 	if (file->data != NULL) {/* to avoid memory leak on consecutive call of
 				 * the function with the same pointer */
-		log_info(0,
-			"%s Pointer to Limits Data already contains something...freeing its content!\n",
-			__func__);
+		LOGD("%s: Pointer to Limits Data already contains something..."
+			"freeing its content!\n", __func__);
 		kfree(file->data);
 		file->data = NULL;
 		file->size = 0;
@@ -485,7 +478,7 @@ int get_limits_file(char *path, struct limit_file *file)
 	strlcpy(file->name, path, MAX_LIMIT_FILE_NAME);
 	if (strncmp(path, "NULL", 4) == 0) {
 #ifdef LIMITS_H_FILE
-		log_info(1, "%s Loading Limits File from .h!\n", __func__);
+		LOGI("%s: Loading Limits File from .h!\n", __func__);
 		file->size = LIMITS_SIZE_NAME;
 		file->data = (char *)kmalloc((file->size) * sizeof(char),
 			GFP_KERNEL);
@@ -494,25 +487,22 @@ int get_limits_file(char *path, struct limit_file *file)
 				file->size);
 			return OK;
 		} else {
-			log_info(1,
-				"%s: Error while allocating data... ERROR %08X\n",
-				__func__,
-				path, ERROR_ALLOC);
+			LOGE("%s: Error while allocating data... ERROR %08X\n",
+				__func__, path, ERROR_ALLOC);
 			return ERROR_ALLOC;
 		}
 #else
-		log_info(1, "%s: limit file path NULL... ERROR %08X\n",
+		LOGE("%s: limit file path NULL... ERROR %08X\n",
 			__func__, ERROR_FILE_NOT_FOUND);
 		return ERROR_FILE_NOT_FOUND;
 #endif
 	} else {
 		dev = get_dev();
 		if (dev != NULL) {
-			log_info(1, "%s: Loading Limits File from .csv!\n",
-				__func__);
+			LOGI("%s: Loading Limits File from .csv!\n", __func__);
 			fd = request_firmware(&fw, path, dev);
 			if (fd == 0) {
-				log_info(1, "%s: Start to copy %s...\n",
+				LOGI("%s: Start to copy %s...\n",
 					__func__, path);
 				file->size = fw->size;
 				file->data = (char *)kmalloc((file->size) *
@@ -521,28 +511,22 @@ int get_limits_file(char *path, struct limit_file *file)
 				if (file->data != NULL) {
 					memcpy(file->data, (char *)fw->data,
 						file->size);
-					log_info(0,
-						"%s: Limit file Size = %d\n",
-						__func__,
-						file->size);
+					LOGD("%s: Limit file Size = %d\n",
+						__func__, file->size);
 					release_firmware(fw);
 					return OK;
 				}
-				log_info(1,
-					"%s: Error while allocating data... ERROR %08X\n",
+				LOGE("%s: Error while allocating data... ERROR %08X\n",
 					__func__, ERROR_ALLOC);
 				release_firmware(fw);
 				return ERROR_ALLOC;
 			}
-			log_info(1,
-				"%s: Request the file %s failed... ERROR %08X\n",
+			LOGE("%s: Request the file %s failed... ERROR %08X\n",
 				__func__, path, ERROR_FILE_NOT_FOUND);
 			return ERROR_FILE_NOT_FOUND;
 		}
-		log_info(1,
-			"%s: Error while getting the device ERROR %08X\n",
-			__func__,
-			ERROR_FILE_READ);
+		LOGE("%s: Error while getting the device ERROR %08X\n",
+			__func__, ERROR_FILE_READ);
 		return ERROR_FILE_READ;
 	}
 }
@@ -556,20 +540,20 @@ int get_limits_file(char *path, struct limit_file *file)
   */
 int free_limits_file(struct limit_file *file)
 {
-	log_info(0, "%s: Freeing Limit File ...\n", __func__);
+	LOGD("%s: Freeing Limit File ...\n", __func__);
 	if (file != NULL) {
 		if (file->data != NULL) {
 			kfree(file->data);
 			file->data = NULL;
 		} else
-			log_info(0, "%s: Limit File was already freed!\n",
+			LOGD("%s: Limit File was already freed!\n",
 			 __func__);
 		file->size = 0;
 		strlcpy(file->name, " ", MAX_LIMIT_FILE_NAME);
 		return OK;
 	}
-	log_info(1, "%s: Passed a NULL argument! ERROR %08X\n",
-	__func__, ERROR_OP_NOT_ALLOW);
+	LOGE("%s: Passed a NULL argument! ERROR %08X\n",
+		__func__, ERROR_OP_NOT_ALLOW);
 	return ERROR_OP_NOT_ALLOW;
 }
 
@@ -621,27 +605,23 @@ int parse_production_test_limits(char *path, struct limit_file *file,
 
 
 	if (file == NULL || strcmp(path, file->name) != 0 || file->size == 0) {
-		log_info(1,
-			"%s: No limit File data passed...try to get them from the system!\n",
+		LOGI("%s: No limit File data passed...try to get them from the system!\n",
 			__func__);
 		ret = get_limits_file(LIMITS_FILE, &limit_file);
 		if (ret < OK) {
-			log_info(1,
-				"%s: ERROR %08X\n",
-				__func__,
-				ERROR_FILE_NOT_FOUND);
+			LOGE("%s: ERROR %08X\n",
+				__func__, ERROR_FILE_NOT_FOUND);
 			return ERROR_FILE_NOT_FOUND;
 		}
 		size = limit_file.size;
 		data_file = limit_file.data;
 	} else {
-		log_info(1, "%s: Limit File data passed as arguments!\n",
-		__func__);
+		LOGI("%s: Limit File data passed as arguments!\n", __func__);
 		size = file->size;
 		data_file = file->data;
 	}
 
-	log_info(1, "%s: The size of the limits file is %d bytes...\n",
+	LOGI("%s: The size of the limits file is %d bytes...\n",
 		__func__, size);
 
 	while (find == 0) {
@@ -654,8 +634,7 @@ int parse_production_test_limits(char *path, struct limit_file *file,
 		if (line[0] == '*') {
 			line2 = kstrdup(line, GFP_KERNEL);
 			if (line2 == NULL) {
-				log_info(1,
-					"%s: kstrdup ERROR %08X\n",
+				LOGE("%s: kstrdup ERROR %08X\n",
 					__func__, ERROR_ALLOC);
 				ret = ERROR_ALLOC;
 				goto END;
@@ -668,18 +647,18 @@ int parse_production_test_limits(char *path, struct limit_file *file,
 				token = strsep(&line2, ",");
 				if (token != NULL) {
 					if (sscanf(token, "%d", row) == 1)
-						log_info(0, "%s Row = %d\n",
+						LOGD("%s: Row = %d\n",
 							__func__, *row);
 					else {
-						log_info(0, "%s: ERROR while reading the row value!ERROR %08X\n",
+						LOGD("%s: ERROR while reading "
+							"the row value!ERROR %08X\n",
 							__func__, ERROR_FILE_PARSE);
 						ret = ERROR_FILE_PARSE;
 						goto END;
 					}
 
 				} else {
-					log_info(1,
-						"%s: Row ERROR %08X\n",
+					LOGE("%s: Row ERROR %08X\n",
 						__func__, ERROR_FILE_PARSE);
 					ret = ERROR_FILE_PARSE;
 					goto END;
@@ -687,18 +666,18 @@ int parse_production_test_limits(char *path, struct limit_file *file,
 				token = strsep(&line2, ",");
 				if (token != NULL) {
 					if (sscanf(token, "%d", column) == 1)
-						log_info(0, "%s Column = %d\n",
+						LOGD("%s: Column = %d\n",
 							__func__, *column);
 					else {
-						log_info(0, "%s: ERROR while reading the column value!ERROR %08X\n",
-						__func__, ERROR_FILE_PARSE);
+						LOGD("%s: ERROR while reading "
+							"the column value!ERROR %08X\n",
+							__func__, ERROR_FILE_PARSE);
 						ret = ERROR_FILE_PARSE;
 						goto END;
 					}
 
 				} else {
-					log_info(1,
-						"%s: Column ERROR %08X\n",
+					LOGE("%s: Column ERROR %08X\n",
 						__func__, ERROR_FILE_PARSE);
 					ret = ERROR_FILE_PARSE;
 					goto END;
@@ -710,8 +689,7 @@ int parse_production_test_limits(char *path, struct limit_file *file,
 					sizeof(int), GFP_KERNEL);
 				j = 0;
 				if (*data == NULL) {
-					log_info(1,
-						"%s: ERROR %08X\n",
+					LOGE("%s: ERROR %08X\n",
 						__func__, ERROR_ALLOC);
 					ret = ERROR_ALLOC;
 					goto END;
@@ -720,8 +698,7 @@ int parse_production_test_limits(char *path, struct limit_file *file,
 				for (i = 0; i < *row; i++) {
 					if (read_line(&data_file[pointer], line,
 						size - pointer, &n) < 0) {
-						log_info(1,
-							"%s: read_line ERROR %08X\n",
+						LOGE("%s: read_line ERROR %08X\n",
 							__func__,
 							ERROR_FILE_READ);
 						ret = ERROR_FILE_READ;
@@ -730,8 +707,7 @@ int parse_production_test_limits(char *path, struct limit_file *file,
 					pointer += n;
 					line2 = kstrdup(line, GFP_KERNEL);
 					if (line2 == NULL) {
-						log_info(1,
-							"%s: kstrdup ERROR %08X\n",
+						LOGE("%s: kstrdup ERROR %08X\n",
 							__func__, ERROR_ALLOC);
 						ret = ERROR_ALLOC;
 						goto END;
@@ -751,13 +727,11 @@ int parse_production_test_limits(char *path, struct limit_file *file,
 					buf = NULL;
 				}
 				if (j == ((*row) * (*column))) {
-					log_info(1, "%s: READ DONE!\n",
-						__func__);
+					LOGI("%s: READ DONE!\n", __func__);
 					ret = OK;
 					goto END;
 				}
-				log_info(1,
-					"%s: ERROR %08X, j=%d is not equal to %d!\n",
+				LOGE("%s: ERROR %08X, j=%d is not equal to %d!\n",
 					__func__, ERROR_FILE_PARSE, j, ((*row) * (*column)));
 				ret = ERROR_FILE_PARSE;
 				goto END;
@@ -766,7 +740,7 @@ int parse_production_test_limits(char *path, struct limit_file *file,
 			buf = NULL;
 		}
 	}
-	log_info(1, "%s: Test Label not found ERROR: %08X\n", __func__,
+	LOGE("%s: Test Label not found ERROR: %08X\n", __func__,
 		ERROR_LABEL_NOT_FOUND);
 	ret = ERROR_LABEL_NOT_FOUND;
 END:
@@ -825,19 +799,18 @@ int fts_production_test_ito(char *path_limits, struct test_to_do *tests)
 
 	ms_raw_frame.node_data = NULL;
 
-	log_info(1, "%s: ITO Production test is starting...\n", __func__);
+	LOGI("%s: ITO Production test is starting...\n", __func__);
 	if (tests->mutual_ito_raw || tests->mutual_ito_raw_adj) {
 		res = fts_system_reset(1);
 		if (res < OK) {
 			res |= ERROR_PROD_TEST_ITO;
-			log_info(1, "%s: ERROR %08X\n", __func__,
-				res);
+			LOGE("%s: ERROR %08X\n", __func__, res);
 			goto goto_error;
 		}
 		res = fts_write_fw_reg(ITO_TRIGGER_ADDR, sett, 2);
 		if (res < OK) {
 			res |= ERROR_PROD_TEST_ITO;
-			log_info(1, "%s ERROR %08X\n", __func__, res);
+			LOGE("%s: ERROR %08X\n", __func__, res);
 			goto goto_error;
 		}
 
@@ -845,15 +818,13 @@ int fts_production_test_ito(char *path_limits, struct test_to_do *tests)
 			res = fts_read_fw_reg(ITO_TRIGGER_ADDR, data, 2);
 			if (res < OK) {
 				res |= ERROR_PROD_TEST_ITO;
-				log_info(1, "%s: ERROR %08X\n",
-					__func__, res);
+				LOGE("%s: ERROR %08X\n", __func__, res);
 				goto goto_error;
 			}
 			res = (data[0] & 0xFF) || (data[1] & 0x07);
-			log_info(1, "%s: Status = %d\n", __func__, res);
+			LOGI("%s: Status = %d\n", __func__, res);
 			if (!res) {
-				log_info(1, "%s: ITO Command finished..\n",
-				__func__);
+				LOGI("%s: ITO Command finished..\n", __func__);
 				break;
 
 			}
@@ -862,19 +833,17 @@ int fts_production_test_ito(char *path_limits, struct test_to_do *tests)
 		res = poll_for_event(&event_to_search, 1, data, 8);
 		if (res < OK) {
 			res |= ERROR_PROD_TEST_ITO;
-			log_info(1, "%s: ITO failed... ERROR %08X\n",
+			LOGE("%s: ITO failed... ERROR %08X\n",
 				__func__, res);
 			goto goto_error;
 		}
 
-		log_info(1, "%s: ITO Command = OK!\n", __func__);
-		log_info(1, "%s: Collecting MS Raw data...\n",
-					__func__);
+		LOGI("%s: ITO Command = OK!\n", __func__);
+		LOGI("%s: Collecting MS Raw data...\n",	__func__);
 		res = get_ms_frame(MS_RAW, &ms_raw_frame);
 		if (res < OK) {
 			res |= ERROR_PROD_TEST_ITO;
-			log_info(1, "%s: failed... ERROR %08X\n",
-				__func__, res);
+			LOGE("%s: failed... ERROR %08X\n", __func__, res);
 			goto goto_error;
 		}
 
@@ -888,9 +857,9 @@ int fts_production_test_ito(char *path_limits, struct test_to_do *tests)
 			ms_raw_frame.header.force_node,
 			ms_raw_frame.header.sense_node);
 		if (tests->mutual_ito_raw_adj) {
-			log_info(1, "%s: MS RAW ITO ADJ TEST:\n", __func__);
+			LOGI("%s: MS RAW ITO ADJ TEST:\n", __func__);
 
-			log_info(1, "%s: MS RAW ITO ADJ HORIZONTAL TEST:\n",
+			LOGI("%s: MS RAW ITO ADJ HORIZONTAL TEST:\n",
 				__func__);
 			res = compute_adj_horiz_total(ms_raw_frame.node_data,
 				ms_raw_frame.header.force_node,
@@ -898,8 +867,7 @@ int fts_production_test_ito(char *path_limits, struct test_to_do *tests)
 				&adj);
 			if (res < OK) {
 				res |= ERROR_PROD_TEST_ITO;
-				log_info(1,
-					"%s: compute adj Horizontal failed... ERROR %08X\n",
+				LOGE("%s: compute adj Horizontal failed... ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -912,8 +880,7 @@ int fts_production_test_ito(char *path_limits, struct test_to_do *tests)
 			(trows != ms_raw_frame.header.force_node ||
 			tcolumns != ms_raw_frame.header.sense_node - 1)) {
 				res |= ERROR_PROD_TEST_ITO;
-				log_info(1,
-					"%s: MS_RAW_ITO_ADJH limit parse failed... ERROR %08X\n",
+				LOGE("%s: MS_RAW_ITO_ADJH limit parse failed... ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -924,18 +891,16 @@ int fts_production_test_ito(char *path_limits, struct test_to_do *tests)
 				ms_raw_frame.header.sense_node - 1,
 				thresholds);
 			if (res != OK) {
-				log_info(1,
-					"%s: check limit adj horiz MS RAW ITO ADJH failed...ERROR COUNT = %d\n",
+				LOGE("%s: check limit adj horiz MS RAW ITO ADJH "
+					"failed...ERROR COUNT = %d\n",
 					__func__, res);
-				log_info(1,
-					"%s: MS RAW ITO ADJ HORIZONTAL TEST:.................FAIL\n\n",
+				LOGE("%s: MS RAW ITO ADJ HORIZONTAL TEST:.................FAIL\n\n",
 					__func__);
 				res = (ERROR_PROD_TEST_ITO |
 					 ERROR_PROD_TEST_CHECK_FAIL);
 				goto goto_error;
 			} else
-				log_info(1,
-					"%s: MS RAW ITO ADJ HORIZONTAL TEST:.................OK\n",
+				LOGI("%s: MS RAW ITO ADJ HORIZONTAL TEST:.................OK\n",
 					__func__);
 
 			kfree(thresholds);
@@ -944,16 +909,14 @@ int fts_production_test_ito(char *path_limits, struct test_to_do *tests)
 			kfree(adj);
 			adj = NULL;
 
-			log_info(1, "%s: MS RAW ITO ADJ VERTICAL TEST:\n",
-				__func__);
+			LOGI("%s: MS RAW ITO ADJ VERTICAL TEST:\n", __func__);
 			res = compute_adj_vert_total(ms_raw_frame.node_data,
 						ms_raw_frame.header.force_node,
 						ms_raw_frame.header.sense_node,
 						&adj);
 			if (res < OK) {
 				res |= ERROR_PROD_TEST_ITO;
-				log_info(1,
-					"%s: compute adj vert failed... ERROR %08X\n",
+				LOGE("%s: compute adj vert failed... ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -962,11 +925,10 @@ int fts_production_test_ito(char *path_limits, struct test_to_do *tests)
 				&limit_file, MS_RAW_ITO_ADJV, &thresholds,
 				&trows, &tcolumns);
 			if (res < OK ||
-			(trows != ms_raw_frame.header.force_node - 1 ||
+				(trows != ms_raw_frame.header.force_node - 1 ||
 				tcolumns != ms_raw_frame.header.sense_node)) {
 				res |= ERROR_PROD_TEST_ITO;
-				log_info(1,
-					"%s: MS_RAW_ITO_ADJV limit parse failed... ERROR %08X\n",
+				LOGE("%s: MS_RAW_ITO_ADJV limit parse failed... ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -977,18 +939,16 @@ int fts_production_test_ito(char *path_limits, struct test_to_do *tests)
 				1, ms_raw_frame.header.sense_node,
 				thresholds);
 			if (res != OK) {
-				log_info(1,
-					"%s: check limits adj MS RAW ITO ADJV failed...ERROR COUNT = %d\n",
+				LOGE("%s: check limits adj MS RAW ITO ADJV "
+					"failed...ERROR COUNT = %d\n",
 					__func__, res);
-				log_info(1,
-					"%s: MS RAW ITO ADJ VERTICAL TEST:.................FAIL\n\n",
+				LOGE("%s: MS RAW ITO ADJ VERTICAL TEST:.................FAIL\n\n",
 					__func__);
 				res = (ERROR_PROD_TEST_ITO |
 					 ERROR_PROD_TEST_CHECK_FAIL);
 				goto goto_error;
 			} else
-				log_info(1,
-					"%s: MS RAW ITO ADJ VERTICAL TEST:.................OK\n",
+				LOGI("%s: MS RAW ITO ADJ VERTICAL TEST:.................OK\n",
 					__func__);
 
 			kfree(thresholds);
@@ -997,11 +957,10 @@ int fts_production_test_ito(char *path_limits, struct test_to_do *tests)
 			kfree(adj);
 			adj = NULL;
 		} else
-			log_info(1, "%s: MS RAW ITO ADJ TEST SKIPPED:\n",
-				__func__);
+			LOGI("%s: MS RAW ITO ADJ TEST SKIPPED:\n", __func__);
 
 		if (tests->mutual_ito_raw) {
-			log_info(1, "%s: MS RAW ITO MIN MAX TEST:\n", __func__);
+			LOGI("%s: MS RAW ITO MIN MAX TEST:\n", __func__);
 			res = parse_production_test_limits(path_limits,
 				&limit_file, MS_RAW_ITO_EACH_NODE_MIN,
 				&thresholds_min, &trows, &tcolumns);
@@ -1009,8 +968,8 @@ int fts_production_test_ito(char *path_limits, struct test_to_do *tests)
 				ms_raw_frame.header.force_node ||
 				tcolumns != ms_raw_frame.header.sense_node)) {
 				res |= ERROR_PROD_TEST_ITO;
-				log_info(1,
-					"%s: MS_RAW_ITO_EACH_NODE_MIN limit parse failed... ERROR %08X\n",
+				LOGE("%s: MS_RAW_ITO_EACH_NODE_MIN limit parse failed... "
+					"ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -1021,8 +980,8 @@ int fts_production_test_ito(char *path_limits, struct test_to_do *tests)
 				ms_raw_frame.header.force_node ||
 				tcolumns != ms_raw_frame.header.sense_node)) {
 				res |= ERROR_PROD_TEST_ITO;
-				log_info(1,
-					"%s: MS_RAW__ITO_EACH_NODE_MAX limit parse failed... ERROR %08X\n",
+				LOGE("%s: MS_RAW__ITO_EACH_NODE_MAX limit parse"
+					" failed... ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -1031,16 +990,15 @@ int fts_production_test_ito(char *path_limits, struct test_to_do *tests)
 				ms_raw_frame.header.sense_node, thresholds_min,
 				thresholds_max);
 			if (res != OK) {
-				log_info(1,
-					"%s: check limits min max each node data failed...ERROR COUNT = %d\n",
+				LOGE("%s: check limits min max each node data "
+					"failed...ERROR COUNT = %d\n",
 					__func__, res);
-				log_info(1,
-					"%s: MS RAW ITO MAP MIN MAX TEST:.................FAIL\n\n",
+				LOGE("%s: MS RAW ITO MAP MIN MAX TEST:.................FAIL\n\n",
 					__func__);
 				res = (ERROR_PROD_TEST_ITO |
 					 ERROR_PROD_TEST_CHECK_FAIL);
 			} else {
-				log_info(1, "%s: MS RAW ITO MAP MIN MAX TEST:.................OK\n",
+				LOGI("%s: MS RAW ITO MAP MIN MAX TEST:.................OK\n",
 				__func__);
 			}
 			if (thresholds_min != NULL) {
@@ -1052,10 +1010,10 @@ int fts_production_test_ito(char *path_limits, struct test_to_do *tests)
 				thresholds_max = NULL;
 			}
 		} else
-			log_info(1, "%s: MS RAW ITO MIN MAX TEST SKIPPED..\n",
+			LOGI("%s: MS RAW ITO MIN MAX TEST SKIPPED..\n",
 			__func__);
 	} else
-		log_info(1, "%s: MS RAW ITO TEST SKIPPED..\n", __func__);
+		LOGI("%s: MS RAW ITO TEST SKIPPED..\n", __func__);
 
 goto_error:
 	if (thresholds != NULL)
@@ -1075,8 +1033,7 @@ goto_error:
 	free_limits_file(&limit_file);
 	res |= fts_system_reset(1);
 	if (res < OK) {
-		log_info(1, "%s: ERROR %08X\n", __func__,
-			ERROR_PROD_TEST_ITO);
+		LOGE("%s: ERROR %08X\n", __func__, ERROR_PROD_TEST_ITO);
 		res = (res | ERROR_PROD_TEST_ITO);
 	}
 	return res;
@@ -1101,7 +1058,7 @@ int fts_production_test_ms_raw(char *path_limits, struct test_to_do *tests)
 
 	ms_raw_frame.node_data = NULL;
 
-	log_info(1, "%s: MS RAW DATA TEST STARTING...\n", __func__);
+	LOGI("%s: MS RAW DATA TEST STARTING...\n", __func__);
 	if (tests->mutual_raw) {
 		data = SCAN_MODE_LOCK_ACTIVE;
 		res = fts_write_fw_reg(SCAN_MODE_ADDR, &data, 1);
@@ -1110,12 +1067,11 @@ int fts_production_test_ms_raw(char *path_limits, struct test_to_do *tests)
 		res |= fts_write_fw_reg(SCAN_MODE_ADDR, &data, 1);
 		msleep(WAIT_FOR_FRESH_FRAMES);
 
-		log_info(1, "%s: Collecting MS Raw data...\n", __func__);
+		LOGI("%s: Collecting MS Raw data...\n", __func__);
 		res |= get_ms_frame(MS_RAW, &ms_raw_frame);
 		if (res < OK) {
 			res |= ERROR_PROD_TEST_RAW;
-			log_info(1, "%s: failed... ERROR %08X\n",
-				__func__, res);
+			LOGE("%s: failed... ERROR %08X\n", __func__, res);
 			goto goto_error;
 		}
 
@@ -1129,7 +1085,7 @@ int fts_production_test_ms_raw(char *path_limits, struct test_to_do *tests)
 			ms_raw_frame.header.force_node,
 			ms_raw_frame.header.sense_node);
 
-		log_info(1, "%s: MS RAW MIN MAX TEST:\n", __func__);
+		LOGI("%s: MS RAW MIN MAX TEST:\n", __func__);
 		res = parse_production_test_limits(path_limits,
 			&limit_file, MS_RAW_EACH_NODE_MIN,
 			&thresholds_min, &trows, &tcolumns);
@@ -1137,8 +1093,7 @@ int fts_production_test_ms_raw(char *path_limits, struct test_to_do *tests)
 			ms_raw_frame.header.force_node ||
 			tcolumns != ms_raw_frame.header.sense_node)) {
 			res |= ERROR_PROD_TEST_RAW;
-			log_info(1,
-				"%s: MS_RAW_EACH_NODE_MIN limit parse failed... ERROR %08X\n",
+			LOGE("%s: MS_RAW_EACH_NODE_MIN limit parse failed... ERROR %08X\n",
 				__func__, res);
 			goto goto_error;
 		}
@@ -1150,8 +1105,7 @@ int fts_production_test_ms_raw(char *path_limits, struct test_to_do *tests)
 			ms_raw_frame.header.force_node ||
 			tcolumns != ms_raw_frame.header.sense_node)) {
 			res |= ERROR_PROD_TEST_RAW;
-			log_info(1,
-				"%s: MS_RAW_EACH_NODE_MAX limit parse failed... ERROR %08X\n",
+			LOGE("%s: MS_RAW_EACH_NODE_MAX limit parse failed... ERROR %08X\n",
 				__func__, res);
 			goto goto_error;
 		}
@@ -1161,16 +1115,14 @@ int fts_production_test_ms_raw(char *path_limits, struct test_to_do *tests)
 			ms_raw_frame.header.sense_node, thresholds_min,
 			thresholds_max);
 		if (res != OK) {
-			log_info(1,
-				"%s: check_limits_map_total failed... ERROR COUNT = %d\n",
+			LOGE("%s: check_limits_map_total failed... ERROR COUNT = %d\n",
 				__func__, res);
-			log_info(1,
-				"%s: MS RAW MIN MAX TEST:.................FAIL\n\n",
+			LOGE("%s: MS RAW MIN MAX TEST:.................FAIL\n\n",
 				__func__);
 			res = (ERROR_PROD_TEST_RAW |
 				 ERROR_PROD_TEST_CHECK_FAIL);
 		} else {
-			log_info(1, "%s: MS RAW MIN MAX TEST:.................OK\n",
+			LOGI("%s: MS RAW MIN MAX TEST:.................OK\n",
 				__func__);
 		}
 		if (thresholds_min != NULL) {
@@ -1182,7 +1134,7 @@ int fts_production_test_ms_raw(char *path_limits, struct test_to_do *tests)
 			thresholds_max = NULL;
 		}
 	} else
-		log_info(1, "%s: MS RAW DATA TEST SKIPPED...\n", __func__);
+		LOGI("%s: MS RAW DATA TEST SKIPPED...\n", __func__);
 
 goto_error:
 	if (ms_raw_frame.node_data != NULL)
@@ -1219,7 +1171,7 @@ int fts_production_test_ms_raw_lp(char *path_limits, struct test_to_do *tests)
 
 	ms_raw_frame.node_data = NULL;
 
-	log_info(1, "%s: MS LP RAW TEST STARTING..\n", __func__);
+	LOGI("%s: MS LP RAW TEST STARTING..\n", __func__);
 	if (tests->mutual_raw_lp) {
 		res = fts_write_fw_reg(SCAN_MODE_ADDR, &data, 1);
 		msleep(WAIT_FOR_FRESH_FRAMES);
@@ -1227,11 +1179,11 @@ int fts_production_test_ms_raw_lp(char *path_limits, struct test_to_do *tests)
 		res |= fts_write_fw_reg(SCAN_MODE_ADDR, &data, 1);
 		msleep(WAIT_FOR_FRESH_FRAMES);
 
-		log_info(1, "%s: Collecting MS LP Raw data...\n", __func__);
+		LOGI("%s: Collecting MS LP Raw data...\n", __func__);
 		res |= get_ms_frame(MS_RAW, &ms_raw_frame);
 		if (res < OK) {
 			res |= ERROR_PROD_TEST_RAW;
-			log_info(1, "%s: failed... ERROR %08X\n",
+			LOGE("%s: failed... ERROR %08X\n",
 				__func__, res);
 			goto goto_error;
 		}
@@ -1246,7 +1198,7 @@ int fts_production_test_ms_raw_lp(char *path_limits, struct test_to_do *tests)
 			ms_raw_frame.header.force_node,
 			ms_raw_frame.header.sense_node);
 
-		log_info(1, "%s: MS LP RAW MIN MAX TEST:\n", __func__);
+		LOGI("%s: MS LP RAW MIN MAX TEST:\n", __func__);
 		res = parse_production_test_limits(path_limits,
 			&limit_file, MS_RAW_LP_EACH_NODE_MIN,
 			&thresholds_min, &trows, &tcolumns);
@@ -1254,8 +1206,7 @@ int fts_production_test_ms_raw_lp(char *path_limits, struct test_to_do *tests)
 			ms_raw_frame.header.force_node ||
 			tcolumns != ms_raw_frame.header.sense_node)) {
 			res |= ERROR_PROD_TEST_RAW;
-			log_info(1,
-				"%s: MS_RAW_LP_EACH_NODE_MIN limit parse failed... ERROR %08X\n",
+			LOGE("%s: MS_RAW_LP_EACH_NODE_MIN limit parse failed... ERROR %08X\n",
 				__func__, res);
 			goto goto_error;
 		}
@@ -1267,8 +1218,7 @@ int fts_production_test_ms_raw_lp(char *path_limits, struct test_to_do *tests)
 			ms_raw_frame.header.force_node ||
 			tcolumns != ms_raw_frame.header.sense_node)) {
 			res |= ERROR_PROD_TEST_RAW;
-			log_info(1,
-				"%s: MS_RAW_LP_EACH_NODE_MAX limit parse failed... ERROR %08X\n",
+			LOGE("%s: MS_RAW_LP_EACH_NODE_MAX limit parse failed... ERROR %08X\n",
 				__func__, res);
 			goto goto_error;
 		}
@@ -1278,16 +1228,14 @@ int fts_production_test_ms_raw_lp(char *path_limits, struct test_to_do *tests)
 			ms_raw_frame.header.sense_node, thresholds_min,
 			thresholds_max);
 		if (res != OK) {
-			log_info(1,
-				"%s: check_limits_map_total failed... ERROR COUNT = %d\n",
+			LOGE("%s: check_limits_map_total failed... ERROR COUNT = %d\n",
 				__func__, res);
-			log_info(1,
-				"%s: MS LP RAW MIN MAX TEST:.................FAIL\n\n",
+			LOGE("%s: MS LP RAW MIN MAX TEST:.................FAIL\n\n",
 				__func__);
 			res = (ERROR_PROD_TEST_RAW |
 				 ERROR_PROD_TEST_CHECK_FAIL);
 		} else {
-			log_info(1, "%s: MS LP RAW MIN MAX TEST:.................OK\n",
+			LOGI("%s: MS LP RAW MIN MAX TEST:.................OK\n",
 				__func__);
 		}
 		if (thresholds_min != NULL) {
@@ -1299,7 +1247,7 @@ int fts_production_test_ms_raw_lp(char *path_limits, struct test_to_do *tests)
 			thresholds_max = NULL;
 		}
 	} else {
-		log_info(1, "%s: MS LP RAW MIN MAX TEST SKIPPED...\n",
+		LOGI("%s: MS LP RAW MIN MAX TEST SKIPPED...\n",
 			__func__);
 	}
 
@@ -1337,7 +1285,7 @@ int fts_production_test_ss_raw(char *path_limits, struct test_to_do *tests)
 
 	ss_raw_frame.force_data = NULL;
 	ss_raw_frame.sense_data = NULL;
-	log_info(1, "%s: SS RAW DATA TEST STARTING...\n", __func__);
+	LOGI("%s: SS RAW DATA TEST STARTING...\n", __func__);
 	if (tests->self_force_raw  || tests->self_sense_raw) {
 		res = fts_write_fw_reg(SCAN_MODE_ADDR, &data, 1);
 		msleep(WAIT_FOR_FRESH_FRAMES);
@@ -1345,11 +1293,11 @@ int fts_production_test_ss_raw(char *path_limits, struct test_to_do *tests)
 		res |= fts_write_fw_reg(SCAN_MODE_ADDR, &data, 1);
 		msleep(WAIT_FOR_FRESH_FRAMES);
 
-		log_info(1, "%s: Collecting SS Raw data...\n", __func__);
+		LOGI("%s: Collecting SS Raw data...\n", __func__);
 		res |= get_ss_frame(SS_RAW, &ss_raw_frame);
 		if (res < OK) {
 			res |= ERROR_PROD_TEST_RAW;
-			log_info(1, "%s: failed... ERROR %08X\n",
+			LOGE("%s: failed... ERROR %08X\n",
 				__func__, res);
 			goto goto_error;
 		}
@@ -1363,7 +1311,7 @@ int fts_production_test_ss_raw(char *path_limits, struct test_to_do *tests)
 				ss_raw_frame.header.force_node,
 				1);
 
-			log_info(1, "%s: SS RAW FORCE MIN MAX TEST:\n",
+			LOGI("%s: SS RAW FORCE MIN MAX TEST:\n",
 				__func__);
 			res = parse_production_test_limits(path_limits,
 				&limit_file, SS_RAW_FORCE_EACH_NODE_MIN,
@@ -1372,8 +1320,8 @@ int fts_production_test_ss_raw(char *path_limits, struct test_to_do *tests)
 				ss_raw_frame.header.force_node ||
 				tcolumns != 1)) {
 				res |= ERROR_PROD_TEST_RAW;
-				log_info(1,
-					"%s: SS_RAW_FORCE_EACH_NODE_MIN limit parse failed... ERROR %08X\n",
+				LOGE("%s: SS_RAW_FORCE_EACH_NODE_MIN limit parse failed... "
+					"ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -1385,8 +1333,8 @@ int fts_production_test_ss_raw(char *path_limits, struct test_to_do *tests)
 				ss_raw_frame.header.force_node ||
 				tcolumns != 1)) {
 				res |= ERROR_PROD_TEST_RAW;
-				log_info(1,
-					"%s: SS_RAW_FORCE_EACH_NODE_MAX limit parse failed... ERROR %08X\n",
+				LOGE("%s: SS_RAW_FORCE_EACH_NODE_MAX limit parse failed... "
+					"ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -1396,17 +1344,15 @@ int fts_production_test_ss_raw(char *path_limits, struct test_to_do *tests)
 				thresholds_min,
 				thresholds_max);
 			if (res != OK) {
-				log_info(1,
-					"%s: check_limits_map_total failed... ERROR COUNT = %d\n",
+				LOGE("%s: check_limits_map_total failed... ERROR COUNT = %d\n",
 					__func__, res);
-				log_info(1,
-					"%s: SS RAW FORCE MIN MAX TEST:.................FAIL\n\n",
+				LOGE("%s: SS RAW FORCE MIN MAX TEST:.................FAIL\n\n",
 					__func__);
 				res = (ERROR_PROD_TEST_RAW |
 					 ERROR_PROD_TEST_CHECK_FAIL);
 			} else {
-				log_info(1, "%s: SS RAW FORCE MIN MAX TEST:.................OK\n",
-				__func__);
+				LOGI("%s: SS RAW FORCE MIN MAX TEST:.................OK\n",
+					__func__);
 			}
 
 			if (thresholds_min != NULL) {
@@ -1418,8 +1364,8 @@ int fts_production_test_ss_raw(char *path_limits, struct test_to_do *tests)
 				thresholds_max = NULL;
 			}
 		} else
-			log_info(1, "%s: SS RAW FORCE TEST SKIPPED..\n",
-			__func__);
+			LOGI("%s: SS RAW FORCE TEST SKIPPED..\n",
+				__func__);
 
 		if (tests->self_sense_raw) {
 			print_frame_short("SS Raw Sense frame =",
@@ -1430,7 +1376,7 @@ int fts_production_test_ss_raw(char *path_limits, struct test_to_do *tests)
 				1,
 				ss_raw_frame.header.sense_node);
 
-			log_info(1, "%s: SS RAW SENSE MIN MAX TEST:\n",
+			LOGI("%s: SS RAW SENSE MIN MAX TEST:\n",
 				__func__);
 			res = parse_production_test_limits(path_limits,
 				&limit_file, SS_RAW_SENSE_EACH_NODE_MIN,
@@ -1438,8 +1384,8 @@ int fts_production_test_ss_raw(char *path_limits, struct test_to_do *tests)
 			if (res < OK || (trows != 1 ||
 				tcolumns != ss_raw_frame.header.sense_node)) {
 				res |= ERROR_PROD_TEST_RAW;
-				log_info(1,
-					"%s: SS_RAW_SENSE_EACH_NODE_MIN limit parse failed... ERROR %08X\n",
+				LOGE("%s: SS_RAW_SENSE_EACH_NODE_MIN limit parse failed... "
+					"ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -1450,8 +1396,8 @@ int fts_production_test_ss_raw(char *path_limits, struct test_to_do *tests)
 			if (res < OK || (trows != 1 ||
 				tcolumns != ss_raw_frame.header.sense_node)) {
 				res |= ERROR_PROD_TEST_RAW;
-				log_info(1,
-					"%s: SS_RAW_SENSE_EACH_NODE_MAX limit parse failed... ERROR %08X\n",
+				LOGE("%s: SS_RAW_SENSE_EACH_NODE_MAX limit parse failed... "
+					"ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -1461,22 +1407,20 @@ int fts_production_test_ss_raw(char *path_limits, struct test_to_do *tests)
 				ss_raw_frame.header.sense_node,
 				thresholds_min, thresholds_max);
 			if (res != OK) {
-				log_info(1,
-					"%s: check_limits_map_total failed... ERROR COUNT = %d\n",
+				LOGE("%s: check_limits_map_total failed... ERROR COUNT = %d\n",
 					__func__, res);
-				log_info(1,
-					"%s: SS RAW SENSE MIN MAX TEST:.................FAIL\n\n",
+				LOGE("%s: SS RAW SENSE MIN MAX TEST:.................FAIL\n\n",
 					__func__);
 				res = (ERROR_PROD_TEST_RAW |
 					 ERROR_PROD_TEST_CHECK_FAIL);
 			} else
-				log_info(1, "%s: SS RAW SENSE MIN MAX TEST:.................OK\n",
-				__func__);
+				LOGI("%s: SS RAW SENSE MIN MAX TEST:.................OK\n",
+					__func__);
 		} else
-			log_info(1, "%s: SS RAW SENSE TEST SKIPPED..\n",
-			__func__);
+			LOGI("%s: SS RAW SENSE TEST SKIPPED..\n",
+				__func__);
 	} else
-		log_info(1, "%s SS RAW TEST SKIPPED...\n", __func__);
+		LOGI("%s: SS RAW TEST SKIPPED...\n", __func__);
 
 goto_error:
 	if (ss_raw_frame.force_data != NULL)
@@ -1515,7 +1459,7 @@ int fts_production_test_ss_raw_lp(char *path_limits, struct test_to_do *tests)
 
 	ss_raw_frame.force_data = NULL;
 	ss_raw_frame.sense_data = NULL;
-	log_info(1, "%s: SS RAW LP DATA TEST STARTING...\n", __func__);
+	LOGI("%s: SS RAW LP DATA TEST STARTING...\n", __func__);
 
 	if (tests->self_force_raw_lp || tests->self_sense_raw_lp) {
 		res = fts_write_fw_reg(SCAN_MODE_ADDR, &data, 1);
@@ -1524,11 +1468,11 @@ int fts_production_test_ss_raw_lp(char *path_limits, struct test_to_do *tests)
 		res |= fts_write_fw_reg(SCAN_MODE_ADDR, &data, 1);
 		msleep(WAIT_FOR_FRESH_FRAMES);
 
-		log_info(1, "%s: Collecting SS LP Raw data...\n", __func__);
+		LOGI("%s: Collecting SS LP Raw data...\n", __func__);
 		res |= get_ss_frame(SS_DETECT_RAW, &ss_raw_frame);
 		if (res < OK) {
 			res |= ERROR_PROD_TEST_RAW;
-			log_info(1, "%s: failed... ERROR %08X\n",
+			LOGE("%s: failed... ERROR %08X\n",
 				__func__, res);
 			goto goto_error;
 		}
@@ -1543,7 +1487,7 @@ int fts_production_test_ss_raw_lp(char *path_limits, struct test_to_do *tests)
 					ss_raw_frame.header.force_node,
 					1);
 
-				log_info(1, "%s: SS LP RAW FORCE MIN MAX TEST:\n",
+				LOGI("%s: SS LP RAW FORCE MIN MAX TEST:\n",
 					__func__);
 				res = parse_production_test_limits(path_limits,
 					&limit_file,
@@ -1553,8 +1497,8 @@ int fts_production_test_ss_raw_lp(char *path_limits, struct test_to_do *tests)
 					ss_raw_frame.header.force_node ||
 					tcolumns != 1)) {
 					res |= ERROR_PROD_TEST_RAW;
-					log_info(1,
-						"%s: SS_RAW_LP_FORCE_EACH_NODE_MIN limit parse failed... ERROR %08X\n",
+					LOGE("%s: SS_RAW_LP_FORCE_EACH_NODE_MIN limit "
+						"parse failed... ERROR %08X\n",
 						__func__,
 						res);
 					goto goto_error;
@@ -1568,8 +1512,8 @@ int fts_production_test_ss_raw_lp(char *path_limits, struct test_to_do *tests)
 					ss_raw_frame.header.force_node ||
 					tcolumns != 1)) {
 					res |= ERROR_PROD_TEST_RAW;
-					log_info(1,
-						"%s: SS_RAW_LP_FORCE_EACH_NODE_MAX limit parse failed... ERROR %08X\n",
+					LOGE("%s: SS_RAW_LP_FORCE_EACH_NODE_MAX limit "
+						"parse failed... ERROR %08X\n",
 						__func__,
 						res);
 					goto goto_error;
@@ -1581,16 +1525,17 @@ int fts_production_test_ss_raw_lp(char *path_limits, struct test_to_do *tests)
 					thresholds_min,
 					thresholds_max);
 				if (res != OK) {
-					log_info(1,
-						"%s: check_limits_map_total failed... ERROR COUNT = %d\n",
+					LOGE("%s: check_limits_map_total failed... "
+						"ERROR COUNT = %d\n",
 						__func__, res);
-					log_info(1,
-						"%s: SS LP RAW FORCE MIN MAX TEST:.................FAIL\n\n",
+					LOGE("%s: SS LP RAW FORCE MIN MAX TEST:"
+						".................FAIL\n\n",
 						__func__);
 					res = (ERROR_PROD_TEST_RAW | ERROR_PROD_TEST_CHECK_FAIL);
 				} else {
-					log_info(1, "%s: SS LP RAW FORCE MIN MAX TEST:.................OK\n",
-					__func__);
+					LOGI("%s: SS LP RAW FORCE MIN MAX TEST:"
+						".................OK\n",
+						__func__);
 				}
 
 				if (thresholds_min != NULL) {
@@ -1602,11 +1547,11 @@ int fts_production_test_ss_raw_lp(char *path_limits, struct test_to_do *tests)
 					thresholds_max = NULL;
 				}
 			} else
-				log_info(1, "%s: SS LP RAW FORCE MIN MAX TEST:SS LP FORCE NOT AVAILABLE\n",
+				LOGE("%s: SS LP RAW FORCE MIN MAX TEST:SS LP FORCE "
+					"NOT AVAILABLE\n",
 					__func__);
 		} else
-			log_info(1, "%s: SS LP RAW FORCE TEST SKIPPED\n",
-				__func__);
+			LOGI("%s: SS LP RAW FORCE TEST SKIPPED\n", __func__);
 
 		if (tests->self_sense_raw_lp) {
 			if (ss_raw_frame.header.sense_node > 0) {
@@ -1618,7 +1563,7 @@ int fts_production_test_ss_raw_lp(char *path_limits, struct test_to_do *tests)
 					1,
 					ss_raw_frame.header.sense_node);
 
-				log_info(1, "%s: SS LP RAW SENSE MIN MAX TEST:\n",
+				LOGI("%s: SS LP RAW SENSE MIN MAX TEST:\n",
 					__func__);
 				res = parse_production_test_limits(path_limits,
 					&limit_file,
@@ -1627,9 +1572,9 @@ int fts_production_test_ss_raw_lp(char *path_limits, struct test_to_do *tests)
 				if (res < OK || (trows != 1 ||
 				tcolumns != ss_raw_frame.header.sense_node)) {
 					res |= ERROR_PROD_TEST_RAW;
-					log_info(1,
-					"%s: SS_RAW_LP_SENSE_EACH_NODE_MIN limit parse failed...ERROR %08X\n",
-					__func__, res);
+					LOGE("%s: SS_RAW_LP_SENSE_EACH_NODE_MIN limit "
+						"parse failed...ERROR %08X\n",
+						__func__, res);
 					goto goto_error;
 				}
 
@@ -1640,9 +1585,9 @@ int fts_production_test_ss_raw_lp(char *path_limits, struct test_to_do *tests)
 				if (res < OK || (trows != 1 ||
 				tcolumns != ss_raw_frame.header.sense_node)) {
 					res |= ERROR_PROD_TEST_RAW;
-					log_info(1,
-					"%s: SS_RAW_LP_SENSE_EACH_NODE_MAX limit parse failed...ERROR %08X\n",
-					__func__, res);
+					LOGE("%s: SS_RAW_LP_SENSE_EACH_NODE_MAX limit "
+						"parse failed...ERROR %08X\n",
+						__func__, res);
 					goto goto_error;
 				}
 
@@ -1651,26 +1596,28 @@ int fts_production_test_ss_raw_lp(char *path_limits, struct test_to_do *tests)
 					ss_raw_frame.header.sense_node,
 					thresholds_min, thresholds_max);
 				if (res != OK) {
-					log_info(1,
-						"%s: check_limits_map_total failed...ERROR COUNT = %d\n",
+					LOGE("%s: check_limits_map_total failed"
+						"...ERROR COUNT = %d\n",
 						__func__, res);
-					log_info(1,
-						"%s: SS LP RAW SENSE MIN MAX TEST:.................FAIL\n\n",
+					LOGE("%s: SS LP RAW SENSE MIN MAX TEST:"
+						".................FAIL\n\n",
 						__func__);
 					res = (ERROR_PROD_TEST_RAW |
 						 ERROR_PROD_TEST_CHECK_FAIL);
 				} else {
-					log_info(1, "%s: SS LP RAW SENSE MIN MAX TEST:.................OK\n",
-					__func__);
+					LOGI("%s: SS LP RAW SENSE MIN MAX TEST:"
+						".................OK\n",
+						__func__);
 				}
 			} else
-				log_info(1, "%s: SS LP RAW SENSE MIN MAX TEST: SS LP SENSE NOT AVAILABLE\n",
-				__func__);
+				LOGE("%s: SS LP RAW SENSE MIN MAX TEST: SS LP SENSE "
+					"NOT AVAILABLE\n",
+					__func__);
 		} else
-			log_info(1, "%s: SS LP RAW SENSE TEST SKIPPED\n",
+			LOGI("%s: SS LP RAW SENSE TEST SKIPPED\n",
 				__func__);
 	} else
-		log_info(1, "%s: SS LP RAW TEST SKIPPED...\n", __func__);
+		LOGI("%s: SS LP RAW TEST SKIPPED...\n", __func__);
 
 goto_error:
 	if (ss_raw_frame.force_data != NULL)
@@ -1713,15 +1660,14 @@ int fts_production_test_ms_cx_lp(char *path_limits, int stop_on_fail,
 
 	ms_cx_data.node_data = NULL;
 
-	log_info(1, "%s: MS TOTAL CX LP DATA TEST STARTING...\n", __func__);
+	LOGI("%s: MS TOTAL CX LP DATA TEST STARTING...\n", __func__);
 	if (tests->mutual_cx_lp || tests->mutual_cx_lp_adj) {
-		log_info(1, "%s: Collecting MS CX LP data...\n", __func__);
+		LOGI("%s: Collecting MS CX LP data...\n", __func__);
 		res = get_mutual_total_cx_data(HDM_REQ_TOT_CX_MS_LOW_POWER,
 			 &ms_cx_data);
 		if (res < OK) {
 			res |= ERROR_PROD_TEST_CX;
-			log_info(1, "%s: failed... ERROR %08X\n",
-				__func__, res);
+			LOGE("%s: failed... ERROR %08X\n", __func__, res);
 			goto goto_error;
 		}
 
@@ -1736,7 +1682,7 @@ int fts_production_test_ms_cx_lp(char *path_limits, int stop_on_fail,
 			ms_cx_data.header.sense_node);
 
 		if (tests->mutual_cx_lp) {
-			log_info(1, "%s: MS TOTAL CX LP DATA MIN MAX TEST:\n",
+			LOGI("%s: MS TOTAL CX LP DATA MIN MAX TEST:\n",
 				 __func__);
 			res = parse_production_test_limits(path_limits,
 				&limit_file, MS_TOTAL_CX_LP_MIN,
@@ -1745,8 +1691,7 @@ int fts_production_test_ms_cx_lp(char *path_limits, int stop_on_fail,
 				ms_cx_data.header.force_node ||
 				tcolumns != ms_cx_data.header.sense_node)) {
 				res |= ERROR_PROD_TEST_CX;
-				log_info(1,
-					"%s: MS_TOTAL_CX_LP_MIN limit parse failed... ERROR %08X\n",
+				LOGE("%s: MS_TOTAL_CX_LP_MIN limit parse failed... ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -1758,8 +1703,7 @@ int fts_production_test_ms_cx_lp(char *path_limits, int stop_on_fail,
 				ms_cx_data.header.force_node ||
 				tcolumns != ms_cx_data.header.sense_node)) {
 				res |= ERROR_PROD_TEST_CX;
-				log_info(1,
-					"%s: MS_TOTAL_CX_LP_MAX limit parse failed... ERROR %08X\n",
+				LOGE("%s: MS_TOTAL_CX_LP_MAX limit parse failed... ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -1769,18 +1713,16 @@ int fts_production_test_ms_cx_lp(char *path_limits, int stop_on_fail,
 				ms_cx_data.header.sense_node, thresholds_min,
 				thresholds_max);
 			if (res != OK) {
-				log_info(1,
-					"%s: check_limits_map_total failed... ERROR COUNT = %d\n",
+				LOGE("%s: check_limits_map_total failed... ERROR COUNT = %d\n",
 					__func__, res);
-				log_info(1,
-					"%s: MS TOTAL CX LP MIN MAX TEST:.................FAIL\n\n",
+				LOGE("%s: MS TOTAL CX LP MIN MAX TEST:.................FAIL\n\n",
 					__func__);
 				res = (ERROR_PROD_TEST_CX |
 					 ERROR_PROD_TEST_CHECK_FAIL);
 				if (stop_on_fail == 1)
 					goto goto_error;
 			} else {
-				log_info(1, "%s: MS TOTAL CX LP MIN MAX TEST:.................OK\n",
+				LOGI("%s: MS TOTAL CX LP MIN MAX TEST:.................OK\n",
 					__func__);
 			}
 			if (thresholds_min != NULL) {
@@ -1792,18 +1734,17 @@ int fts_production_test_ms_cx_lp(char *path_limits, int stop_on_fail,
 				thresholds_max = NULL;
 			}
 		} else
-			log_info(1, "%s: MS TOTAL CX LP DATA MIN MAX TEST SKIPPED...\n",
+			LOGI("%s: MS TOTAL CX LP DATA MIN MAX TEST SKIPPED...\n",
 				 __func__);
 		if (tests->mutual_cx_lp_adj) {
-			log_info(1, "%s: MS TOTAL CX LP DATA ADJACENT HORIZONTAL TEST:\n",
+			LOGI("%s: MS TOTAL CX LP DATA ADJACENT HORIZONTAL TEST:\n",
 				 __func__);
 			res = compute_adj_horiz_total(ms_cx_data.node_data,
 				ms_cx_data.header.force_node,
 				ms_cx_data.header.sense_node,
 				&adj);
 			if (res < OK) {
-				log_info(1,
-					"%s: compute adj Horizontal failed... ERROR %08X\n",
+				LOGE("%s: compute adj Horizontal failed... ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -1816,8 +1757,7 @@ int fts_production_test_ms_cx_lp(char *path_limits, int stop_on_fail,
 			(trows != ms_cx_data.header.force_node ||
 			tcolumns != ms_cx_data.header.sense_node - 1)) {
 				res |= ERROR_PROD_TEST_CX;
-				log_info(1,
-					"%s: MS_TOTAL_CX_LP_ADJH limit parse failed... ERROR %08X\n",
+				LOGE("%s: MS_TOTAL_CX_LP_ADJH limit parse failed... ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -1828,19 +1768,19 @@ int fts_production_test_ms_cx_lp(char *path_limits, int stop_on_fail,
 				ms_cx_data.header.sense_node - 1,
 				thresholds);
 			if (res != OK) {
-				log_info(1,
-					"%s: check limit adj horiz MS_TOTAL_CX_LP_ADJH failed...ERROR COUNT = %d\n",
+				LOGE("%s: check limit adj horiz MS_TOTAL_CX_LP_ADJH failed... "
+					"ERROR COUNT = %d\n",
 					__func__, res);
-				log_info(1,
-					"%s: MS TOTAL CX LP ADJ HORIZONTAL TEST:.................FAIL\n\n",
+				LOGE("%s: MS TOTAL CX LP ADJ HORIZONTAL TEST:"
+					".................FAIL\n\n",
 					__func__);
 				res = (ERROR_PROD_TEST_CX |
 					 ERROR_PROD_TEST_CHECK_FAIL);
 				if (stop_on_fail == 1)
 					goto goto_error;
 			} else
-				log_info(1,
-					"%s: MS TOTAL CX LP ADJ HORIZONTAL TEST:.................OK\n",
+				LOGI("%s: MS TOTAL CX LP ADJ HORIZONTAL TEST:"
+					".................OK\n",
 					__func__);
 
 			kfree(thresholds);
@@ -1849,7 +1789,7 @@ int fts_production_test_ms_cx_lp(char *path_limits, int stop_on_fail,
 			kfree(adj);
 			adj = NULL;
 
-			log_info(1, "%s: MS TOTAL CX LP ADJ VERTICAL TEST:\n",
+			LOGI("%s: MS TOTAL CX LP ADJ VERTICAL TEST:\n",
 				__func__);
 			res = compute_adj_vert_total(ms_cx_data.node_data,
 						ms_cx_data.header.force_node,
@@ -1857,8 +1797,7 @@ int fts_production_test_ms_cx_lp(char *path_limits, int stop_on_fail,
 						&adj);
 			if (res < OK) {
 				res |= ERROR_PROD_TEST_CX;
-				log_info(1,
-					"%s: compute adj vert failed... ERROR %08X\n",
+				LOGE("%s: compute adj vert failed... ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -1870,8 +1809,7 @@ int fts_production_test_ms_cx_lp(char *path_limits, int stop_on_fail,
 			(trows != ms_cx_data.header.force_node - 1 ||
 				tcolumns != ms_cx_data.header.sense_node)) {
 				res |= ERROR_PROD_TEST_CX;
-				log_info(1,
-					"%s: MS_TOTAL_CX_LP_ADJV limit parse failed... ERROR %08X\n",
+				LOGE("%s: MS_TOTAL_CX_LP_ADJV limit parse failed... ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -1882,19 +1820,19 @@ int fts_production_test_ms_cx_lp(char *path_limits, int stop_on_fail,
 				1, ms_cx_data.header.sense_node,
 				thresholds);
 			if (res != OK) {
-				log_info(1,
-					"%s: check limits adj MS_TOTAL_CX_LP_ADJV failed...ERROR COUNT = %d\n",
+				LOGE("%s: check limits adj MS_TOTAL_CX_LP_ADJV failed..."
+					"ERROR COUNT = %d\n",
 					__func__, res);
-				log_info(1,
-					"%s: MS TOTAL CX LP ADJ VERTICAL TEST:.................FAIL\n\n",
+				LOGE("%s: MS TOTAL CX LP ADJ VERTICAL TEST:"
+					".................FAIL\n\n",
 					__func__);
 				res = (ERROR_PROD_TEST_CX |
 					ERROR_PROD_TEST_CHECK_FAIL);
 				if (stop_on_fail == 1)
 					goto goto_error;
 			} else
-				log_info(1,
-					"%s: MS TOTAL CX LP ADJ VERTICAL TEST:.................OK\n",
+				LOGI("%s: MS TOTAL CX LP ADJ VERTICAL TEST:"
+					".................OK\n",
 					__func__);
 
 			kfree(thresholds);
@@ -1905,7 +1843,7 @@ int fts_production_test_ms_cx_lp(char *path_limits, int stop_on_fail,
 
 		}
 	} else
-		log_info(1, "%s: MS TOTAL CX LP TEST SKIPPED...\n", __func__);
+		LOGI("%s: MS TOTAL CX LP TEST SKIPPED...\n", __func__);
 
 goto_error:
 	if (ms_cx_data.node_data != NULL)
@@ -1950,14 +1888,14 @@ int fts_production_test_ss_ix(char *path_limits, struct test_to_do *tests)
 	ss_cx_data.ix_tx = NULL;
 	ss_cx_data.ix_rx = NULL;
 
-	log_info(1, "%s: SS TOTAL IX DATA TEST STARTING...\n", __func__);
+	LOGI("%s: SS TOTAL IX DATA TEST STARTING...\n", __func__);
 	if (tests->self_force_ix || tests->self_sense_ix) {
-		log_info(1, "%s: Collecting SS IX data...\n", __func__);
+		LOGI("%s: Collecting SS IX data...\n", __func__);
 		res |= get_self_total_cx_data(HDM_REQ_TOT_IX_SS_TOUCH,
 						 &ss_cx_data);
 		if (res < OK) {
 			res |= ERROR_PROD_TEST_CX;
-			log_info(1, "%s: failed... ERROR %08X\n",
+			LOGE("%s: failed... ERROR %08X\n",
 				__func__, res);
 			goto goto_error;
 		}
@@ -1976,9 +1914,9 @@ int fts_production_test_ss_ix(char *path_limits, struct test_to_do *tests)
 			1,
 			ss_cx_data.header.sense_node);
 
-		log_info(1, "%s: SS TOTAL IX DATA MIN MAX TEST:\n", __func__);
+		LOGI("%s: SS TOTAL IX DATA MIN MAX TEST:\n", __func__);
 		if (tests->self_force_ix) {
-			log_info(1, "%s: SS TOTAL FORCE IX DATA MIN MAX TEST:\n",
+			LOGI("%s: SS TOTAL FORCE IX DATA MIN MAX TEST:\n",
 				 __func__);
 			res = parse_production_test_limits(path_limits,
 				&limit_file, SS_FORCE_TOTAL_IX_MIN,
@@ -1987,8 +1925,8 @@ int fts_production_test_ss_ix(char *path_limits, struct test_to_do *tests)
 				ss_cx_data.header.force_node ||
 				tcolumns != 1)) {
 				res |= ERROR_PROD_TEST_CX;
-				log_info(1,
-					"%s: SS_FORCE_TOTAL_IX_MIN limit parse failed... ERROR %08X\n",
+				LOGE("%s: SS_FORCE_TOTAL_IX_MIN limit parse failed... "
+					"ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -1999,8 +1937,8 @@ int fts_production_test_ss_ix(char *path_limits, struct test_to_do *tests)
 			if (res < OK || (trows != ss_cx_data.header.force_node ||
 				tcolumns != 1)) {
 				res |= ERROR_PROD_TEST_CX;
-				log_info(1,
-					"%s: SS_FORCE_TOTAL_IX_MAX limit parse failed... ERROR %08X\n",
+				LOGE("%s: SS_FORCE_TOTAL_IX_MAX limit parse failed... "
+					"ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -2010,30 +1948,29 @@ int fts_production_test_ss_ix(char *path_limits, struct test_to_do *tests)
 				1, thresholds_min,
 				thresholds_max);
 			if (res != OK) {
-				log_info(1,
-					"%s: check_limits_map_total failed... ERROR COUNT = %d\n",
+				LOGE("%s: check_limits_map_total failed... ERROR COUNT = %d\n",
 					__func__, res);
-				log_info(1,
-					"%s: SS TOTAL FORCE IX DATA MAP MIN MAX TEST:.................FAIL\n\n",
+				LOGE("%s: SS TOTAL FORCE IX DATA MAP MIN MAX TEST:"
+					".................FAIL\n\n",
 					__func__);
 				res = (ERROR_PROD_TEST_CX |
 					ERROR_PROD_TEST_CHECK_FAIL);
 			} else {
-				log_info(1, "%s: SS TOTAL FORCE IX DATA MAP MIN MAX TEST:.................OK\n",
+				LOGI("%s: SS TOTAL FORCE IX DATA MAP MIN MAX TEST:"
+					".................OK\n",
 					__func__);
 			}
 		} else
-			log_info(1, "%s: SS TOTAL FORCE IX DATA MIN MAX TEST SKIPPED\n", __func__);
+			LOGI("%s: SS TOTAL FORCE IX DATA MIN MAX TEST SKIPPED\n", __func__);
 
 		if (tests->self_sense_ix) {
-			log_info(1, "%s: SS TOTAL SENSE IX DATA MIN MAX TEST:\n", __func__);
+			LOGI("%s: SS TOTAL SENSE IX DATA MIN MAX TEST:\n", __func__);
 			res = parse_production_test_limits(path_limits,
 				&limit_file, SS_SENSE_TOTAL_IX_MIN,
 				&thresholds_min, &trows, &tcolumns);
 			if (res < OK || (trows != 1 || tcolumns != ss_cx_data.header.sense_node)) {
 				res |= ERROR_PROD_TEST_CX;
-				log_info(1,
-					"%s: SS_SENSE_TOTAL_IX_MIN limit parse failed... ERROR %08X\n",
+				LOGE("%s: SS_SENSE_TOTAL_IX_MIN limit parse failed... ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -2043,8 +1980,8 @@ int fts_production_test_ss_ix(char *path_limits, struct test_to_do *tests)
 				&thresholds_max, &trows, &tcolumns);
 			if (res < OK || (trows != 1 || tcolumns != ss_cx_data.header.sense_node)) {
 				res |= ERROR_PROD_TEST_CX;
-				log_info(1,
-					"%s: SS_SENSE_TOTAL_IX_MIN limit parse failed... ERROR %08X\n",
+				LOGE("%s: SS_SENSE_TOTAL_IX_MIN limit parse failed... "
+					"ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -2054,17 +1991,18 @@ int fts_production_test_ss_ix(char *path_limits, struct test_to_do *tests)
 				ss_cx_data.header.sense_node, thresholds_min,
 				thresholds_max);
 			if (res != OK) {
-				log_info(1,
-					"%s: check_limits_map_total failed... ERROR COUNT = %d\n", __func__, res);
-				log_info(1,
-					"%s: SS TOTAL SENSE IX DATA MAP MIN MAX TEST:.................FAIL\n\n",
+				LOGE("%s: check_limits_map_total failed... ERROR COUNT = %d\n",
+					__func__, res);
+				LOGE("%s: SS TOTAL SENSE IX DATA MAP MIN MAX TEST:"
+					".................FAIL\n\n",
 					__func__);
 				res = (ERROR_PROD_TEST_CX | ERROR_PROD_TEST_CHECK_FAIL);
 			} else
-				log_info(1, "%s: SS TOTAL SENSE IX DATA MAP MIN MAX TEST:.................OK\n",
+				LOGI("%s: SS TOTAL SENSE IX DATA MAP MIN MAX TEST:"
+					".................OK\n",
 					__func__);
 		} else
-			log_info(1, "%s: SS TOTAL SENSE IX DATA MAP MIN MAX TEST SKIPPED\n", __func__);
+			LOGI("%s: SS TOTAL SENSE IX DATA MAP MIN MAX TEST SKIPPED\n", __func__);
 
 		if (thresholds_min != NULL) {
 			kfree(thresholds_min);
@@ -2075,7 +2013,7 @@ int fts_production_test_ss_ix(char *path_limits, struct test_to_do *tests)
 			thresholds_max = NULL;
 		}
 	} else
-		log_info(1, "%s: MS TOTAL CX TEST SKIPPED...\n",
+		LOGI("%s: MS TOTAL CX TEST SKIPPED...\n",
 				 __func__);
 
 goto_error:
@@ -2120,14 +2058,14 @@ int fts_production_test_ss_ix_lp(char *path_limits, struct test_to_do *tests)
 	ss_cx_data.ix_rx = NULL;
 
 
-	log_info(1, "%s: SS TOTAL IX LP DATA TEST STARTING...\n", __func__);
+	LOGI("%s: SS TOTAL IX LP DATA TEST STARTING...\n", __func__);
 	if (tests->self_force_ix_lp  || tests->self_sense_ix_lp) {
-		log_info(1, "%s: Collecting SS IX LP data...\n", __func__);
+		LOGI("%s: Collecting SS IX LP data...\n", __func__);
 		res |= get_self_total_cx_data(HDM_REQ_TOT_IX_SS_TOUCH_IDLE,
 						 &ss_cx_data);
 		if (res < OK) {
 			res |= ERROR_PROD_TEST_CX;
-			log_info(1, "%s: failed... ERROR %08X\n", __func__, res);
+			LOGE("%s: failed... ERROR %08X\n", __func__, res);
 			goto goto_error;
 		}
 		print_frame_u16("SS TOTAL FORCE LP DATA =",
@@ -2144,10 +2082,10 @@ int fts_production_test_ss_ix_lp(char *path_limits, struct test_to_do *tests)
 			1,
 			ss_cx_data.header.sense_node);
 
-		log_info(1, "%s: SS TOTAL IX LP DATA MIN MAX TEST:\n", __func__);
+		LOGI("%s: SS TOTAL IX LP DATA MIN MAX TEST:\n", __func__);
 
 		if (tests->self_force_ix_lp) {
-			log_info(1, "%s: SS TOTAL FORCE IX LP DATA MIN MAX TEST:\n", __func__);
+			LOGI("%s: SS TOTAL FORCE IX LP DATA MIN MAX TEST:\n", __func__);
 			res = parse_production_test_limits(path_limits,
 				&limit_file, SS_FORCE_TOTAL_IX_LP_MIN,
 				&thresholds_min, &trows, &tcolumns);
@@ -2155,8 +2093,7 @@ int fts_production_test_ss_ix_lp(char *path_limits, struct test_to_do *tests)
 				ss_cx_data.header.force_node ||
 				tcolumns != 1)) {
 				res |= ERROR_PROD_TEST_CX;
-				log_info(1,
-					"%s: SS_FORCE_TOTAL_IX_MIN limit parse failed... ERROR %08X\n",
+				LOGE("%s: SS_FORCE_TOTAL_IX_MIN limit parse failed... ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -2168,8 +2105,7 @@ int fts_production_test_ss_ix_lp(char *path_limits, struct test_to_do *tests)
 				ss_cx_data.header.force_node ||
 				tcolumns != 1)) {
 				res |= ERROR_PROD_TEST_CX;
-				log_info(1,
-					"%s: SS_FORCE_TOTAL_IX_MAX limit parse failed... ERROR %08X\n",
+				LOGE("%s: SS_FORCE_TOTAL_IX_MAX limit parse failed... ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -2178,20 +2114,21 @@ int fts_production_test_ss_ix_lp(char *path_limits, struct test_to_do *tests)
 				1, thresholds_min,
 				thresholds_max);
 			if (res != OK) {
-				log_info(1,
-					"%s: check_limits_map_total failed... ERROR COUNT = %d\n", __func__, res);
-				log_info(1,
-					"%s: SS TOTAL FORCE IX LP DATA MAP MIN MAX TEST:.................FAIL\n\n",
+				LOGE("%s: check_limits_map_total failed... ERROR COUNT = %d\n",
+					__func__, res);
+				LOGE("%s: SS TOTAL FORCE IX LP DATA MAP MIN MAX TEST:"
+					".................FAIL\n\n",
 					__func__);
 				res = (ERROR_PROD_TEST_CX | ERROR_PROD_TEST_CHECK_FAIL);
 			} else
-				log_info(1, "%s: SS TOTAL FORCE IX LP DATA MAP MIN MAX TEST:.................OK\n",
+				LOGI("%s: SS TOTAL FORCE IX LP DATA MAP MIN MAX TEST:"
+					".................OK\n",
 					__func__);
 		} else
-			log_info(1, "%s: SS TOTAL FORCE IX LP DATA MIN MAX TEST SKIPPED\n", __func__);
+			LOGI("%s: SS TOTAL FORCE IX LP DATA MIN MAX TEST SKIPPED\n", __func__);
 
 		if (tests->self_sense_ix_lp) {
-			log_info(1, "%s: SS TOTAL SENSE IX LP DATA MIN MAX TEST:\n", __func__);
+			LOGI("%s: SS TOTAL SENSE IX LP DATA MIN MAX TEST:\n", __func__);
 			res = parse_production_test_limits(path_limits,
 				&limit_file, SS_SENSE_TOTAL_IX_LP_MIN,
 				&thresholds_min, &trows, &tcolumns);
@@ -2199,8 +2136,7 @@ int fts_production_test_ss_ix_lp(char *path_limits, struct test_to_do *tests)
 				1 ||
 				tcolumns != ss_cx_data.header.sense_node)) {
 				res |= ERROR_PROD_TEST_CX;
-				log_info(1,
-					"%s: SS_SENSE_TOTAL_IX_MIN limit parse failed... ERROR %08X\n",
+				LOGE("%s: SS_SENSE_TOTAL_IX_MIN limit parse failed... ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -2212,8 +2148,7 @@ int fts_production_test_ss_ix_lp(char *path_limits, struct test_to_do *tests)
 				1 ||
 				tcolumns != ss_cx_data.header.sense_node)) {
 				res |= ERROR_PROD_TEST_CX;
-				log_info(1,
-					"%s: SS_SENSE_TOTAL_IX_MIN limit parse failed... ERROR %08X\n",
+				LOGE("%s: SS_SENSE_TOTAL_IX_MIN limit parse failed... ERROR %08X\n",
 					__func__, res);
 				goto goto_error;
 			}
@@ -2223,18 +2158,19 @@ int fts_production_test_ss_ix_lp(char *path_limits, struct test_to_do *tests)
 				ss_cx_data.header.sense_node, thresholds_min,
 				thresholds_max);
 			if (res != OK) {
-				log_info(1,
-					"%s: check_limits_map_total failed... ERROR COUNT = %d\n", __func__, res);
-				log_info(1,
-					"%s: SS TOTAL SENSE IX LP DATA MAP MIN MAX TEST:.................FAIL\n\n",
+				LOGE("%s: check_limits_map_total failed... ERROR COUNT = %d\n",
+					__func__, res);
+				LOGE("%s: SS TOTAL SENSE IX LP DATA MAP MIN MAX TEST:"
+					".................FAIL\n\n",
 					__func__);
 				res = (ERROR_PROD_TEST_CX | ERROR_PROD_TEST_CHECK_FAIL);
 			} else
-				log_info(1, "%s: SS TOTAL SENSE IX LP DATA MAP MIN MAX TEST:.................OK\n",
+				LOGI("%s: SS TOTAL SENSE IX LP DATA MAP MIN MAX TEST:"
+					".................OK\n",
 					__func__);
 
 		} else
-			log_info(1, "%s: SS TOTAL SENSE IX LP DATA MIN MAX TEST SKIPPED\n", __func__);
+			LOGI("%s: SS TOTAL SENSE IX LP DATA MIN MAX TEST SKIPPED\n", __func__);
 
 		if (thresholds_min != NULL) {
 			kfree(thresholds_min);
@@ -2245,7 +2181,7 @@ int fts_production_test_ss_ix_lp(char *path_limits, struct test_to_do *tests)
 			thresholds_max = NULL;
 		}
 	} else
-		log_info(1, "%s: SS TOTAL IX LP TEST SKIPPED...\n", __func__);
+		LOGI("%s: SS TOTAL IX LP TEST SKIPPED...\n", __func__);
 
 goto_error:
 	if (ss_cx_data.ix_rx != NULL) {
@@ -2286,80 +2222,80 @@ int fts_production_test_main(char *path_limits, int stop_on_fail,
 {
 	int res = OK;
 
-	log_info(1, "%s: MAIN production test is starting...\n", __func__);
-	log_info(1, "%s: [1]ITO TEST...\n", __func__);
+	LOGI("%s: MAIN production test is starting...\n", __func__);
+	LOGI("%s: [1]ITO TEST...\n", __func__);
 	res = fts_production_test_ito(path_limits, tests);
 	if (res != OK) {
-		log_info(1, "%s: ITO TEST FAIL\n", __func__);
+		LOGE("%s: ITO TEST FAIL\n", __func__);
 		goto goto_error;
 	}
 	if (do_init) {
-		log_info(1, "%s: Do Initialization...\n", __func__);
+		LOGI("%s: Do Initialization...\n", __func__);
 		res = fts_fw_request(PI_ADDR, 1, 1, TIMEOUT_FPI);
 		if (res < OK) {
-			log_info(1, "%s: Error performing autotune.. %08X\n",
+			LOGE("%s: Error performing autotune.. %08X\n",
 				__func__, res);
 			res |= ERROR_INIT;
 			if (stop_on_fail)
 				goto goto_error;
 		}
-		log_info(1, "%s: Initialization done...\n", __func__);
+		LOGI("%s: Initialization done...\n", __func__);
 	}
-	log_info(1, "%s: [2]MUTUAL RAW TEST...\n", __func__);
+	LOGI("%s: [2]MUTUAL RAW TEST...\n", __func__);
 	res = fts_production_test_ms_raw(path_limits, tests);
 	if (res != OK) {
-		log_info(1, "%s: MUTUAL RAW TEST FAIL\n", __func__);
+		LOGE("%s: MUTUAL RAW TEST FAIL\n", __func__);
 		if (stop_on_fail)
 			goto goto_error;
 	}
-	log_info(1, "%s: [3]LOW POWER MUTUAL RAW Test......\n", __func__);
+	LOGI("%s: [3]LOW POWER MUTUAL RAW Test......\n", __func__);
 	res = fts_production_test_ms_raw_lp(path_limits, tests);
 	if (res != OK) {
-		log_info(1, "%s: LOW POWER MUTUAL RAW TEST FAIL\n", __func__);
+		LOGE("%s: LOW POWER MUTUAL RAW TEST FAIL\n", __func__);
 		if (stop_on_fail)
 			goto goto_error;
 	}
-	log_info(1, "%s: [4]SELF RAW TEST...\n", __func__);
+	LOGI("%s: [4]SELF RAW TEST...\n", __func__);
 	res = fts_production_test_ss_raw(path_limits, tests);
 	if (res != OK) {
-		log_info(1, "%s: SELF RAW TEST FAIL\n", __func__);
+		LOGE("%s: SELF RAW TEST FAIL\n", __func__);
 		if (stop_on_fail)
 			goto goto_error;
 	}
-	log_info(1, "%s: [5]LOW POWER SELF RAW TEST......\n", __func__);
+	LOGI("%s: [5]LOW POWER SELF RAW TEST......\n", __func__);
 	res = fts_production_test_ss_raw_lp(path_limits, tests);
 	if (res != OK) {
-		log_info(1, "%s: LOW POWER SELF RAW TEST FAIL\n", __func__);
+		LOGE("%s: LOW POWER SELF RAW TEST FAIL\n", __func__);
 		if (stop_on_fail)
 			goto goto_error;
 	}
-	log_info(1, "%s: [6]MUTUAL CX LOW POWER TEST......\n", __func__);
+	LOGI("%s: [6]MUTUAL CX LOW POWER TEST......\n", __func__);
 	res = fts_production_test_ms_cx_lp(path_limits, stop_on_fail, tests);
 	if (res != OK) {
-		log_info(1, "%s: MUTUAL CX LOW POWER TEST FAIL\n", __func__);
+		LOGE("%s: MUTUAL CX LOW POWER TEST FAIL\n", __func__);
 		if (stop_on_fail)
 			goto goto_error;
 	}
-	log_info(1, "%s: [7]SELF IX TEST......\n", __func__);
+	LOGI("%s: [7]SELF IX TEST......\n", __func__);
 	res = fts_production_test_ss_ix(path_limits, tests);
 	if (res != OK) {
-		log_info(1, "%s: SELF IX TEST FAIL\n", __func__);
+		LOGE("%s: SELF IX TEST FAIL\n", __func__);
 		if (stop_on_fail)
 			goto goto_error;
 	}
-	log_info(1, "%s: [8]SELF IX DETECT TEST......\n", __func__);
+	LOGI("%s: [8]SELF IX DETECT TEST......\n", __func__);
 	res = fts_production_test_ss_ix_lp(path_limits, tests);
 	if (res != OK) {
-		log_info(1, "%s: SELF IX DETECT TEST FAIL\n", __func__);
+		LOGE("%s: SELF IX DETECT TEST FAIL\n", __func__);
 		if (stop_on_fail)
 			goto goto_error;
 	}
 goto_error:
 	if (res != OK) {
-		log_info(1, "%s: MAIN production test FAIL\n\n", __func__);
+		LOGE("%s: MAIN production test FAIL\n\n", __func__);
 		return res;
 	}
-	log_info(1, "%s: MAIN production test OK\n\n", __func__);
+	LOGI("%s: MAIN production test OK\n\n", __func__);
 	return res;
 
 }
