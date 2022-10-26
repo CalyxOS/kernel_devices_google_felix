@@ -2619,6 +2619,43 @@ static int set_continuous_report(void *private_data, struct gti_continuous_repor
 
 	return fts_write(info, write, sizeof(write));
 }
+
+static int set_screen_protector_mode(
+	void *private_data, struct gti_screen_protector_mode_cmd *cmd)
+{
+	struct fts_ts_info *info = private_data;
+	u8 write[3];
+	u8 enable;
+	int ret;
+
+	enable = cmd->setting == GTI_SCREEN_PROTECTOR_MODE_ENABLE ? 1 : 0;
+
+	write[0] = (u8) FTS_CMD_CUSTOM_W;
+	write[1] = (u8) CUSTOM_CMD_HIGH_SENSITIVITY;
+	write[2] = enable;
+
+	ret = fts_write(info, write, sizeof(write));
+	if (ret) {
+		dev_err(info->dev, "Failed to %s screen protector mode.\n",
+			enable ? "enable" : "disable");
+	} else {
+		info->glove_enabled = enable;
+		dev_info(info->dev, "%s screen protector mode.\n",
+			info->glove_enabled ? "Enable" : "Disable");
+	}
+
+	return ret;
+}
+
+static int get_screen_protector_mode(
+	void *private_data, struct gti_screen_protector_mode_cmd *cmd)
+{
+	struct fts_ts_info *info = private_data;
+
+	cmd->setting = info->glove_enabled == 1 ? GTI_SCREEN_PROTECTOR_MODE_ENABLE :
+		GTI_SCREEN_PROTECTOR_MODE_DISABLE;
+	return 0;
+}
 #endif
 
 /**
@@ -4500,6 +4537,8 @@ static int fts_mode_handler(struct fts_ts_info *info, int force)
 	case 1:	/* screen up */
 		dev_dbg(info->dev, "%s: Screen ON...\n", __func__);
 
+/* Set the features from GTI if GTI is enabled. */
+#if !IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
 #ifdef GLOVE_MODE
 		if ((info->glove_enabled == FEAT_ENABLE &&
 		     isSystemResettedUp(info)) || force == 1) {
@@ -4521,7 +4560,6 @@ static int fts_mode_handler(struct fts_ts_info *info, int force)
 		}
 
 #endif
-
 #ifdef COVER_MODE
 		if ((info->cover_enabled == FEAT_ENABLE &&
 		     isSystemResettedUp(info)) || force == 1) {
@@ -4564,8 +4602,6 @@ static int fts_mode_handler(struct fts_ts_info *info, int force)
 					__func__);
 		}
 #endif
-
-
 #ifdef GRIP_MODE
 		if ((info->grip_enabled == FEAT_ENABLE &&
 		     isSystemResettedUp(info)) || force == 1) {
@@ -4585,6 +4621,8 @@ static int fts_mode_handler(struct fts_ts_info *info, int force)
 				dev_info(info->dev, "%s: GRIP_MODE Disabled!\n", __func__);
 		}
 #endif
+#endif /* !IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE) */
+
 		/* If some selective scan want to be enabled can be done
 		  * an or of the following options
 		  */
@@ -5486,6 +5524,8 @@ static int fts_probe(struct spi_device *client)
 	options->get_mutual_sensor_data = get_mutual_sensor_data;
 	options->get_self_sensor_data = get_self_sensor_data;
 	options->set_continuous_report = set_continuous_report;
+	options->set_screen_protector_mode = set_screen_protector_mode;
+	options->get_screen_protector_mode = get_screen_protector_mode;
 
 	info->gti = goog_touch_interface_probe(
 		info, info->dev, info->input_dev, gti_default_handler, options);
