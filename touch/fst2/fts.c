@@ -313,6 +313,7 @@ static irqreturn_t fts_interrupt_handler(int irq, void *handle)
 			break;
 
 		total_events++;
+		udelay(100);
 	}
 	evt_data = &info->evt_data[0];
 	if (evt_data[0] == EVT_ID_NOEVENT)
