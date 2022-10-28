@@ -714,6 +714,22 @@ static void ana6707_f10_commit_done(struct exynos_panel *ctx)
 	}
 }
 
+static void ana6707_f10_panel_idle_notification(struct exynos_panel *ctx,
+		u32 display_id, u32 vrefresh, u32 idle_te_vrefresh)
+{
+	char event_string[64];
+	char *envp[] = { event_string, NULL };
+	struct drm_device *dev = ctx->bridge.dev;
+
+	if (!dev) {
+		dev_warn(ctx->dev, "%s: drm_device is null\n", __func__);
+	} else {
+		snprintf(event_string, sizeof(event_string),
+			"PANEL_IDLE_ENTER=%u,%u,%u", display_id, vrefresh, idle_te_vrefresh);
+		kobject_uevent_env(&dev->primary->kdev->kobj, KOBJ_CHANGE, envp);
+	}
+}
+
 static bool ana6707_f10_set_self_refresh(struct exynos_panel *ctx, bool enable)
 {
 	const struct exynos_panel_mode *pmode = ctx->current_mode;
@@ -785,10 +801,39 @@ static bool ana6707_f10_set_self_refresh(struct exynos_panel *ctx, bool enable)
 		 * early exit process here directly */
 		usleep_range(delay_us, delay_us + 10);
 		ana6707_f10_early_exit_post_enable(ctx, true);
-	} else {
-		dev_dbg(ctx->dev, "%s: mode: %s in manual mode\n", __func__, pmode->mode.name);
 
+		ana6707_f10_panel_idle_notification(ctx, 0, vrefresh, 120);
+	} else {
 		ana6707_f10_set_manual_mode(ctx, pmode);
+
+		/*
+		 * after exit idle mode with fixed TE at non-120hz, TE may still keep at 120hz.
+		 * If any layer that already be assigned to DPU that can't be handled at 120hz,
+		 * panel_need_handle_idle_exit will be set then we need to wait one vblank to
+		 * avoid underrun issue.
+		 */
+		if (ctx->panel_need_handle_idle_exit) {
+			struct drm_crtc *crtc = NULL;
+
+			if (ctx->exynos_connector.base.state)
+				crtc = ctx->exynos_connector.base.state->crtc;
+
+			dev_dbg(ctx->dev, "wait one vblank after exit idle\n");
+			DPU_ATRACE_BEGIN("wait_one_vblank");
+			if (crtc) {
+				int ret = drm_crtc_vblank_get(crtc);
+
+				if (!ret) {
+					drm_crtc_wait_one_vblank(crtc);
+					drm_crtc_vblank_put(crtc);
+				} else {
+					usleep_range(8350, 8500);
+				}
+			} else {
+				usleep_range(8350, 8500);
+			}
+			DPU_ATRACE_END("wait_one_vblank");
+		}
 	}
 	EXYNOS_DCS_WRITE_TABLE(ctx, lock_cmd_f0);
 
@@ -797,6 +842,46 @@ static bool ana6707_f10_set_self_refresh(struct exynos_panel *ctx, bool enable)
 	DPU_ATRACE_END(__func__);
 
 	return true;
+}
+
+static int ana6707_f10_atomic_check(struct exynos_panel *ctx, struct drm_atomic_state *state)
+{
+	struct drm_connector *conn = &ctx->exynos_connector.base;
+	struct drm_connector_state *new_conn_state = drm_atomic_get_new_connector_state(state, conn);
+	struct drm_crtc_state *old_crtc_state, *new_crtc_state;
+
+	if (drm_mode_vrefresh(&ctx->current_mode->mode) == 120 ||
+	    !new_conn_state || !new_conn_state->crtc)
+		return 0;
+
+	new_crtc_state = drm_atomic_get_new_crtc_state(state, new_conn_state->crtc);
+	old_crtc_state = drm_atomic_get_old_crtc_state(state, new_conn_state->crtc);
+	if (!old_crtc_state || !new_crtc_state || !new_crtc_state->active)
+		return 0;
+
+	//TODO: b/255924454, check the timing between atomic_check and exynos_hibernation_enter
+	if (old_crtc_state->self_refresh_active || !drm_atomic_crtc_effectively_active(old_crtc_state)) {
+		struct drm_display_mode *mode = &new_crtc_state->adjusted_mode;
+
+		/* set clock to max refresh rate on self refresh exit or resume due to early exit */
+		mode->clock = mode->htotal * mode->vtotal * 120 / 1000;
+
+		if (mode->clock != new_crtc_state->mode.clock) {
+			new_crtc_state->mode_changed = true;
+			dev_dbg(ctx->dev, "raise mode (%s) clock to 120hz on %s\n",
+				mode->name,
+				old_crtc_state->self_refresh_active ? "self refresh exit" : "resume");
+		}
+	} else if (old_crtc_state->active_changed &&
+		   (old_crtc_state->adjusted_mode.clock != old_crtc_state->mode.clock)) {
+		/* clock hacked in last commit due to self refresh exit or resume, undo that */
+		new_crtc_state->mode_changed = true;
+		new_crtc_state->adjusted_mode.clock = new_crtc_state->mode.clock;
+		dev_dbg(ctx->dev, "restore mode (%s) clock after self refresh exit or resume\n",
+			new_crtc_state->mode.name);
+	}
+
+	return 0;
 }
 
 static int ana6707_f10_set_power(struct exynos_panel *ctx, bool enable)
@@ -1038,6 +1123,7 @@ static const struct exynos_panel_funcs ana6707_f10_exynos_funcs = {
 	.set_power = ana6707_f10_set_power,
 	.get_panel_rev = ana6707_f10_get_panel_rev,
 	.commit_done = ana6707_f10_commit_done,
+	.atomic_check = ana6707_f10_atomic_check,
 	.set_self_refresh = ana6707_f10_set_self_refresh,
 };
 
