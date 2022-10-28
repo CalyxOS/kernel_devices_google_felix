@@ -1010,17 +1010,17 @@ static int gti_default_handler(void *private_data, enum gti_cmd_type cmd_type,
 		break;
 
 	case GTI_CMD_SET_CONTINUOUS_REPORT: {
-		#define CONTINUOUS_ENABLE  0xBB
-		#define CONTINUOUS_DISABLE 0xAB
-		uint8_t spi_buf[4] = {0xB2, 0x09, 0x20, CONTINUOUS_DISABLE};
+		#define CONTINUOUS_ENABLE  0x01
+		#define CONTINUOUS_DISABLE 0x00
+		uint8_t spi_buf[5] = {0xB2, 0x00, 0x30, 0x10, CONTINUOUS_DISABLE};
 
 		if (cmd->continuous_report_cmd.setting == GTI_CONTINUOUS_REPORT_ENABLE)
-			spi_buf[3] = CONTINUOUS_ENABLE;
+			spi_buf[4] = CONTINUOUS_ENABLE;
 
 		if (fts_write(spi_buf, sizeof(spi_buf)))
 			res = -EIO;
 		LOGD("%s continuous report %s.\n",
-			(spi_buf[3] == CONTINUOUS_ENABLE) ? "Enable" : "Disable",
+			(spi_buf[4] == CONTINUOUS_ENABLE) ? "Enable" : "Disable",
 			!res ? "successfully" : "unsuccessfully");
 	}
 		break;
@@ -1046,20 +1046,20 @@ static int gti_default_handler(void *private_data, enum gti_cmd_type cmd_type,
 		break;
 
 	case GTI_CMD_SET_PALM_MODE: {
-		#define PALM_ENABLE  0x8F
-		#define PALM_DISABLE 0x8E
-		uint8_t spi_buf[4] = {0xB2, 0x08, 0x1A, PALM_DISABLE};
+		#define PALM_ENABLE  0x03
+		#define PALM_DISABLE 0x00
+		uint8_t spi_buf[5] = {0xB2, 0x00, 0x30, 0x11, PALM_DISABLE};
 
 		if (cmd->palm_cmd.setting == GTI_PALM_ENABLE)
-			spi_buf[3] = PALM_ENABLE;
+			spi_buf[4] = PALM_ENABLE;
 
 		if (fts_write(spi_buf, sizeof(spi_buf)))
 			res = -EIO;
 		else
-			palm_enabled = spi_buf[3] == PALM_ENABLE ? true : false;
+			palm_enabled = spi_buf[4] == PALM_ENABLE ? true : false;
 
 		LOGI("%s FW palm %s, status(%d).\n",
-			(spi_buf[3] == PALM_ENABLE) ? "Enable" : "Disable",
+			(spi_buf[4] == PALM_ENABLE) ? "Enable" : "Disable",
 			!res ? "successfully" : "unsuccessfully",
 			palm_enabled);
 	}
