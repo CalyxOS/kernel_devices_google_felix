@@ -359,7 +359,9 @@ static u32 ana6707_f10_get_min_idle_vrefresh(struct exynos_panel *ctx,
 	if ((idle_vrefresh < 0) || !is_auto_mode_preferred(ctx))
 		return 0;
 
-	if (idle_vrefresh <= 10)
+	if (idle_vrefresh <= 1)
+		idle_vrefresh = 1;
+        else if (idle_vrefresh <= 10)
 		idle_vrefresh = 10;
 	else if (idle_vrefresh <= 30)
 		idle_vrefresh = 30;
@@ -438,7 +440,7 @@ static void ana6707_f10_early_exit_post_enable(struct exynos_panel *ctx, bool fo
 	const struct exynos_panel_mode *pmode = ctx->current_mode;
 	struct ana6707_f10_panel *spanel = to_spanel(ctx);
 	int idle_vrefresh = 0;
-	u8 step_cmd[] = {0xBD, 0x00, 0x80, 0x16, 0x00, 0x02, 0x02}; /* 10hz step setting */
+	u8 step_cmd[] = {0xBD, 0x0A, 0x80, 0xEE, 0x00, 0x2E, 0x01}; /* 1hz step setting */
 	const struct exynos_dsi_cmd auto_mode_cmds[] = {
 		EXYNOS_DSI_CMD_SEQ(0xB0, 0x04),
 		EXYNOS_DSI_CMD_SEQ(0xBD, 0x82),
@@ -458,19 +460,36 @@ static void ana6707_f10_early_exit_post_enable(struct exynos_panel *ctx, bool fo
 	if (!force_update && atomic_dec_if_positive(&spanel->early_exit.delayed))
 		return;
 
-	if (ctx->panel_rev <= PANEL_REV_PROTO1_1)
-		step_cmd[5] = 0x03;
-
 	idle_vrefresh = ana6707_f10_get_min_idle_vrefresh(ctx, pmode);
 	/* write auto step setting depending on target idle refresh rate */
-	if (idle_vrefresh == 30) {
+	if (idle_vrefresh == 10) {
+		step_cmd[1] = 0x00;
+		step_cmd[2] = 0x80;
+		if (ctx->panel_rev == PANEL_REV_PROTO1)
+			step_cmd[3] = 0x14;
+		else
+			step_cmd[3] = 0x16;
+		step_cmd[5] = 0x02;
+		step_cmd[6] = 0x02;
+	} else if (idle_vrefresh == 30) {
+		step_cmd[1] = 0x00;
+		step_cmd[2] = 0x80;
 		step_cmd[3] = 0x06;
+		step_cmd[5] = 0x02;
+		step_cmd[6] = 0x02;
 	} else if (idle_vrefresh == 60) {
+		step_cmd[1] = 0x00;
+		step_cmd[2] = 0x80;
 		step_cmd[3] = 0x02;
+		step_cmd[5] = 0x02;
+		step_cmd[6] = 0x02;
 	} else if (idle_vrefresh == 0) {
 		dev_err(ctx->dev, "%s: invalid idle fps=%u\n", __func__, idle_vrefresh);
 		return;
 	}
+
+	if (ctx->panel_rev <= PANEL_REV_PROTO1_1 && idle_vrefresh != 1)
+		step_cmd[5] = 0x03;
 
 	dev_info(ctx->dev, "%s\n", __func__);
 
