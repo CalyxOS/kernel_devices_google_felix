@@ -16,8 +16,8 @@
   * \brief Contains all the definitions and structs used generally by the driver
   */
 
-#ifndef _LINUX_FTS_I2C_H_
-#define _LINUX_FTS_I2C_H_
+#ifndef _LINUX_FTS_H_
+#define _LINUX_FTS_H_
 
 #include <linux/device.h>
 #include "fts_lib/fts_io.h"
@@ -161,6 +161,7 @@ struct fts_ts_info {
 
 extern int fts_proc_init(struct fts_ts_info *info);
 extern int fts_proc_remove(void);
+int fts_system_reset(struct fts_ts_info *info, int poll_event);
 int fts_set_interrupt(struct fts_ts_info *info, bool enable);
 
 #endif

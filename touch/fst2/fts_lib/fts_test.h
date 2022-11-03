@@ -17,10 +17,10 @@
   *Production Test
   */
 
-#ifndef FTS_TEST_H
-#define FTS_TEST_H
+#ifndef _FTS_TEST_H_
+#define _FTS_TEST_H_
 
-#include "fts_io.h"
+#include "../fts.h"
 
 #define MAX_LIMIT_FILE_NAME 100/* /< max number of chars of the limit file name
 				 * */
@@ -199,7 +199,8 @@ int check_limits_map_total(short *data, int row, int column,
   * in order to satisfy different scenarios
   * @{
   */
-int fts_production_test_ito(char *path_limits, struct test_to_do *tests);
+int fts_production_test_ito(struct fts_ts_info *info,
+	char *path_limits, struct test_to_do *tests);
 int fts_production_test_ms_raw(char *path_limits, struct test_to_do *tests);
 int fts_production_test_ms_raw_lp(char *path_limits, struct test_to_do *tests);
 int fts_production_test_ss_raw(char *path_limits, struct test_to_do *tests);
@@ -208,8 +209,8 @@ int fts_production_test_ms_cx_lp(char *path_limits, int stop_on_fail,
 					struct test_to_do *tests);
 int fts_production_test_ss_ix(char *path_limits, struct test_to_do *tests);
 int fts_production_test_ss_ix_lp(char *path_limits, struct test_to_do *tests);
-int fts_production_test_main(char *path_limits, int stop_on_fail,
-					struct test_to_do *tests, int do_init);
+int fts_production_test_main(struct fts_ts_info *info, char *path_limits,
+	int stop_on_fail, struct test_to_do *tests, int do_init);
 /** @}*/
 
 
