@@ -38,7 +38,6 @@
 
 /*#define DEBUG_LOG*/
 extern struct sys_info system_info;
-static int reset_gpio = GPIO_NOT_DEFINED;
 static void *client;	/* /< bus client retrieved by the OS and
 				  * used to execute the bus transfers */
 #ifdef I2C_INTERFACE
@@ -80,17 +79,6 @@ struct device *get_dev(void)
 		return &(get_client()->dev);
 	else
 		return NULL;
-}
-
-/**
-  * Set the reset_gpio variable with the actual gpio number of the board link to
-  *the reset pin
-  * @param gpio gpio number link to the reset pin of the IC
-  */
-void set_reset_gpio(int gpio)
-{
-	reset_gpio = gpio;
-	LOGI("%s: reset_gpio = %d\n", __func__, reset_gpio);
 }
 
 /**
@@ -877,68 +865,6 @@ int from_id_to_mask(u8 id, u8 *mask, int size)
 	LOGE("%s: Bitmask too small! Impossible contain ID = %d %d>=%d! ERROR %08X\n",
 		__func__, id, ((int)((id) / 8)), size, ERROR_OP_NOT_ALLOW);
 	return ERROR_OP_NOT_ALLOW;
-}
-
-/**
-  * Perform a system reset of the IC.
-  * If the reset pin is associated to a gpio, the function execute an hw reset
-  * (toggling of reset pin) otherwise send an hw command to the IC
-  * @param poll_event varaiable to enable polling for controller ready event
-  * @return OK if success or an error code which specify the type of error
-  */
-int fts_system_reset(int poll_event)
-{
-	int res = 0;
-	u8 data = SYSTEM_RESET_VAL;
-	int event_to_search = EVT_ID_CONTROLLER_READY;
-	u8 read_data[8] = { 0x00 };
-	int add = 0x001C;
-	uint8_t int_data = 0x01;
-
-	if (reset_gpio == GPIO_NOT_DEFINED) {
-		res = fts_write_u8ux(FTS_CMD_HW_REG_W, HW_ADDR_SIZE, SYS_RST_ADDR,
-			&data, 1);
-		if (res < OK) {
-			LOGE("%s: ERROR %08X\n", __func__, res);
-			return res;
-		}
-	} else {
-		gpio_set_value(reset_gpio, 0);
-		msleep(20);
-		gpio_set_value(reset_gpio, 1);
-		res = OK;
-	}
-
-	if (poll_event) {
-		res = poll_for_event(&event_to_search, 1, read_data,
-			TIMEOUT_GENERAL);
-		if (res < OK)
-			LOGE("%s: ERROR %08X\n", __func__, res);
-	} else
-		msleep(100);
-
-#ifdef FTS_GPIO6_UNUSED
-	res = fts_write_read_u8ux(FTS_CMD_HW_REG_R, HW_ADDR_SIZE,
-				  FLASH_CTRL_ADDR, &data, 1, DUMMY_BYTE);
-	if (res < OK) {
-		LOGE("%s: ERROR %08X\n", __func__, res);
-		return res;
-	}
-	data |= 0x80;
-	res = fts_write_u8ux(FTS_CMD_HW_REG_W, HW_ADDR_SIZE,
-			     FLASH_CTRL_ADDR, &data, 1);
-	if (res < OK) {
-		LOGE("%s: ERROR %08X\n", __func__, res);
-		return res;
-	}
-#endif
-
-	res = fts_write_fw_reg(add, &int_data, 1);
-	if (res < OK) {
-		LOGE("%s: ERROR %08X\n", __func__, res);
-	}
-
-	return res;
 }
 
 /**

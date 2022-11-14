@@ -498,7 +498,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 		case CMD_SYSTEMRESET:
 			if (number_param == 1) {
 				fts_set_interrupt(info, false);
-				res = fts_system_reset(1);
+				res = fts_system_reset(info, 1);
 			} else {
 				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
@@ -528,7 +528,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 						force_burn_flag.
 						section_update[i] = cmd[2 + i];
 				}
-				res = flash_update(&force_burn_flag);
+				res = flash_update(info, &force_burn_flag);
 			} else {
 				LOGE("%s: wrong number of parameters\n", __func__);
 				res = ERROR_OP_NOT_ALLOW;
@@ -723,8 +723,8 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 			break;
 		case CMD_MAINTEST:
 			if (number_param == 3) {
-				res = fts_production_test_main(LIMITS_FILE,
-						 cmd[2], &tests, cmd[1]);
+				res = fts_production_test_main(info,
+					LIMITS_FILE, cmd[2], &tests, cmd[1]);
 				if (res < OK)
 					LOGE("%s: Error running <Main> tests: %08X\n",
 						__func__, res);
@@ -738,7 +738,7 @@ static ssize_t fts_seq_write(struct file *file, const char __user *buf,
 				int tries = number_param == 1 ? 1 : cmd[1];
 				res = ERROR_TIMEOUT;
 				while(res < OK && tries--) {
-				        res = fts_production_test_ito(LIMITS_FILE, &tests);
+					res = fts_production_test_ito(info, LIMITS_FILE, &tests);
 					if (res < OK)
 						LOGE("%s: Error running <ITO> tests: %08X, "
 							"Tries Remaining: %d\n",

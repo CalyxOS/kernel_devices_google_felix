@@ -30,7 +30,6 @@
 
 #include "fts_test.h"
 #include "fts_error.h"
-#include "../fts.h"
 
 #ifdef LIMITS_H_FILE
 #include "../fts_limits.h"
@@ -778,12 +777,15 @@ int read_line(char *data, char *line, int size, int *n)
 
 /**
   * Perform an ITO test setting all the possible options
+  * @param info pointer to fts_ts_info which contains info about the device and
+  * its hw setup
   * @param path_limits name of Production Limit file to load or
   * "NULL" if the limits data should be loaded by a .h file
   * @param tests pointer to a test_to_do variable which select the test to do
   * @return OK if success or an error code which specify the type of error
   */
-int fts_production_test_ito(char *path_limits, struct test_to_do *tests)
+int fts_production_test_ito(struct fts_ts_info *info,
+	char *path_limits, struct test_to_do *tests)
 {
 	int res = OK;
 	u8 sett[2] = { 0xFF, 0x07 };
@@ -801,7 +803,7 @@ int fts_production_test_ito(char *path_limits, struct test_to_do *tests)
 
 	LOGI("%s: ITO Production test is starting...\n", __func__);
 	if (tests->mutual_ito_raw || tests->mutual_ito_raw_adj) {
-		res = fts_system_reset(1);
+		res = fts_system_reset(info, 1);
 		if (res < OK) {
 			res |= ERROR_PROD_TEST_ITO;
 			LOGE("%s: ERROR %08X\n", __func__, res);
@@ -1031,7 +1033,7 @@ goto_error:
 		thresholds_max = NULL;
 	}
 	free_limits_file(&limit_file);
-	res |= fts_system_reset(1);
+	res |= fts_system_reset(info, 1);
 	if (res < OK) {
 		LOGE("%s: ERROR %08X\n", __func__, ERROR_PROD_TEST_ITO);
 		res = (res | ERROR_PROD_TEST_ITO);
@@ -2208,6 +2210,8 @@ goto_error:
 
 /**
   * Perform a FULL (ITO + INIT + DATA CHECK) Mass Production Test of the IC
+  * @param info pointer to fts_ts_info which contains info about the device and
+  * its hw setup
   * @param path_limits name of Production Limit file to load or
   * "NULL" if the limits data should be loaded by a .h file
   * @param stop_on_fail if 1, the test flow stops at the first data check
@@ -2217,14 +2221,14 @@ goto_error:
   * @param tests pointer to a test_to_do variable which select the test to do
   * @return OK if success or an error code which specify the type of error
   */
-int fts_production_test_main(char *path_limits, int stop_on_fail,
-				struct test_to_do *tests, int do_init)
+int fts_production_test_main(struct fts_ts_info *info, char *path_limits,
+	int stop_on_fail, struct test_to_do *tests, int do_init)
 {
 	int res = OK;
 
 	LOGI("%s: MAIN production test is starting...\n", __func__);
 	LOGI("%s: [1]ITO TEST...\n", __func__);
-	res = fts_production_test_ito(path_limits, tests);
+	res = fts_production_test_ito(info, path_limits, tests);
 	if (res != OK) {
 		LOGE("%s: ITO TEST FAIL\n", __func__);
 		goto goto_error;

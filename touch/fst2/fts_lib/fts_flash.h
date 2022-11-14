@@ -17,8 +17,10 @@
   *process
   */
 
-#ifndef FTS_FLASH_H
-#define FTS_FLASH_H
+#ifndef _FTS_FLASH_H_
+#define _FTS_FLASH_H_
+
+#include "../fts.h"
 
 /*#define FW_H_FILE*/
 
@@ -130,14 +132,14 @@ typedef enum {
 						     * raw frame data crc*/
 
 int read_fw_file(const char *path, struct firmware_file *fw);
-int flash_burn(struct firmware_file fw,
-		struct force_update_flag *force_update);
+int flash_burn(struct fts_ts_info *info, struct firmware_file fw,
+	struct force_update_flag *force_update);
 int flash_section_burn(struct firmware_file fw, fw_section_t section,
 	u8 save_to_flash);
 int read_sys_info(void);
-int flash_update(struct force_update_flag *force_update);
+int flash_update(struct fts_ts_info *info, struct force_update_flag *force_update);
 int configure_spi4(void);
-int full_panel_init(struct force_update_flag *force_update);
+int full_panel_init(struct fts_ts_info *info, struct force_update_flag *force_update);
 unsigned int calculate_crc(unsigned char *message, int size);
 int get_fw_file_data(const char *path_to_file, u8 **data, int *size);
 int flash_update_preset(void);

@@ -531,7 +531,6 @@ struct i2c_client *get_client(void);
 struct spi_device *get_client(void);
 #endif
 struct device *get_dev(void);
-void set_reset_gpio(int gpio);
 int open_channel(void *clt);
 void log_info(int force, const char *msg, ...);
 int fts_read(u8 *outBuf, int byte_to_read);
@@ -554,7 +553,6 @@ int u32_to_u8_be(u32 src, u8 *dst);
 int u8_to_u64_be(u8 *src, u64 *dest, int size);
 int u64_to_u8_be(u64 src, u8 *dest, int size);
 int from_id_to_mask(u8 id, u8 *mask, int size);
-int fts_system_reset(int poll_event);
 int fts_hdm_write_request(u8 save_to_flash);
 int fts_request_hdm(u8 type);
 int fts_fw_request(u16 address, u8 bit_to_set, u8 auto_clear,

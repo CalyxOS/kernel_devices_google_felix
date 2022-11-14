@@ -33,7 +33,6 @@
 #include "fts_io.h"
 #include "fts_flash.h"
 #include "fts_error.h"
-#include "../fts.h"
 
 #ifdef FW_H_FILE
 #include "../fts_fw.h"
@@ -1018,13 +1017,16 @@ int flash_section_burn(struct firmware_file fw,
 
 /**
   * Execute the procedure to burn a FW in FTM4/FTI IC
+  * @param info pointer to fts_ts_info which contains info about the device and
+  * its hw setup
   * @param fw structure which contain the FW to be burnt
   * @param force_burn if >0, the flashing procedure will be forced and executed
   * regardless the additional info, otherwise the FW in the file will be burnt
   * only if it is newer than the one running in the IC
   * @return OK if success or an error code which specify the type of error
   */
-int flash_burn(struct firmware_file fw, struct force_update_flag *force_burn)
+int flash_burn(struct fts_ts_info *info, struct firmware_file fw,
+	struct force_update_flag *force_burn)
 {
 	int res = OK;
 	u8 data[4] = { 0x00 };
@@ -1080,7 +1082,7 @@ int flash_burn(struct firmware_file fw, struct force_update_flag *force_burn)
 		}
 		LOGI("%s: Flash Code update finished..\n", __func__);
 
-		res = fts_system_reset(1);
+		res = fts_system_reset(info, 1);
 		if (res < OK) {
 			LOGE("%s: ERROR %08X\n", __func__,
 				res | ERROR_FLASH_CODE_UPDATE);
@@ -1156,7 +1158,7 @@ int flash_burn(struct firmware_file fw, struct force_update_flag *force_burn)
 	SSCX - Golden Value - ToDo */
 #endif
 	if (section_updated) {
-		res = fts_system_reset(1);
+		res = fts_system_reset(info, 1);
 		if (res < OK) {
 			LOGE("%s: ERROR %08X\n", __func__,
 				res | ERROR_FLASH_UPDATE);
@@ -1191,12 +1193,14 @@ int flash_burn(struct firmware_file fw, struct force_update_flag *force_burn)
 
 /**
   * Perform full panel initilisation based on the cx versions and crc status
+  * @param info pointer to fts_ts_info which contains info about the device and
+  * its hw setup
   * @param force_update , flags  that will  force the flash procedure for each
   * sections and executed regardless the additional info, otherwise the FW in
   * the file will be burnt only if it is newer than the one running in the IC
   * @return OK if success or an error code which specify the type of error
   */
-int full_panel_init(struct force_update_flag *force_update)
+int full_panel_init(struct fts_ts_info *info, struct force_update_flag *force_update)
 {
 	int res = OK;
 	int event_to_search = EVT_ID_NOEVENT;
@@ -1242,7 +1246,7 @@ int full_panel_init(struct force_update_flag *force_update)
 		if (res < OK)
 			LOGE("%s: ERROR %08X\n", __func__, res);
 
-		res = fts_system_reset(1);
+		res = fts_system_reset(info, 1);
 		if (res < OK) {
 			LOGE("%s: ERROR %08X\n", __func__, res | ERROR_INIT);
 			return res | ERROR_INIT;
@@ -1285,12 +1289,14 @@ int full_panel_init(struct force_update_flag *force_update)
 
 /**
   * Perform all the steps necessary to burn the FW into the IC
+  * @param info pointer to fts_ts_info which contains info about the device and
+  * its hw setup
   * @param force_update , flags  that will  force the flash procedure for each
   * sections and executed regardless the additional info, otherwise the FW in
   * the file will be burnt only if it is newer than the one running in the IC
   * @return OK if success or an error code which specify the type of error
   */
-int flash_update(struct force_update_flag *force_update)
+int flash_update(struct fts_ts_info *info, struct force_update_flag *force_update)
 {
 	int res;
 	int i = 0;
@@ -1313,7 +1319,7 @@ int flash_update(struct force_update_flag *force_update)
 		LOGE("%s: ERROR reading file %08X\n", __func__, res);
 		goto goto_end;
 	}
-	res = fts_system_reset(1);
+	res = fts_system_reset(info, 1);
 	if (res < OK) {
 		LOGE("%s: Cannot read Controller Ready..No FW or Connection "
 			"issue.. ERROR %08X\n",
@@ -1321,13 +1327,13 @@ int flash_update(struct force_update_flag *force_update)
 		force_update->code_update = 1;
 	}
 
-	res = flash_burn(fw, force_update);
+	res = flash_burn(info, fw, force_update);
 	if (res < OK) {
 		LOGE("%s: ERROR flash update %08X\n", __func__, res);
 		goto goto_end;
 	}
 
-	res = full_panel_init(force_update);
+	res = full_panel_init(info, force_update);
 	if (res < OK) {
 		LOGE("%s: ERROR auto tune %08X\n", __func__, res);
 		res = OK;

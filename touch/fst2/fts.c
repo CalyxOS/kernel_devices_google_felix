@@ -554,6 +554,75 @@ static void fts_leave_pointer_event_handler(struct fts_ts_info *info, unsigned
 #endif
 }
 
+/**
+  * Perform a system reset of the IC.
+  * If the reset pin is associated to a gpio, the function execute an hw reset
+  * (toggling of reset pin) otherwise send an hw command to the IC
+  * @param info pointer to fts_ts_info which contains info about the device and
+  * its hw setup
+  * @param poll_event varaiable to enable polling for controller ready event
+  * @return OK if success or an error code which specify the type of error
+  */
+int fts_system_reset(struct fts_ts_info *info, int poll_event)
+{
+	int res = 0;
+	u8 data = SYSTEM_RESET_VAL;
+	int event_to_search = EVT_ID_CONTROLLER_READY;
+	u8 read_data[8] = { 0x00 };
+	int add = 0x001C;
+	uint8_t int_data = 0x01;
+
+	if (info->board->reset_gpio == GPIO_NOT_DEFINED) {
+		res = fts_write_u8ux(FTS_CMD_HW_REG_W, HW_ADDR_SIZE, SYS_RST_ADDR,
+			&data, 1);
+		if (res < OK) {
+			LOGE("%s: ERROR %08X\n", __func__, res);
+			return res;
+		}
+	} else {
+		gpio_set_value(info->board->reset_gpio, 0);
+		msleep(20);
+		gpio_set_value(info->board->reset_gpio, 1);
+		res = OK;
+	}
+
+	if (poll_event) {
+		res = poll_for_event(&event_to_search, 1, read_data,
+			TIMEOUT_GENERAL);
+		if (res < OK)
+			LOGE("%s: ERROR %08X\n", __func__, res);
+	} else
+		msleep(100);
+
+#ifdef FTS_GPIO6_UNUSED
+	res = fts_write_read_u8ux(FTS_CMD_HW_REG_R, HW_ADDR_SIZE,
+				  FLASH_CTRL_ADDR, &data, 1, DUMMY_BYTE);
+	if (res < OK) {
+		LOGE("%s: ERROR %08X\n", __func__, res);
+		return res;
+	}
+	data |= 0x80;
+	res = fts_write_u8ux(FTS_CMD_HW_REG_W, HW_ADDR_SIZE,
+			     FLASH_CTRL_ADDR, &data, 1);
+	if (res < OK) {
+		LOGE("%s: ERROR %08X\n", __func__, res);
+		return res;
+	}
+#endif
+
+	res = fts_write_fw_reg(add, &int_data, 1);
+	if (res < OK)
+		LOGE("%s: ERROR %08X\n", __func__, res);
+
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	if (info->gti)
+		goog_notify_fw_status_changed(info->gti, GTI_FW_STATUS_RESET,
+			NULL);
+#endif
+
+	return res;
+}
+
 #define fts_motion_pointer_event_handler fts_enter_pointer_event_handler
 /*!< remap the motion event handler to the same function which handle the enter
  * event */
@@ -578,7 +647,7 @@ static void fts_error_event_handler(struct fts_ts_info *info, unsigned
 		/* before reset clear all slots */
 		release_all_touches(info);
 		fts_set_interrupt(info, false);
-		error = fts_system_reset(1);
+		error = fts_system_reset(info, 1);
 		error |= fts_mode_handler(info, 0);
 		error |= fts_set_interrupt(info, true);
 		if (error < OK)
@@ -790,11 +859,19 @@ static void fts_status_event_handler(struct fts_ts_info *info, u8 *event)
 	case EVT_TYPE_STATUS_PALM_TOUCH:
 		switch (event[2]) {
 		case 0x01:
-			log_status_event2(1, "entry", event);
+			log_status_event2(0, "entry", event);
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+			goog_notify_fw_status_changed(info->gti, GTI_FW_STATUS_PALM_ENTER,
+				NULL);
+#endif
 			break;
 
 		case 0x02:
-			log_status_event2(1, "exit", event);
+			log_status_event2(0, "exit", event);
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+			goog_notify_fw_status_changed(info->gti, GTI_FW_STATUS_PALM_EXIT,
+				NULL);
+#endif
 			break;
 
 		default:
@@ -807,11 +884,19 @@ static void fts_status_event_handler(struct fts_ts_info *info, u8 *event)
 		grid_touch_status = (event[2] & 0xF0) >> 4;
 		switch (grid_touch_status) {
 		case 0x01:
-			log_status_event2(1, "entry", event);
+			log_status_event2(0, "entry", event);
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+			goog_notify_fw_status_changed(info->gti, GTI_FW_STATUS_GRIP_ENTER,
+				NULL);
+#endif
 			break;
 
 		case 0x02:
-			log_status_event2(1, "exit", event);
+			log_status_event2(0, "exit", event);
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+			goog_notify_fw_status_changed(info->gti, GTI_FW_STATUS_GRIP_EXIT,
+				NULL);
+#endif
 			break;
 
 		default:
@@ -1006,6 +1091,7 @@ static int gti_default_handler(void *private_data, enum gti_cmd_type cmd_type,
 
 	case GTI_CMD_NOTIFY_DISPLAY_STATE:
 	case GTI_CMD_NOTIFY_DISPLAY_VREFRESH:
+	case GTI_CMD_SET_SCREEN_PROTECTOR_MODE:
 		res = -EOPNOTSUPP;
 		break;
 
@@ -1300,7 +1386,7 @@ static void fts_resume(struct fts_ts_info *info)
 
 	pm_stay_awake(info->dev);
 	fts_pinctrl_setup(info, true);
-	fts_system_reset(1);
+	fts_system_reset(info, 1);
 	info->resume_bit = 1;
 	fts_mode_handler(info, 0);
 	fts_set_interrupt(info, true);
@@ -1376,14 +1462,14 @@ static int fts_chip_init(struct fts_ts_info *info)
 	for (; i < FLASH_MAX_SECTIONS; i++)
 		force_burn.section_update[i] = 0;
 	LOGI("%s: [1]: FW UPDATE..\n", __func__);
-	res = flash_update(&force_burn);
+	res = flash_update(info, &force_burn);
 	if (res != OK) {
 		LOGE("%s: [1]: FW UPDATE FAILED.. res = %d\n", __func__, res);
 		return res;
 	}
 	if (force_burn.panel_init) {
 		LOGI("%s: [2]: MP TEST..\n", __func__);
-		res = fts_production_test_main(LIMITS_FILE, 0, &tests, 0);
+		res = fts_production_test_main(info, LIMITS_FILE, 0, &tests, 0);
 		if (res != OK)
 			LOGE("%s: [2]: MP TEST FAILED.. res = %d\n",
 				__func__, res);
@@ -1430,7 +1516,6 @@ static int fts_init(struct fts_ts_info *info)
 	u16 chip_id = 0;
 
 	open_channel(info->client);
-	set_reset_gpio(info->board->reset_gpio);
 	init_test_to_do();
 #ifndef I2C_INTERFACE
 #ifdef SPI4_WIRE
@@ -1456,7 +1541,7 @@ static int fts_init(struct fts_ts_info *info)
 			__func__, CHIP_ID, chip_id);
 		return ERROR_WRONG_CHIP_ID;
 	}
-	res = fts_system_reset(1);
+	res = fts_system_reset(info, 1);
 	if (res < OK) {
 		if (res == ERROR_BUS_W) {
 			LOGE("%s: Bus Connection issue\n", __func__);
