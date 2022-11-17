@@ -4278,11 +4278,11 @@ static void fts_fw_update_auto(struct work_struct *work)
 	struct fts_ts_info *info = container_of(fwu_work, struct fts_ts_info,
 						fwu_work);
 #if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
-	goog_pm_wake_lock(info->gti, GTI_PM_WAKELOCK_TYPE_FW_UPDATE, true);
+	goog_pm_wake_lock(info->gti, GTI_PM_WAKELOCK_TYPE_FW_UPDATE, false);
 #endif
 	fts_fw_update(info);
 #if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
-	goog_pm_wake_lock(info->gti, GTI_PM_WAKELOCK_TYPE_FW_UPDATE, false);
+	goog_pm_wake_unlock(info->gti, GTI_PM_WAKELOCK_TYPE_FW_UPDATE);
 #endif
 }
 
