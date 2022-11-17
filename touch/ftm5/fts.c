@@ -220,6 +220,9 @@ static ssize_t fwupdate_store(struct device *dev,
 		dev_info(dev, "%s: file = %s, force = %d, keep_cx = %d\n", __func__,
 			path, force, keep_cx);
 
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+		goog_pm_wake_lock(info->gti, GTI_PM_WAKELOCK_TYPE_FW_UPDATE, false);
+#endif
 		if (info->sensor_sleep)
 			ret = ERROR_BUS_WR;
 		else {
@@ -242,6 +245,10 @@ static ssize_t fwupdate_store(struct device *dev,
 		}
 
 		info->fwupdate_stat = ret;
+
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+		goog_pm_wake_unlock(info->gti, GTI_PM_WAKELOCK_TYPE_FW_UPDATE);
+#endif
 
 		if (ret == ERROR_BUS_WR)
 			dev_err(dev, "%s: bus is not accessible. ERROR %08X\n",
