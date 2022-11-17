@@ -3752,20 +3752,19 @@ static irqreturn_t fts_interrupt_handler(int irq, void *handle)
 		for (count = 0; count < events_remaining + 1; count++) {
 			evt_data = &data[count * FIFO_EVENT_SIZE];
 
-			switch (evt_data[0]) {
+			switch (GET_EVENT_TYPE(evt_data[0])) {
 			case EVT_ID_CONTROLLER_READY:
 			case EVT_ID_ERROR:
 				eventId = evt_data[0] >> 4;
 				info->event_dispatch_table[eventId](info, evt_data);
 
-				has_pointer_event = false;
 				event_start_idx = count;
 				break;
 
 			case EVT_ID_ENTER_POINT:
 			case EVT_ID_MOTION_POINT:
 			case EVT_ID_LEAVE_POINT:
-				has_pointer_event = true;
+				has_pointer_event |= true;
 				break;
 
 			default:
