@@ -746,6 +746,7 @@ struct fts_ts_info {
 	int fwupdate_stat;	/* Result of a fw update */
 	int reflash_fw;	/* Attempt to reflash fw */
 	int autotune_stat;	/* Attempt to autotune */
+	bool fw_no_response;
 
 	struct fts_disp_extinfo extinfo;	/* Display extended info */
 

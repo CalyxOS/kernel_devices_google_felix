@@ -3717,9 +3717,9 @@ static irqreturn_t fts_interrupt_handler(int irq, void *handle)
 	bool has_pointer_event = false;
 	int event_start_idx = -1;
 
-#if IS_ENABLED(CONFIG_GTI_PM)
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
 	if (goog_pm_wake_lock(info->gti, GTI_PM_WAKELOCK_TYPE_IRQ, true) < 0) {
-		dev_warn("%s: Touch device already suspended.\n", __func__);
+		dev_warn(info->dev, "%s: Touch device already suspended.\n", __func__);
 		return IRQ_HANDLED;
 	}
 #endif
@@ -4070,7 +4070,7 @@ static int fts_fw_update(struct fts_ts_info *info)
 	/* Not decided yet.
 	 * Still need the firmware CX AFE version to decide the final value.
 	 */
-	int keep_cx = CX_CHECK_AFE_VER;
+	int keep_cx = FTS_CX_DEFAULT_MODE;
 #else
 	int keep_cx = CX_ERASE;
 #endif
@@ -4155,6 +4155,7 @@ static int fts_fw_update(struct fts_ts_info *info)
 			}
 		}
 		info->reflash_fw = 0;
+		info->fw_no_response = false;
 	}
 
 	dev_info(info->dev, "%s: Verifying if CX CRC Error...\n", __func__);
@@ -4276,8 +4277,13 @@ static void fts_fw_update_auto(struct work_struct *work)
 						     work);
 	struct fts_ts_info *info = container_of(fwu_work, struct fts_ts_info,
 						fwu_work);
-
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	goog_pm_wake_lock(info->gti, GTI_PM_WAKELOCK_TYPE_FW_UPDATE, true);
+#endif
 	fts_fw_update(info);
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	goog_pm_wake_lock(info->gti, GTI_PM_WAKELOCK_TYPE_FW_UPDATE, false);
+#endif
 }
 
 /**
@@ -4436,6 +4442,7 @@ static int fts_init(struct fts_ts_info *info)
 	}
 
 	if (error == (ERROR_TIMEOUT | ERROR_SYSTEM_RESET_FAIL)) {
+		info->fw_no_response = true;
 		dev_err(info->dev, "Setting default Sys INFO!\n");
 		error = defaultSysInfo(info, 0);
 	} else {

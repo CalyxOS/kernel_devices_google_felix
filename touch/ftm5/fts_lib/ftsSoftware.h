@@ -46,13 +46,18 @@ typedef enum {
 } AddrSize;
 
 /**
- * Enumerator which define the keep_cx meaning
+ * Enumerator which define the keep_cx meaning.
+ * CX_ERASE - For golden calibration touchscreen.
+ * CX_KEEP - Keep cx while updating firmware. CX can be update by FPI.
+ * CX_CHECK_AFE_VER - For partial FPI. (Update ms_cx but keep ss_cx.)
  */
 enum {
-	CX_ERASE,
+	CX_ERASE = 0,
 	CX_KEEP,
 	CX_CHECK_AFE_VER
 };
+
+#define FTS_CX_DEFAULT_MODE CX_KEEP
 
 /********************  NEW API  *********************/
 
