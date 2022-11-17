@@ -2509,12 +2509,11 @@ static int get_mutual_sensor_data(void *private_data, struct gti_sensor_data_cmd
 	int max_x = getForceLen(info);
 	int max_y = getSenseLen(info);
 	int result;
-	MutualSenseFrame ms_frame = { 0 };
 	uint32_t frame_index = 0, x, y;
 	uint32_t x_val, y_val;
 	int16_t heatmap_value;
 
-	cmd->size = max_x * max_y * sizeof(int16_t);
+	cmd->size = max_x * max_y * BYTES_PER_NODE;
 
 	if (!info->mutual_data) {
 		info->mutual_data = devm_kzalloc(info->dev, cmd->size, GFP_KERNEL);
@@ -2526,10 +2525,24 @@ static int get_mutual_sensor_data(void *private_data, struct gti_sensor_data_cmd
 
 	cmd->buffer = (u8 *)info->mutual_data;
 
-	result = getMSFrame3(info, MS_STRENGTH, &ms_frame);
-	if (result <= 0) {
-		dev_err(info->dev, "getMSFrame3 failed with result=0x%08X.\n", result);
-		kfree(ms_frame.node_data);
+	if (!info->data_buffer || (info->data_buffer_size < cmd->size)) {
+		devm_kfree(info->dev, info->data_buffer);
+		info->data_buffer = NULL;
+		info->data_buffer_size = 0;
+		info->data_buffer = devm_kzalloc(info->dev, cmd->size, GFP_KERNEL);
+		if (!info->data_buffer) {
+			dev_err(info->dev, "Failed to allocate data_buffer.\n");
+			return -ENOMEM;
+		}
+		info->data_buffer_size = cmd->size;
+	}
+
+	result = fts_writeReadU8UX(info, FTS_CMD_FRAMEBUFFER_R, BITS_16,
+			info->systemInfo.u16_msTchStrenAddr,
+			(u8 *)info->data_buffer,
+			cmd->size, DUMMY_FRAMEBUFFER);
+	if (result < 0) {
+		dev_err(info->dev, "get mutual data failed with result=0x%08X.\n", result);
 		return result;
 	}
 
@@ -2548,15 +2561,13 @@ static int get_mutual_sensor_data(void *private_data, struct gti_sensor_data_cmd
 				y_val = y;
 
 			if (info->board->tx_rx_dir_swap)
-				heatmap_value = ms_frame.node_data[y_val * max_x + x_val];
+				heatmap_value = info->data_buffer[y_val * max_x + x_val];
 			else
-				heatmap_value = ms_frame.node_data[x_val * max_y + y_val];
+				heatmap_value = info->data_buffer[x_val * max_y + y_val];
 
 			info->mutual_data[frame_index++] = heatmap_value;
 		}
 	}
-
-	kfree(ms_frame.node_data);
 
 	return 0;
 }
@@ -2564,14 +2575,13 @@ static int get_mutual_sensor_data(void *private_data, struct gti_sensor_data_cmd
 static int get_self_sensor_data(void *private_data, struct gti_sensor_data_cmd *cmd)
 {
 	struct fts_ts_info *info = private_data;
-	SelfSenseFrame ss_frame = { 0 };
 	int i;
 	int result;
 	int16_t *tx_src, *rx_src, *tx_dst, *rx_dst;
 	int tx_size = getForceLen(info);
 	int rx_size = getSenseLen(info);
 
-	cmd->size = (tx_size + rx_size) * sizeof(int16_t);
+	cmd->size = (tx_size + rx_size) * BYTES_PER_NODE;
 
 	if (!info->self_data) {
 		info->self_data = devm_kzalloc(info->dev, cmd->size, GFP_KERNEL);
@@ -2583,16 +2593,38 @@ static int get_self_sensor_data(void *private_data, struct gti_sensor_data_cmd *
 
 	cmd->buffer = (u8 *)info->self_data;
 
-	result = getSSFrame3(info, SS_STRENGTH, &ss_frame);
-	if (result <= 0) {
-		dev_err(info->dev, "getSSFrame3 failed with result=0x%08X.\n", result);
-		kfree(ss_frame.force_data);
-		kfree(ss_frame.sense_data);
+	if (!info->data_buffer || (info->data_buffer_size < cmd->size)) {
+		devm_kfree(info->dev, info->data_buffer);
+		info->data_buffer = NULL;
+		info->data_buffer_size = 0;
+		info->data_buffer = devm_kzalloc(info->dev, cmd->size, GFP_KERNEL);
+		if (!info->data_buffer) {
+			dev_err(info->dev, "Failed to allocate data_buffer.\n");
+			return -ENOMEM;
+		}
+		info->data_buffer_size = cmd->size;
+	}
+
+	result = fts_writeReadU8UX(info, FTS_CMD_FRAMEBUFFER_R, BITS_16,
+			info->systemInfo.u16_ssHvrTxStrenAddr,
+			(u8 *)info->data_buffer,
+			tx_size * BYTES_PER_NODE, DUMMY_FRAMEBUFFER);
+	if (result < 0) {
+		dev_err(info->dev, "get tx data failed with result=0x%08X.\n", result);
 		return result;
 	}
 
-	tx_src = ss_frame.force_data;
-	rx_src = ss_frame.sense_data;
+	result = fts_writeReadU8UX(info, FTS_CMD_FRAMEBUFFER_R, BITS_16,
+			info->systemInfo.u16_ssHvrRxStrenAddr,
+			(u8 *)(info->data_buffer + tx_size),
+			rx_size * BYTES_PER_NODE, DUMMY_FRAMEBUFFER);
+	if (result < 0) {
+		dev_err(info->dev, "get rx data failed with result=0x%08X.\n", result);
+		return result;
+	}
+
+	tx_src = info->data_buffer;
+	rx_src = info->data_buffer + tx_size;
 
 	/* tx, rx data order is fixed in TouchOffloadData1d */
 	tx_dst = info->self_data;
@@ -2613,9 +2645,6 @@ static int get_self_sensor_data(void *private_data, struct gti_sensor_data_cmd *
 	} else {
 		memcpy(rx_dst, rx_src, sizeof(int16_t) * rx_size);
 	}
-
-	kfree(ss_frame.force_data);
-	kfree(ss_frame.sense_data);
 
 	return 0;
 }

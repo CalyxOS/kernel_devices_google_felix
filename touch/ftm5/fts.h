@@ -832,6 +832,8 @@ struct fts_ts_info {
 
 	int16_t *mutual_data;
 	int16_t *self_data;
+	int16_t *data_buffer;
+	int data_buffer_size;
 
 	/* buffer used to store the message info received */
 	char buf_chunk[CHUNK_PROC];
