@@ -808,21 +808,6 @@ int readSysInfo(struct fts_ts_info *info, int request)
 
 	memcpy(&info->systemInfo, &systemInfo, sizeof(systemInfo));
 
-#if IS_ENABLED(CONFIG_TOUCHSCREEN_HEATMAP)
-	if (info->board->tx_rx_dir_swap) {
-		info->v4l2.width = info->systemInfo.u8_scrRxLen;
-		info->v4l2.height = info->systemInfo.u8_scrTxLen;
-	} else {
-		info->v4l2.width = info->systemInfo.u8_scrTxLen;
-		info->v4l2.height = info->systemInfo.u8_scrRxLen;
-	}
-#endif
-
-#if IS_ENABLED(CONFIG_TOUCHSCREEN_OFFLOAD)
-	info->offload.caps.tx_size = info->systemInfo.u8_scrTxLen;
-	info->offload.caps.rx_size = info->systemInfo.u8_scrRxLen;
-#endif
-
 	dev_info(info->dev, "Parsed %d bytes!\n", index);
 
 

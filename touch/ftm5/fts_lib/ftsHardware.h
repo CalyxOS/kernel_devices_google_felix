@@ -197,6 +197,8 @@
 					 * if FTI */
 #define FTS_CMD_CONFIG_W	0xA8	/* /< command to write the config memory
 					 * if FTI */
+#define FTS_CMD_CUSTOM_R	0xC0	/* Read custom command */
+#define FTS_CMD_CUSTOM_W	0xC0	/* Write custom command */
 #else
 #define FTS_CMD_HW_REG_R	0xFB	/* /< command to read an hw register if
 					 * FTI */
@@ -211,6 +213,8 @@
 					 * if FTI */
 #define FTS_CMD_CONFIG_W	0xA8	/* /< command to write the config memory
 					 * if FTI */
+#define FTS_CMD_CUSTOM_R	0xC1	/* Read custom command */
+#define FTS_CMD_CUSTOM_W	0xC0	/* Write custom command */
 #endif
 
 /* DUMMY BYTES DATA */

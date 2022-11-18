@@ -28,9 +28,6 @@
 #define I2C_WAIT_BEFORE_RETRY	2	/* /< wait in ms before retry an i2c
 					 * transaction */
 
-#define spi_len_dma_align(len, sz) ((len) >= 64) ? ALIGN(len, sz) : (len)
-#define spi_bits_dma_align(len) ((len) >= 64) ? (32) : (8)
-
 #ifdef I2C_INTERFACE
 #include <linux/i2c.h>
 #include <linux/i2c-dev.h>
@@ -38,6 +35,8 @@
 #include <linux/spi/spi.h>
 #endif
 
+#define spi_len_dma_align(len, sz) ((len) >= 64) ? ALIGN(len, sz) : (len)
+#define spi_bits_dma_align(len) ((len) >= 64) ? (32) : (8)
 
 int openChannel(void *clt);
 
