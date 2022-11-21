@@ -13,10 +13,10 @@
 	maxim,rc-soc = <20>;
 	maxim,rc-temp = <50>;
 
-//	maxim,filtercfg-temp = <100>;
-//	maxim,filtercfg-temp-hysteresis = <30>;
-//	maxim,filtercfg-default = /bits/ 16 <0xc613>;
-//	maxim,filtercfg-adjust = /bits/ 16 <0xc617>;
+	maxim,filtercfg-temp = <100>;
+	maxim,filtercfg-temp-hysteresis = <30>;
+	maxim,filtercfg-default = /bits/ 16 <0xc624>;
+	maxim,filtercfg-adjust = /bits/ 16 <0xc617>;
 
 	maxim,fg-data {
 		#include "gs201-felix-battery-data.dtsi"
@@ -104,5 +104,10 @@
 
 		maxim,dual-battery = "maxfg_flip";
 		maxim,read-batt-sn = <1>;
+
+		maxim,filtercfg-temp = <100>;
+		maxim,filtercfg-temp-hysteresis = <30>;
+		maxim,filtercfg-default = /bits/ 16 <0xeb5>;
+		maxim,filtercfg-adjust = /bits/ 16 <0xea7>;
 	};
 };
