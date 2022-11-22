@@ -342,16 +342,16 @@ int fts_write_u8ux(u8 cmd, addr_size_t addr_size, u64 address, u8 *data,
 	int to_write = 0, i = 0;
 
 	if (cmd == FTS_CMD_NONE) {
-		final_cmd = (u8 *)kmalloc(sizeof(u8) *
-			(addr_size + WRITE_CHUNK), GFP_KERNEL);
+		final_cmd = kmalloc(ALIGN(sizeof(u8) *
+			(addr_size + WRITE_CHUNK), 4), GFP_KERNEL);
 		if (final_cmd == NULL) {
 			LOGE("%s: Error allocating memory\n", __func__);
 			return ERROR_BUS_W;
 		}
 		offset = 0;
 	} else {
-		final_cmd = (u8 *)kmalloc(sizeof(u8) *
-			(1 + addr_size + WRITE_CHUNK), GFP_KERNEL);
+		final_cmd = kmalloc(ALIGN(sizeof(u8) *
+			(1 + addr_size + WRITE_CHUNK), 4), GFP_KERNEL);
 		if (final_cmd == NULL) {
 			LOGE("%s: Error allocating memory\n", __func__);
 			return ERROR_BUS_W;
@@ -429,15 +429,15 @@ int fts_write_read_u8ux(u8 cmd, addr_size_t addr_size, u64 address,
 	int remaining = byte_to_read;
 	int to_read = 0, i = 0;
 
-	buff =  (u8 *)kmalloc(sizeof(u8) * (READ_CHUNK + 1), GFP_KERNEL);
+	buff = kmalloc(ALIGN(sizeof(u8) * (READ_CHUNK + 1), 4), GFP_KERNEL);
 	if (buff == NULL) {
 		LOGE("%s: Error allocating memory\n", __func__);
 		return ERROR_BUS_WR;
 	}
 
 	if (cmd == FTS_CMD_NONE) {
-		final_cmd = (u8 *)kmalloc(sizeof(u8) *
-					(addr_size + WRITE_CHUNK), GFP_KERNEL);
+		final_cmd = kmalloc(ALIGN(sizeof(u8) *
+			(addr_size + WRITE_CHUNK), 4), GFP_KERNEL);
 		if (final_cmd == NULL) {
 			LOGE("%s: Error allocating memory\n", __func__);
 			kfree(buff);
@@ -445,8 +445,8 @@ int fts_write_read_u8ux(u8 cmd, addr_size_t addr_size, u64 address,
 		}
 		offset = 0;
 	} else {
-		final_cmd = (u8 *)kmalloc(sizeof(u8) *
-			(1 + addr_size + WRITE_CHUNK), GFP_KERNEL);
+		final_cmd = kmalloc(ALIGN(sizeof(u8) *
+			(1 + addr_size + WRITE_CHUNK), 4), GFP_KERNEL);
 		if (final_cmd == NULL) {
 			LOGE("%s: Error allocating memory\n", __func__);
 			kfree(buff);
