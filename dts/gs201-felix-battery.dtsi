@@ -47,9 +47,9 @@
 
 				google,ttf-temp-idx= <2>;
 				google,ttf-adapter = <3000>;
-				google,ttf-soc-table =  <69 77 90 94  96  98  99  100>;
-				google,ttf-elap-table = <41 62 78 115 170 230 308 152>;
-				google,ttf-tier-table = <0 61 77>;
+				google,ttf-soc-table =  <49 71 88 91  93  100>;
+				google,ttf-elap-table = <41 55 79 106 147 178>;
+				google,ttf-tier-table = <0 50 74>;
 			};
 
 			google_dual_batt_gauge: google,dual_batt_gauge {
