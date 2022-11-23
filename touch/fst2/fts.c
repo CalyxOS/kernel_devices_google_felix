@@ -172,6 +172,8 @@ int fts_set_interrupt(struct fts_ts_info *info, bool enable)
 	mutex_unlock(&info->fts_int_mutex);
 	return OK;
 }
+
+#if !IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
 /**
   * Release all the touches in the linux input subsystem
   * @param info pointer to fts_ts_info which contains info about the device and
@@ -181,30 +183,9 @@ void release_all_touches(struct fts_ts_info *info)
 {
 	unsigned int type = MT_TOOL_FINGER;
 	int i;
-#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
-	goog_input_lock(info->gti);
-	goog_input_set_timestamp(info->gti, info->input_dev, KTIME_RELEASE_ALL);
-	for (i = 0; i < TOUCH_ID_MAX + PEN_ID_MAX ; i++) {
-		type = i < TOUCH_ID_MAX ? MT_TOOL_FINGER : MT_TOOL_PEN;
 
-		if (type == MT_TOOL_FINGER) {
-			goog_input_mt_slot(info->gti, info->input_dev, i);
-			goog_input_report_abs(info->gti, info->input_dev, ABS_MT_PRESSURE, 0);
-			goog_input_mt_report_slot_state(info->gti, info->input_dev, type, 0);
-			goog_input_report_abs(info->gti, info->input_dev, ABS_MT_TRACKING_ID, -1);
-		} else {
-			input_mt_slot(info->input_dev, i);
-			input_report_abs(info->input_dev, ABS_MT_PRESSURE, 0);
-			input_mt_report_slot_state(info->input_dev, type, 0);
-			input_report_abs(info->input_dev, ABS_MT_TRACKING_ID, -1);
-		}
-	}
-	goog_input_report_key(info->gti, info->input_dev, BTN_TOUCH, 0);
-	goog_input_sync(info->gti, info->input_dev);
-
-	goog_input_unlock(info->gti);
-#else
 	mutex_lock(&info->input_report_mutex);
+
 	for (i = 0; i < TOUCH_ID_MAX + PEN_ID_MAX ; i++) {
 		type = i < TOUCH_ID_MAX ? MT_TOOL_FINGER : MT_TOOL_PEN;
 		input_mt_slot(info->input_dev, i);
@@ -214,11 +195,12 @@ void release_all_touches(struct fts_ts_info *info)
 	}
 	input_report_key(info->input_dev, BTN_TOUCH, 0);
 	input_sync(info->input_dev);
+
 	mutex_unlock(&info->input_report_mutex);
-#endif
+
 	info->touch_id = 0;
 }
-
+#endif
 
 /**
   * The function handle the switching of the mode in the IC enabling/disabling
@@ -645,7 +627,9 @@ static void fts_error_event_handler(struct fts_ts_info *info, unsigned
 	case EVT_TYPE_ERROR_WATCHDOG:
 	{
 		/* before reset clear all slots */
+#if !IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
 		release_all_touches(info);
+#endif
 		fts_set_interrupt(info, false);
 		error = fts_system_reset(info, 1);
 		error |= fts_mode_handler(info, 0);
@@ -671,7 +655,9 @@ static void fts_controller_ready_event_handler(struct fts_ts_info *info,
 	LOGI("%s: controller event %02X %02X %02X %02X %02X %02X %02X %02X\n",
 		 __func__, event[0], event[1], event[2], event[3], event[4],
 		 event[5], event[6], event[7]);
+#if !IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
 	release_all_touches(info);
+#endif
 	set_system_reseted_up(1);
 	set_system_reseted_down(1);
 	error = fts_mode_handler(info, 0);
@@ -1407,7 +1393,9 @@ static void fts_suspend(struct fts_ts_info *info)
 	info->resume_bit = 0;
 	fts_mode_handler(info, 0);
 	fts_pinctrl_setup(info, false);
+#if !IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
 	release_all_touches(info);
+#endif
 	pm_relax(info->dev);
 }
 #endif
