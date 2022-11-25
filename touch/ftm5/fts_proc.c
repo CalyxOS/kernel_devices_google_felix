@@ -2845,7 +2845,7 @@ END_DIAGNOSTIC:
 
 		case CMD_FORCE_TOUCH_ACTIVE:
 			/* Single parameter indicates force touch state */
-			if (numberParam == 2) {
+			if (numberParam == 2 || numberParam == 3) {
 				if (cmd[1] > 1) {
 					dev_err(info->dev, "Parameter should be 1 or 0\n");
 					res = ERROR_OP_NOT_ALLOW;
