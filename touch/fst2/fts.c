@@ -1308,22 +1308,77 @@ int goog_get_ss_frame(struct fts_ts_info *info, ss_frame_type_t type)
 	return res;
 }
 
+static int get_fw_version(void *private_data, struct gti_fw_version_cmd *cmd)
+{
+	int cmd_buf_size = sizeof(cmd->buffer);
+	ssize_t buf_idx = 0;
+
+	LOGI("%s\n", __func__);
+	buf_idx += scnprintf(cmd->buffer + buf_idx, cmd_buf_size - buf_idx,
+		"\nREG Revision: 0x%04X\n", system_info.u16_reg_ver);
+	buf_idx += scnprintf(cmd->buffer + buf_idx, cmd_buf_size - buf_idx,
+		"FW Version: 0x%04X\n", system_info.u16_fw_ver);
+	buf_idx += scnprintf(cmd->buffer + buf_idx, cmd_buf_size - buf_idx,
+		"SVN Revision: 0x%04X\n", system_info.u16_svn_rev);
+	buf_idx += scnprintf(cmd->buffer + buf_idx, cmd_buf_size - buf_idx,
+		"Config Afe Ver: 0x%04X\n", system_info.u8_cfg_afe_ver);
+	return 0;
+}
+
 static int get_mutual_sensor_data(void *private_data, struct gti_sensor_data_cmd *cmd)
 {
 	struct fts_ts_info *info = private_data;
-	int res;
+	int res = 0;
 	uint32_t frame_index = 0;
 	uint16_t x, y;
 	int tx_size = system_info.u8_scr_tx_len;
 	int rx_size = system_info.u8_scr_rx_len;
+	int cmd_type = 0;
+	const int max_delay_cnt = 10;
+	int delay_cnt = 0;
 
-	if (!(cmd->type & TOUCH_SENSOR_DATA_READ_METHOD_INT))
+	cmd->buffer = NULL;
+	cmd->size = 0;
+
+	if (cmd->type & TOUCH_DATA_TYPE_STRENGTH)
+		cmd_type = MS_STRENGTH;
+	else if (cmd->type & TOUCH_DATA_TYPE_BASELINE)
+		cmd_type = MS_BASELINE;
+	else if (cmd->type & TOUCH_DATA_TYPE_RAW)
+		cmd_type = MS_RAW;
+	else {
+		LOGE("%s: Invalid command type(0x%X).\n", __func__, cmd->type);
 		return -EINVAL;
+	}
 
-	cmd->buffer = (u8 *)info->mutual_data;
-	cmd->size = info->mutual_data_size;
+	if (cmd->type & TOUCH_SENSOR_DATA_READ_METHOD_INT) {
+		while (mutex_is_locked(&info->gti->manual_sensing_lock) &&
+			delay_cnt++ >= max_delay_cnt) {
+			// The duration of geting ms frame is about ~3ms.
+			udelay(300);
+		}
+		if (delay_cnt)
+			LOGW("%s: manual_sensing_lock, (delay_cnt = %d).\n", __func__, delay_cnt);
+	} else if (cmd->type & TOUCH_SENSOR_DATA_READ_METHOD_COMMAND) {
+		LOGI("%s: cmd_type = %d.\n", __func__, cmd_type);
+		if (mutex_is_locked(&info->gti->input_process_lock)) {
+			if ((cmd->type & TOUCH_DATA_TYPE_STRENGTH) &&
+				info->pre_ms_frame_type == MS_STRENGTH) {
+				cmd->buffer = (u8 *)info->mutual_data;
+				cmd->size = info->mutual_data_size;
+				return 0;
+			} else {
+				LOGE("%s: Interrupt process is detected during manual command.\n",
+					__func__);
+				return -EBUSY;
+			}
+		}
+	} else {
+		LOGE("%s: Invalid command type(0x%X).\n", __func__, cmd->type);
+		return -EINVAL;
+	}
 
-	res = goog_get_ms_frame(info, MS_STRENGTH);
+	res = goog_get_ms_frame(info, cmd_type);
 	if (res < 0) {
 		LOGE("%s: failed with res=0x%08X.\n", __func__, res);
 		return res;
@@ -1336,26 +1391,69 @@ static int get_mutual_sensor_data(void *private_data, struct gti_sensor_data_cmd
 				info->fw_ms_data[y * tx_size + x];
 		}
 	}
+	info->pre_ms_frame_type = cmd_type;
+	cmd->buffer = (u8 *)info->mutual_data;
+	cmd->size = info->mutual_data_size;
 	return res;
 }
 
 static int get_self_sensor_data(void *private_data, struct gti_sensor_data_cmd *cmd)
 {
 	struct fts_ts_info *info = private_data;
-	int res;
-
-	if (!(cmd->type & TOUCH_SENSOR_DATA_READ_METHOD_INT))
-		return -EINVAL;
+	int res = 0;
+	int cmd_type = 0;
+	const int max_delay_cnt = 10;
+	int delay_cnt = 0;
 
 	cmd->buffer = (u8 *)info->self_data;
 	cmd->size = info->self_data_size;
 
-	res = goog_get_ss_frame(info, SS_STRENGTH);
+	if (cmd->type & TOUCH_DATA_TYPE_STRENGTH)
+		cmd_type = SS_STRENGTH;
+	else if (cmd->type & TOUCH_DATA_TYPE_BASELINE)
+		cmd_type = SS_BASELINE;
+	else if (cmd->type & TOUCH_DATA_TYPE_RAW)
+		cmd_type = SS_RAW;
+	else {
+		LOGE("%s: Invalid command type(0x%X).\n", __func__, cmd->type);
+		return -EINVAL;
+	}
+
+	if (cmd->type & TOUCH_SENSOR_DATA_READ_METHOD_INT) {
+		while (mutex_is_locked(&info->gti->manual_sensing_lock) &&
+			delay_cnt++ >= max_delay_cnt) {
+			// The duration of geting ss frame is about ~3ms.
+			udelay(300);
+		}
+		if (delay_cnt)
+			LOGW("%s: manual_sensing_lock, (delay_cnt = %d).\n", __func__, delay_cnt);
+	} else if (cmd->type & TOUCH_SENSOR_DATA_READ_METHOD_COMMAND) {
+		LOGI("%s: cmd_type = %d.\n", __func__, cmd_type);
+		if (mutex_is_locked(&info->gti->input_process_lock)) {
+			if (cmd->type & TOUCH_DATA_TYPE_STRENGTH &&
+				info->pre_ss_frame_type == SS_STRENGTH) {
+				cmd->buffer = (u8 *)info->self_data;
+				cmd->size = info->self_data_size;
+				return 0;
+			} else {
+				LOGE("%s: Interrupt process is detected during manual command.\n",
+					__func__);
+				return -EBUSY;
+			}
+		}
+	} else {
+		LOGE("%s: Invalid command type(0x%X).\n", __func__, cmd->type);
+		return -EINVAL;
+	}
+
+	res = goog_get_ss_frame(info, cmd_type);
 	if (res < 0) {
 		LOGE("%s: failed with res=0x%08X.\n", __func__, res);
 		return res;
 	}
-
+	info->pre_ss_frame_type = cmd_type;
+	cmd->buffer = (u8 *)info->self_data;
+	cmd->size = info->self_data_size;
 	return res;
 }
 #endif
@@ -1661,7 +1759,7 @@ static int fts_gpio_setup(int gpio, bool config, int dir, int state)
 	unsigned char buf[16];
 
 	if (config) {
-		snprintf(buf, 16, "fts_gpio_%u\n", gpio);
+		scnprintf(buf, 16, "fts_gpio_%u\n", gpio);
 
 		ret_val = gpio_request(gpio, buf);
 		if (ret_val) {
@@ -2009,7 +2107,7 @@ static int fts_probe(struct spi_device *client)
 	}
 	info->input_dev->dev.parent = &client->dev;
 	info->input_dev->name = FTS_TS_DRV_NAME;
-	snprintf(fts_ts_phys, sizeof(fts_ts_phys), "%s/input0",
+	scnprintf(fts_ts_phys, sizeof(fts_ts_phys), "%s/input0",
 		 info->input_dev->name);
 	info->input_dev->phys = fts_ts_phys;
 	info->input_dev->uniq = "fts";
@@ -2120,6 +2218,8 @@ static int fts_probe(struct spi_device *client)
 			__func__);
 		goto probe_error_exit_6;
 	}
+
+	options->get_fw_version = get_fw_version;
 	options->get_mutual_sensor_data = get_mutual_sensor_data;
 	options->get_self_sensor_data = get_self_sensor_data;
 
@@ -2130,6 +2230,8 @@ static int fts_probe(struct spi_device *client)
 		LOGE("%s: Failed to register gti pm", __func__);
 		goto probe_error_exit_7;
 	}
+	info->pre_ms_frame_type = MS_RAW;
+	info->pre_ss_frame_type = SS_RAW;
 #endif
 
 	LOGI("%s: Probe Finished!\n", __func__);

@@ -34,6 +34,9 @@
 #define LOGI(fmt, args...) \
 	pr_info(LOG_PREFIX fmt, ##args)
 
+#define LOGW(fmt, args...) \
+	pr_warn(LOG_PREFIX fmt, ##args)
+
 #define LOGE(fmt, args...) \
 	pr_err(LOG_PREFIX fmt, ##args)
 
@@ -156,6 +159,8 @@ struct fts_ts_info {
 	int16_t *self_data;
 	int self_data_size;
 	int16_t *fw_ms_data;
+	ms_frame_type_t pre_ms_frame_type;
+	ss_frame_type_t pre_ss_frame_type;
 #endif
 };
 
