@@ -2512,6 +2512,7 @@ static int get_mutual_sensor_data(void *private_data, struct gti_sensor_data_cmd
 	uint32_t frame_index = 0, x, y;
 	uint32_t x_val, y_val;
 	int16_t heatmap_value;
+	u16 addr_offset;
 
 	cmd->size = max_x * max_y * BYTES_PER_NODE;
 
@@ -2519,7 +2520,8 @@ static int get_mutual_sensor_data(void *private_data, struct gti_sensor_data_cmd
 		info->mutual_data = devm_kzalloc(info->dev, cmd->size, GFP_KERNEL);
 		if (!info->mutual_data) {
 			dev_err(info->dev, "Failed to allocate mutual_data.\n");
-			return -ENOMEM;
+			result = -ENOMEM;
+			goto get_data_err;
 		}
 	}
 
@@ -2532,18 +2534,33 @@ static int get_mutual_sensor_data(void *private_data, struct gti_sensor_data_cmd
 		info->data_buffer = devm_kzalloc(info->dev, cmd->size, GFP_KERNEL);
 		if (!info->data_buffer) {
 			dev_err(info->dev, "Failed to allocate data_buffer.\n");
-			return -ENOMEM;
+			result = -ENOMEM;
+			goto get_data_err;
 		}
 		info->data_buffer_size = cmd->size;
 	}
 
+	switch (cmd->type) {
+	case GTI_SENSOR_DATA_TYPE_MS_RAW:
+		addr_offset = info->systemInfo.u16_msTchRawAddr;
+		break;
+	case GTI_SENSOR_DATA_TYPE_MS_BASELINE:
+		addr_offset = info->systemInfo.u16_msTchBaselineAddr;
+		break;
+	case GTI_SENSOR_DATA_TYPE_MS:
+	case GTI_SENSOR_DATA_TYPE_MS_DIFF:
+	default:
+		addr_offset = info->systemInfo.u16_msTchStrenAddr;
+		break;
+	}
+
 	result = fts_writeReadU8UX(info, FTS_CMD_FRAMEBUFFER_R, BITS_16,
-			info->systemInfo.u16_msTchStrenAddr,
+			addr_offset,
 			(u8 *)info->data_buffer,
 			cmd->size, DUMMY_FRAMEBUFFER);
 	if (result < 0) {
 		dev_err(info->dev, "get mutual data failed with result=0x%08X.\n", result);
-		return result;
+		goto get_data_err;
 	}
 
 	for (y = 0; y < max_y; y++) {
@@ -2570,6 +2587,11 @@ static int get_mutual_sensor_data(void *private_data, struct gti_sensor_data_cmd
 	}
 
 	return 0;
+
+get_data_err:
+	cmd->size = 0;
+	cmd->buffer = NULL;
+	return result;
 }
 
 static int get_self_sensor_data(void *private_data, struct gti_sensor_data_cmd *cmd)
@@ -2580,6 +2602,7 @@ static int get_self_sensor_data(void *private_data, struct gti_sensor_data_cmd *
 	int16_t *tx_src, *rx_src, *tx_dst, *rx_dst;
 	int tx_size = getForceLen(info);
 	int rx_size = getSenseLen(info);
+	u16 tx_addr_offset, rx_addr_offset;
 
 	cmd->size = (tx_size + rx_size) * BYTES_PER_NODE;
 
@@ -2587,7 +2610,8 @@ static int get_self_sensor_data(void *private_data, struct gti_sensor_data_cmd *
 		info->self_data = devm_kzalloc(info->dev, cmd->size, GFP_KERNEL);
 		if (!info->self_data) {
 			dev_err(info->dev, "Failed to allocate self_data.\n");
-			return -ENOMEM;
+			result = -ENOMEM;
+			goto get_data_err;
 		}
 	}
 
@@ -2600,31 +2624,49 @@ static int get_self_sensor_data(void *private_data, struct gti_sensor_data_cmd *
 		info->data_buffer = devm_kzalloc(info->dev, cmd->size, GFP_KERNEL);
 		if (!info->data_buffer) {
 			dev_err(info->dev, "Failed to allocate data_buffer.\n");
-			return -ENOMEM;
+			result = -ENOMEM;
+			goto get_data_err;
 		}
 		info->data_buffer_size = cmd->size;
 	}
 
-	result = fts_writeReadU8UX(info, FTS_CMD_FRAMEBUFFER_R, BITS_16,
-			info->systemInfo.u16_ssHvrTxStrenAddr,
-			(u8 *)info->data_buffer,
-			tx_size * BYTES_PER_NODE, DUMMY_FRAMEBUFFER);
-	if (result < 0) {
-		dev_err(info->dev, "get tx data failed with result=0x%08X.\n", result);
-		return result;
-	}
-
-	result = fts_writeReadU8UX(info, FTS_CMD_FRAMEBUFFER_R, BITS_16,
-			info->systemInfo.u16_ssHvrRxStrenAddr,
-			(u8 *)(info->data_buffer + tx_size),
-			rx_size * BYTES_PER_NODE, DUMMY_FRAMEBUFFER);
-	if (result < 0) {
-		dev_err(info->dev, "get rx data failed with result=0x%08X.\n", result);
-		return result;
+	switch (cmd->type) {
+	case GTI_SENSOR_DATA_TYPE_SS_RAW:
+		tx_addr_offset = info->systemInfo.u16_ssTchTxRawAddr;
+		rx_addr_offset = info->systemInfo.u16_ssTchRxRawAddr;
+		break;
+	case GTI_SENSOR_DATA_TYPE_SS_BASELINE:
+		tx_addr_offset = info->systemInfo.u16_ssTchTxBaselineAddr;
+		rx_addr_offset = info->systemInfo.u16_ssTchRxBaselineAddr;
+		break;
+	case GTI_SENSOR_DATA_TYPE_SS:
+	case GTI_SENSOR_DATA_TYPE_SS_DIFF:
+	default:
+		tx_addr_offset = info->systemInfo.u16_ssTchTxStrenAddr;
+		rx_addr_offset = info->systemInfo.u16_ssTchRxStrenAddr;
+		break;
 	}
 
 	tx_src = info->data_buffer;
 	rx_src = info->data_buffer + tx_size;
+
+	result = fts_writeReadU8UX(info, FTS_CMD_FRAMEBUFFER_R, BITS_16,
+			tx_addr_offset,
+			(u8 *)tx_src,
+			tx_size * BYTES_PER_NODE, DUMMY_FRAMEBUFFER);
+	if (result < 0) {
+		dev_err(info->dev, "get tx data failed with result=0x%08X.\n", result);
+		goto get_data_err;
+	}
+
+	result = fts_writeReadU8UX(info, FTS_CMD_FRAMEBUFFER_R, BITS_16,
+			rx_addr_offset,
+			(u8 *)rx_src,
+			rx_size * BYTES_PER_NODE, DUMMY_FRAMEBUFFER);
+	if (result < 0) {
+		dev_err(info->dev, "get rx data failed with result=0x%08X.\n", result);
+		goto get_data_err;
+	}
 
 	/* tx, rx data order is fixed in TouchOffloadData1d */
 	tx_dst = info->self_data;
@@ -2647,6 +2689,11 @@ static int get_self_sensor_data(void *private_data, struct gti_sensor_data_cmd *
 	}
 
 	return 0;
+
+get_data_err:
+	cmd->size = 0;
+	cmd->buffer = NULL;
+	return result;
 }
 
 static int set_continuous_report(void *private_data, struct gti_continuous_report_cmd *cmd)
