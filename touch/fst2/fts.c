@@ -618,13 +618,19 @@ static void fts_error_event_handler(struct fts_ts_info *info, unsigned
 {
 	int error = 0;
 
-	LOGI("%s: Received event %02X %02X %02X %02X %02X %02X %02X %02X\n",
+	LOGW("%s: Received event %02X %02X %02X %02X %02X %02X %02X %02X\n",
 		 __func__, event[0], event[1], event[2], event[3], event[4],
 		 event[5], event[6], event[7]);
 
 	switch (event[1]) {
 	case EVT_TYPE_ERROR_HARD_FAULT:
+	case EVT_TYPE_ERROR_MEMORY_MANAGE:
+	case EVT_TYPE_ERROR_BUS_FAULT:
+	case EVT_TYPE_ERROR_USAGE_FAULT:
 	case EVT_TYPE_ERROR_WATCHDOG:
+	case EVT_TYPE_ERROR_INIT_ERROR:
+	case EVT_TYPE_ERROR_TASK_STACK_OVERFLOW:
+	case EVT_TYPE_ERROR_MEMORY_OVERFLOW:
 	{
 		/* before reset clear all slots */
 #if !IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
@@ -638,7 +644,7 @@ static void fts_error_event_handler(struct fts_ts_info *info, unsigned
 			LOGE("%s: Cannot reset the device ERROR %08X\n",
 				__func__, error);
 	}
-	break;
+		break;
 	}
 }
 

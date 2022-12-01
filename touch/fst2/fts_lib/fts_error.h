@@ -162,6 +162,12 @@
 #define EVT_TYPE_ERROR_USAGE_FAULT		 0x04/* /< Usage Fault */
 #define EVT_TYPE_ERROR_WATCHDOG			 0x05/* /< Watchdog timer
 							* expired  */
+#define EVT_TYPE_ERROR_INIT_ERROR		 0x06/* /< Task/semaphone/event
+						 * flag initialization error */
+#define EVT_TYPE_ERROR_TASK_STACK_OVERFLOW	 0x07/* /< Task stack
+						 * overflow */
+#define EVT_TYPE_ERROR_MEMORY_OVERFLOW		 0x08/* /< Memory Manager out of
+						 * buffer memory */
 #define EVT_TYPE_ERROR_ITO_FORCETOGND		 0x60	/* /< Force channel/s
 						 * short to ground */
 #define EVT_TYPE_ERROR_ITO_SENSETOGND		 0x61	/* /< Sense channel/s
