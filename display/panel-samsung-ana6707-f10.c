@@ -1014,6 +1014,7 @@ static const struct exynos_panel_mode ana6707_f10_modes[] = {
 		.exynos_mode = {
 			.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
 			.vblank_usec = 120,
+			.te_usec = 215,
 			.bpc = 8,
 			ANA6707_F10_DSC_CONFIG,
 			.underrun_param = &underrun_param,
