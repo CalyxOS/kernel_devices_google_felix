@@ -370,7 +370,7 @@ static irqreturn_t fts_interrupt_handler(int irq, void *handle)
 	}
 exit:
 #if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
-	goog_pm_wake_unlock(info->gti, GTI_PM_WAKELOCK_TYPE_IRQ);
+	goog_pm_wake_unlock_nosync(info->gti, GTI_PM_WAKELOCK_TYPE_IRQ);
 #endif
 	return IRQ_HANDLED;
 }
