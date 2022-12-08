@@ -3533,9 +3533,17 @@ static bool fts_status_event_handler(struct fts_ts_info *info, unsigned
 
 	case EVT_TYPE_STATUS_GOLDEN_RAW_ERR:
 		dev_info(info->dev, "%s: Golden Raw Data Abnormal"
-				" = %02X %02X %02X %02X %02X %02X\n",
-				__func__, event[2], event[3], event[4],
-				event[5], event[6], event[7]);
+			" = %02X %02X %02X %02X %02X %02X\n",
+			__func__, event[2], event[3], event[4],
+			event[5], event[6], event[7]);
+		break;
+
+	case EVT_TYPE_STATUS_HIGH_SENSITY:
+		dev_info(info->dev, "%s: High Sensitity %s ="
+			" %02X %02X %02X %02X %02X %02X\n",
+			__func__, (event[2] == 1) ? "enabled" : "disabled",
+			event[2], event[3], event[4],
+			event[5], event[6], event[7]);
 		break;
 
 	default:
