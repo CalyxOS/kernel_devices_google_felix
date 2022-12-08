@@ -108,6 +108,20 @@ static int fts_chip_initialization(struct fts_ts_info *info, int init_type);
 
 static const struct dev_pm_ops fts_pm_ops;
 
+/**
+  * Clear touch flags
+  * @param info pointer to fts_ts_info which contains info about device/hw setup
+  */
+void clear_touch_flags(struct fts_ts_info *info)
+{
+	info->touch_id = 0;
+	info->palm_touch_mask = 0;
+	info->grip_touch_mask = 0;
+#ifdef STYLUS_MODE
+	info->stylus_id = 0;
+#endif
+}
+
 #if !IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
 /**
   * Release all the touches in the linux input subsystem
@@ -137,12 +151,7 @@ void release_all_touches(struct fts_ts_info *info)
 
 	mutex_unlock(&info->input_report_mutex);
 
-	info->touch_id = 0;
-	info->palm_touch_mask = 0;
-	info->grip_touch_mask = 0;
-#ifdef STYLUS_MODE
-	info->stylus_id = 0;
-#endif
+	clear_touch_flags(info);
 }
 #endif
 
@@ -2961,6 +2970,10 @@ static bool fts_enter_pointer_event_handler(struct fts_ts_info *info, unsigned
 		__clear_bit(touchId, &info->grip_touch_mask);
 		break;
 	case TOUCH_TYPE_PALM:
+		/*
+		 * TODO(b/261839032):
+		 * show the logs by dev_err for touchType when info->palm_enabled is 0.
+		 */
 		dev_dbg(info->dev, "%s : It is a touch type %d!\n", __func__, touchType);
 		tool = MT_TOOL_PALM;
 		touch_condition = 1;
@@ -3064,7 +3077,9 @@ static bool fts_leave_pointer_event_handler(struct fts_ts_info *info, unsigned
 			break;
 		}
 #endif
-
+	/*
+	 * TODO(b/261839032): show the logs by dev_dbg for touchType.
+	 */
 	case TOUCH_TYPE_FINGER:
 	/* dev_info(info->dev, "%s : It is a finger!\n", __func__); */
 	case TOUCH_TYPE_GLOVE:
@@ -3124,7 +3139,10 @@ static bool fts_error_event_handler(struct fts_ts_info *info, unsigned
 	switch (event[1]) {
 	case EVT_TYPE_ERROR_ESD:/* esd */
 	{
-#if !IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+		/* The GTI handles to release all touches */
+		clear_touch_flags(info);
+#else
 		/* before reset clear all slot */
 		release_all_touches(info);
 #endif
@@ -3142,7 +3160,10 @@ static bool fts_error_event_handler(struct fts_ts_info *info, unsigned
 	case EVT_TYPE_ERROR_WATCHDOG:	/* watch dog timer */
 	{
 		dumpErrorInfo(info, NULL, 0);
-#if !IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+		/* The GTI handles to release all touches */
+		clear_touch_flags(info);
+#else
 		/* before reset clear all slots */
 		release_all_touches(info);
 #endif
@@ -3171,7 +3192,10 @@ static bool fts_controller_ready_event_handler(struct fts_ts_info *info,
 	dev_info(info->dev, "%s: Received event %02X %02X %02X %02X %02X %02X %02X %02X\n",
 		__func__, event[0], event[1], event[2], event[3], event[4],
 		event[5], event[6], event[7]);
-#if !IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	/* The GTI handles to release all touches. */
+	clear_touch_flags(info);
+#else
 	release_all_touches(info);
 #endif
 	setSystemResetedUp(info, 1);
@@ -4595,7 +4619,10 @@ int fts_chip_powercycle(struct fts_ts_info *info)
 		gpio_set_value(info->board->reset_gpio, 1);
 	}
 
-#if !IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	/* The GTI handles to release all touches */
+	clear_touch_flags(info);
+#else
 	release_all_touches(info);
 #endif
 
@@ -4957,7 +4984,10 @@ static void fts_suspend(struct fts_ts_info *info)
 	fts_mode_handler(info, 0);
 	fts_pinctrl_setup(info, false);
 
-#if !IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	/* The GTI handles to release all touches */
+	clear_touch_flags(info);
+#else
 	release_all_touches(info);
 #endif
 }
