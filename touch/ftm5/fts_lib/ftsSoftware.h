@@ -426,6 +426,7 @@ enum {
 						 * Validation Status */
 #define EVT_TYPE_STATUS_GOLDEN_RAW_ERR	0x16	/* /< Golden Raw
 						 * Data Abnormal */
+#define EVT_TYPE_STATUS_HIGH_SENSITY	0x19	/* /< Hight Sensitivity* */
 
 /** @} */
 
