@@ -135,6 +135,12 @@ static void ea8182_f10_change_frequency(struct exynos_panel *ctx,
 	EXYNOS_DCS_WRITE_SEQ(ctx, 0xEB, 0x14, 0x00);
 	EXYNOS_DCS_WRITE_SEQ(ctx, 0xF7, 0x07);
 
+	if (ctx->panel_rev >= PANEL_REV_DVT1) {
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x16);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xE2, 0x08, 0x48, 0x00,
+					(vrefresh == 120) ? 0x30 : 0x1C);
+	}
+
 	dev_dbg(ctx->dev, "%s: change to %uhz\n", __func__, vrefresh);
 }
 
