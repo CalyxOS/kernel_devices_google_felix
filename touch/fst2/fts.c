@@ -443,13 +443,14 @@ static void fts_enter_pointer_event_handler(struct fts_ts_info *info, unsigned
 	case TOUCH_TYPE_FINGER:
 	case TOUCH_TYPE_GLOVE:
 	case TOUCH_TYPE_LARGE:
+		LOGD("%s: touch type = %d!\n", __func__, touch_type);
 		tool = MT_TOOL_FINGER;
 		touch_condition = 1;
 		__set_bit(touch_id, &info->touch_id);
 		break;
 
-
 	case TOUCH_TYPE_FINGER_HOVER:
+		LOGD("%s: touch type = %d!\n", __func__, touch_type);
 		tool = MT_TOOL_FINGER;
 		touch_condition = 0;	/* need to hover */
 		z = 0;	/* no pressure */
@@ -459,7 +460,7 @@ static void fts_enter_pointer_event_handler(struct fts_ts_info *info, unsigned
 		break;
 
 	default:
-		LOGE("%s: Invalid touch type = %d ! No Report...\n",
+		LOGE("%s: Invalid touch type = %d! No Report...\n",
 			  __func__, touch_type);
 		goto no_report;
 	}
@@ -516,11 +517,12 @@ static void fts_leave_pointer_event_handler(struct fts_ts_info *info, unsigned
 	case TOUCH_TYPE_GLOVE:
 	case TOUCH_TYPE_LARGE:
 	case TOUCH_TYPE_FINGER_HOVER:
+		LOGD("%s: touch type = %d!\n", __func__, touch_type);
 		tool = MT_TOOL_FINGER;
 		__clear_bit(touch_id, &info->touch_id);
 		break;
 	default:
-		LOGE("%s: Invalid touch type = %d ! No Report...\n",
+		LOGE("%s: Invalid touch type = %d! No Report...\n",
 			 __func__, touch_type);
 		return;
 	}
@@ -633,7 +635,9 @@ static void fts_error_event_handler(struct fts_ts_info *info, unsigned
 	case EVT_TYPE_ERROR_MEMORY_OVERFLOW:
 	{
 		/* before reset clear all slots */
-#if !IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+		info->touch_id = 0;
+#else
 		release_all_touches(info);
 #endif
 		fts_set_interrupt(info, false);
@@ -661,7 +665,9 @@ static void fts_controller_ready_event_handler(struct fts_ts_info *info,
 	LOGI("%s: controller event %02X %02X %02X %02X %02X %02X %02X %02X\n",
 		 __func__, event[0], event[1], event[2], event[3], event[4],
 		 event[5], event[6], event[7]);
-#if !IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	info->touch_id = 0;
+#else
 	release_all_touches(info);
 #endif
 	set_system_reseted_up(1);
@@ -1437,7 +1443,9 @@ static void fts_suspend(struct fts_ts_info *info)
 	info->resume_bit = 0;
 	fts_mode_handler(info, 0);
 	fts_pinctrl_setup(info, false);
-#if !IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+#if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
+	info->touch_id = 0;
+#else
 	release_all_touches(info);
 #endif
 	pm_relax(info->dev);
