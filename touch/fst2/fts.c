@@ -806,37 +806,6 @@ static void fts_status_event_handler(struct fts_ts_info *info, u8 *event)
 		break;
 
 	case EVT_TYPE_STATUS_WATER:
-		switch (event[2]) {
-		case 0x00:
-			log_status_event2(1, "entry by BLD with real raw frame", event);
-			break;
-
-		case 0x01:
-			log_status_event2(1, "entry by BLD with rom raw frame", event);
-			break;
-
-		case 0x02:
-			log_status_event2(1, "entry by MID with real raw frame", event);
-			break;
-
-		case 0x03:
-			log_status_event2(1, "leave by BLD with real raw frame", event);
-			break;
-
-		case 0x04:
-			log_status_event2(1, "leave by BLD with rom raw frame", event);
-			break;
-
-		case 0x05:
-			log_status_event2(1, "leave by MID with real raw frame", event);
-			break;
-
-		default:
-			log_status_event2(1, "unknown event", event);
-			break;
-		}
-		break;
-
 	case EVT_TYPE_STATUS_PRE_WAT_DET:
 		if (event[2] == 1)
 			log_status_event2(1, "entry", event);
@@ -920,7 +889,7 @@ static void fts_status_event_handler(struct fts_ts_info *info, u8 *event)
 		break;
 
 	default:
-		LOGE("%s: Invalid status event (%02X) ="
+		LOGE("%s: Unknown status event (%02X) ="
 			" %02X %02X %02X %02X %02X %02X\n",
 			__func__, event[1], event[2], event[3],
 			event[4], event[5], event[6], event[7]);
