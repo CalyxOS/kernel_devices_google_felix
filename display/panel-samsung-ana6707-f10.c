@@ -1288,8 +1288,8 @@ const struct brightness_capability ana6707_f10_brightness_capability = {
 			.max = 1000,
 		},
 		.level = {
-			.min = 2052,
-			.max = 3410,
+			.min = 2049,
+			.max = 3320,
 		},
 		.percentage = {
 			.min = 60,
@@ -1302,7 +1302,7 @@ const struct exynos_panel_desc samsung_ana6707_f10 = {
 	.dsc_pps = PPS_SETTING,
 	.dsc_pps_len = ARRAY_SIZE(PPS_SETTING),
 	.data_lane_cnt = 4,
-	.max_brightness = 3410,
+	.max_brightness = 3320,
 	.min_brightness = 7,
 	.dft_brightness = 1023,
 	.brt_capability = &ana6707_f10_brightness_capability,
