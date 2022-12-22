@@ -150,23 +150,29 @@ void set_system_reseted_down(int val)
 int fts_set_interrupt(struct fts_ts_info *info, bool enable)
 {
 	if (info->client == NULL) {
-		dev_err(info->dev, "Cannot get client irq. Error = %08X\n",
-			ERROR_OP_NOT_ALLOW);
+		dev_err(info->dev, "Error: Cannot get client irq.\n");
+		return ERROR_OP_NOT_ALLOW;
+	}
+
+	if (enable == info->irq_enabled) {
+		dev_dbg(info->dev, "Interrupt is already set (enable = %d).\n", enable);
+		return OK;
+	}
+
+	if (enable && !info->resume_bit) {
+		dev_err(info->dev, "Error: Interrupt can't enable in suspend mode.\n");
 		return ERROR_OP_NOT_ALLOW;
 	}
 
 	mutex_lock(&info->fts_int_mutex);
-	if (enable == info->irq_enabled) {
-		dev_dbg(info->dev, "Interrupt is already set (enable = %d).\n", enable);
+
+	info->irq_enabled = enable;
+	if (enable) {
+		enable_irq(info->client->irq);
+		dev_dbg(info->dev, "Interrupt enabled.\n");
 	} else {
-		info->irq_enabled = enable;
-		if (enable) {
-			enable_irq(info->client->irq);
-			dev_dbg(info->dev, "Interrupt enabled.\n");
-		} else {
-			disable_irq_nosync(info->client->irq);
-			dev_dbg(info->dev, "Interrupt disabled.\n");
-		}
+		disable_irq_nosync(info->client->irq);
+		dev_dbg(info->dev, "Interrupt disabled.\n");
 	}
 
 	mutex_unlock(&info->fts_int_mutex);
@@ -274,10 +280,14 @@ static irqreturn_t fts_interrupt_handler(int irq, void *handle)
 	unsigned char *evt_data;
 	bool has_pointer_event = false;
 	int event_start_idx = -1;
+	u32 goog_pm_locks = 0;
 
 #if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
-	if (goog_pm_wake_lock(info->gti, GTI_PM_WAKELOCK_TYPE_IRQ, true) < 0) {
-		dev_warn(info->dev, "Touch device already suspended.\n");
+	error = goog_pm_wake_lock(info->gti, GTI_PM_WAKELOCK_TYPE_IRQ, true);
+	if (error < 0) {
+		goog_pm_locks = goog_pm_wake_get_locks(info->gti);
+		dev_warn(info->dev, "%s: Touch device already suspended(locks=0x%X,err=%d).\n",
+			__func__, goog_pm_locks, error);
 		return IRQ_HANDLED;
 	}
 #endif

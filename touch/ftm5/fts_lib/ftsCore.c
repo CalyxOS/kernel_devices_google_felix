@@ -889,24 +889,29 @@ int fts_enableInterrupt(struct fts_ts_info *info, bool enable)
 	unsigned long flag;
 
 	if (info->client == NULL) {
-		dev_err(info->dev, "Cannot get client irq. Error = %08X\n",
-			ERROR_OP_NOT_ALLOW);
+		dev_err(info->dev, "Error: Cannot get client irq.\n");
+		return ERROR_OP_NOT_ALLOW;
+	}
+
+	if (enable == info->irq_enabled) {
+		dev_dbg(info->dev, "Interrupt is already set (enable = %d).\n", enable);
+		return OK;
+	}
+
+	if (enable && !info->resume_bit) {
+		dev_err(info->dev, "Error: Interrupt can't enable in suspend mode.\n");
 		return ERROR_OP_NOT_ALLOW;
 	}
 
 	spin_lock_irqsave(&info->fts_int, flag);
 
-	if (enable == info->irq_enabled)
-		dev_dbg(info->dev, "Interrupt is already set (enable = %d).\n", enable);
-	else {
-		info->irq_enabled = enable;
-		if (enable) {
-			enable_irq(info->client->irq);
-			dev_dbg(info->dev, "Interrupt enabled.\n");
-		} else {
-			disable_irq_nosync(info->client->irq);
-			dev_dbg(info->dev, "Interrupt disabled.\n");
-		}
+	info->irq_enabled = enable;
+	if (enable) {
+		enable_irq(info->client->irq);
+		dev_dbg(info->dev, "Interrupt enabled.\n");
+	} else {
+		disable_irq_nosync(info->client->irq);
+		dev_dbg(info->dev, "Interrupt disabled.\n");
 	}
 
 	spin_unlock_irqrestore(&info->fts_int, flag);
