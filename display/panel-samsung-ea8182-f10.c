@@ -16,15 +16,6 @@
 
 #include "samsung/panel/panel-samsung-drv.h"
 
-/**
- * struct ea8182_f10_panel - panel specific info
- *
- * This struct maintains ea8182-f10 panel specific info,
- *
- */
-
-#define to_spanel(ctx) container_of(ctx, struct ea8182_f10_panel, base)
-
 static const unsigned char PPS_SETTING[] = {
      0x11, 0x00, 0x00, 0x89, 0x30, 0x80, 0x08, 0x2C,
      0x04, 0x38, 0x02, 0x0B, 0x02, 0x1C, 0x02, 0x1C,
