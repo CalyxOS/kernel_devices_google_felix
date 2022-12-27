@@ -13,6 +13,7 @@
 #include <linux/debugfs.h>
 #include <linux/module.h>
 #include <linux/of_platform.h>
+#include <linux/thermal.h>
 #include <video/mipi_display.h>
 
 #include "include/trace/dpu_trace.h"
@@ -101,6 +102,8 @@ struct ana6707_f10_panel {
 	*                we should avoid changing idle_mode when it's true
 	*/
 	bool delayed_idle;
+	/** @tzd: thermal zone struct */
+	struct thermal_zone_device *tzd;
 };
 
 #define to_spanel(ctx) container_of(ctx, struct ana6707_f10_panel, base)
@@ -1163,9 +1166,35 @@ static void ana6707_f10_panel_init(struct exynos_panel *ctx)
 	spanel->early_exit.status = EARLY_EXIT_OFF;
 }
 
+static int spanel_get_brightness(struct thermal_zone_device *tzd, int *temp)
+{
+	struct ana6707_f10_panel *spanel;
+
+	if (tzd == NULL)
+		return -EINVAL;
+
+	spanel = tzd->devdata;
+
+	if (spanel && spanel->base.bl) {
+		mutex_lock(&spanel->base.bl_state_lock);
+		*temp = (spanel->base.bl->props.state & BL_STATE_STANDBY) ?
+					0 : spanel->base.bl->props.brightness;
+		mutex_unlock(&spanel->base.bl_state_lock);
+	} else {
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static struct thermal_zone_device_ops spanel_tzd_ops = {
+	.get_temp = spanel_get_brightness,
+};
+
 static int ana6707_f10_panel_probe(struct mipi_dsi_device *dsi)
 {
 	struct ana6707_f10_panel *spanel;
+	int ret;
 
 	spanel = devm_kzalloc(&dsi->dev, sizeof(*spanel), GFP_KERNEL);
 	if (!spanel)
@@ -1173,7 +1202,18 @@ static int ana6707_f10_panel_probe(struct mipi_dsi_device *dsi)
 
 	spanel->auto_mode_vrefresh = 0;
 	spanel->delayed_idle = false;
+	spanel->tzd = thermal_zone_device_register("inner-disp",
+				0, 0, spanel, &spanel_tzd_ops, NULL, 0, 0);
+	if (IS_ERR(spanel->tzd))
+		dev_err(spanel->base.dev, "failed to register inner"
+			" display thermal zone: %ld", PTR_ERR(spanel->tzd));
 
+	ret = thermal_zone_device_enable(spanel->tzd);
+	if (ret) {
+		dev_err(spanel->base.dev, "failed to enable inner"
+					" display thermal zone ret=%d", ret);
+		thermal_zone_device_unregister(spanel->tzd);
+	}
 	return exynos_panel_common_init(dsi, &spanel->base);
 }
 
