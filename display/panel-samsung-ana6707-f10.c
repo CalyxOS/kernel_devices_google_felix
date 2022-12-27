@@ -693,12 +693,20 @@ static void ana6707_f10_set_hbm_mode(struct exynos_panel *ctx,
 
 	ctx->hbm_mode = mode;
 
+	EXYNOS_DCS_WRITE_SEQ(ctx, 0xF0, 0x5A, 0x5A);
+
+	if (ctx->panel_rev >= PANEL_REV_DVT1) {
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x2C);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xF4, IS_HBM_ON(mode) ? 0x22 : 0x23);
+	}
+
 	if (irc_update) {
-		EXYNOS_DCS_WRITE_SEQ(ctx, 0xF0, 0x5A, 0x5A);
 		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x0C,);
 		EXYNOS_DCS_WRITE_SEQ(ctx, 0x92, IS_HBM_ON_IRC_OFF(mode) ? 0x85 : 0xA5);
-		EXYNOS_DCS_WRITE_SEQ(ctx, 0xF0, 0xA5, 0xA5);
 	}
+
+	EXYNOS_DCS_WRITE_SEQ(ctx, 0xF0, 0xA5, 0xA5);
+
 	dev_info(ctx->dev, "IS_HBM_ON=%d IS_HBM_ON_IRC_OFF=%d\n", IS_HBM_ON(ctx->hbm_mode),
 		 IS_HBM_ON_IRC_OFF(ctx->hbm_mode));
 }
