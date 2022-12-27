@@ -2945,7 +2945,7 @@ static bool fts_enter_pointer_event_handler(struct fts_ts_info *info, unsigned
 	switch (touchType) {
 #ifdef STYLUS_MODE
 	case TOUCH_TYPE_STYLUS:
-		dev_info(info->dev, "%s : It is a stylus!\n", __func__);
+		dev_dbg(info->dev, "%s : touch type = %d!\n", __func__);
 		if (info->stylus_enabled == 1) {
 			/* if stylus_enabled is not ==1
 			  * it will be reported as normal touch */
@@ -2959,7 +2959,7 @@ static bool fts_enter_pointer_event_handler(struct fts_ts_info *info, unsigned
 	 * touch */
 	case TOUCH_TYPE_FINGER:
 	case TOUCH_TYPE_GLOVE:
-		dev_dbg(info->dev, "%s : It is a touch type %d!\n", __func__, touchType);
+		dev_dbg(info->dev, "%s : touch type = %d!\n", __func__, touchType);
 		if (info->palm_touch_mask)
 			tool = MT_TOOL_PALM;
 		else
@@ -2970,27 +2970,41 @@ static bool fts_enter_pointer_event_handler(struct fts_ts_info *info, unsigned
 		__clear_bit(touchId, &info->grip_touch_mask);
 		break;
 	case TOUCH_TYPE_PALM:
-		/*
-		 * TODO(b/261839032):
-		 * show the logs by dev_err for touchType when info->palm_enabled is 0.
-		 */
-		dev_dbg(info->dev, "%s : It is a touch type %d!\n", __func__, touchType);
-		tool = MT_TOOL_PALM;
 		touch_condition = 1;
 		__set_bit(touchId, &info->touch_id);
-		__set_bit(touchId, &info->palm_touch_mask);
 		__clear_bit(touchId, &info->grip_touch_mask);
+		if (!info->palm_enabled) {
+			dev_err(info->dev, "%s : Unexpected touch type = %d!\n",
+				__func__, touchType);
+			tool = MT_TOOL_FINGER;
+			__clear_bit(touchId, &info->palm_touch_mask);
+		} else {
+			dev_dbg(info->dev, "%s : touch type = %d!\n",
+				__func__, touchType);
+			tool = MT_TOOL_PALM;
+			__set_bit(touchId, &info->palm_touch_mask);
+		}
+
 		break;
 	case TOUCH_TYPE_GRIP:
-		dev_dbg(info->dev, "%s : It is a touch type %d!\n", __func__, touchType);
-		tool = MT_TOOL_PALM;
 		touch_condition = 1;
 		__set_bit(touchId, &info->touch_id);
 		__clear_bit(touchId, &info->palm_touch_mask);
-		__set_bit(touchId, &info->grip_touch_mask);
+		if (!info->grip_enabled) {
+			dev_err(info->dev, "%s : Unexpected touch type = %d!\n",
+				__func__, touchType);
+			tool = MT_TOOL_FINGER;
+			__clear_bit(touchId, &info->grip_touch_mask);
+		} else {
+			dev_dbg(info->dev, "%s : touch type = %d!\n",
+				__func__, touchType);
+			tool = MT_TOOL_PALM;
+			__set_bit(touchId, &info->grip_touch_mask);
+		}
 		break;
 
 	case TOUCH_TYPE_HOVER:
+		dev_dbg(info->dev, "%s : touch type = %d!\n", __func__, touchType);
 		tool = MT_TOOL_FINGER;
 		touch_condition = 0;	/* need to hover */
 		z = 0;	/* no pressure */
@@ -3000,7 +3014,7 @@ static bool fts_enter_pointer_event_handler(struct fts_ts_info *info, unsigned
 		break;
 
 	default:
-		dev_err(info->dev, "%s : Invalid touch type = %d ! No Report...\n",
+		dev_err(info->dev, "%s : Invalid touch type = %d! No Report...\n",
 			__func__, touchType);
 		goto no_report;
 	}
@@ -3068,7 +3082,7 @@ static bool fts_leave_pointer_event_handler(struct fts_ts_info *info, unsigned
 	switch (touchType) {
 #ifdef STYLUS_MODE
 	case TOUCH_TYPE_STYLUS:
-		dev_info(info->dev, "%s : It is a stylus!\n", __func__);
+		dev_dbg(info->dev, "%s : touch type = %d!\n", __func__);
 		if (info->stylus_enabled == 1) {
 			/* if stylus_enabled is not ==1 it will be reported as
 			 * normal touch */
@@ -3077,18 +3091,12 @@ static bool fts_leave_pointer_event_handler(struct fts_ts_info *info, unsigned
 			break;
 		}
 #endif
-	/*
-	 * TODO(b/261839032): show the logs by dev_dbg for touchType.
-	 */
 	case TOUCH_TYPE_FINGER:
-	/* dev_info(info->dev, "%s : It is a finger!\n", __func__); */
 	case TOUCH_TYPE_GLOVE:
-	/* dev_info(info->dev, "%s : It is a glove!\n", __func__); */
 	case TOUCH_TYPE_PALM:
-	/* dev_info(info->dev, "%s : It is a palm!\n", __func__); */
 	case TOUCH_TYPE_GRIP:
-	/* dev_info(info->dev, "%s : It is a grip!\n", __func__); */
 	case TOUCH_TYPE_HOVER:
+		dev_dbg(info->dev, "%s : touch type = %d!\n", __func__, touchType);
 		tool = MT_TOOL_FINGER;
 		__clear_bit(touchId, &info->touch_id);
 		__clear_bit(touchId, &info->palm_touch_mask);
@@ -3096,7 +3104,7 @@ static bool fts_leave_pointer_event_handler(struct fts_ts_info *info, unsigned
 		break;
 
 	default:
-		dev_err(info->dev, "%s : Invalid touch type = %d ! No Report...\n",
+		dev_err(info->dev, "%s : Invalid touch type = %d! No Report...\n",
 			__func__, touchType);
 		return false;
 	}
