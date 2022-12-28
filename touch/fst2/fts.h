@@ -48,6 +48,7 @@
 #define PINCTRL_STATE_SUSPEND   "pmx_ts_suspend"
 #define PINCTRL_STATE_RELEASE   "pmx_ts_release"
 
+#define MAX_PROBE_RETRY 3
 #define MAX_FIFO_EVENT	32 /* /< max number of events that the FIFO can
 				 * collect  */
 #define EVENT_DATA_SIZE (FIFO_EVENT_SIZE * MAX_FIFO_EVENT) /* /< event data
