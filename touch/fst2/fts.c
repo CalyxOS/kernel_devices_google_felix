@@ -1533,6 +1533,7 @@ static int fts_init(struct fts_ts_info *info)
 	int res = 0;
 	u8 data[3] = { 0 };
 	u16 chip_id = 0;
+	int retry_cnt = 0;
 
 	open_channel(info->client);
 	init_test_to_do();
@@ -1547,28 +1548,35 @@ static int fts_init(struct fts_ts_info *info)
 	}
 #endif
 #endif
-	res = fts_write_read_u8ux(FTS_CMD_HW_REG_R, HW_ADDR_SIZE,
-				CHIP_ID_ADDRESS, data, 2, DUMMY_BYTE);
-	if (res < OK) {
-		LOGE("%s: Bus Connection issue: %08X\n", __func__, res);
-		return res;
-	}
-	chip_id = (u16)((data[0] << 8) + data[1]);
-	LOGI("%s: Chip id: 0x%04X\n", __func__, chip_id);
-	if (chip_id != CHIP_ID) {
-		LOGE("%s: Wrong Chip detected.. Expected|Detected: 0x%04X|0x%04X\n",
-			__func__, CHIP_ID, chip_id);
-		return ERROR_WRONG_CHIP_ID;
-	}
-	res = fts_system_reset(info, 1);
-	if (res < OK) {
-		if (res == ERROR_BUS_W) {
-			LOGE("%s: Bus Connection issue\n", __func__);
+	do {
+		res = fts_write_read_u8ux(FTS_CMD_HW_REG_R, HW_ADDR_SIZE,
+			CHIP_ID_ADDRESS, data, 2, DUMMY_BYTE);
+		if (res < OK) {
+			LOGE("%s: Bus Connection issue: %08X\n", __func__, res);
 			return res;
 		}
-		/*other errors are because of no FW,
-		so we continue to flash*/
-	}
+		chip_id = (u16)((data[0] << 8) + data[1]);
+		LOGI("%s: Chip id: 0x%04X, retry: %d\n", __func__, chip_id, retry_cnt);
+		if (chip_id != CHIP_ID) {
+			LOGE("%s: Wrong Chip detected.. Expected|Detected: 0x%04X|0x%04X\n",
+				__func__, CHIP_ID, chip_id);
+			if (retry_cnt >= MAX_PROBE_RETRY)
+				return ERROR_WRONG_CHIP_ID;
+		}
+		res = fts_system_reset(info, 1);
+		if (res < OK) {
+			if (res == ERROR_BUS_W) {
+				LOGE("%s: Bus Connection issue\n", __func__);
+				return res;
+			}
+			/*
+			 * other errors are because of no FW,
+			 * so we continue to flash
+			 */
+		}
+		retry_cnt++;
+	} while (chip_id != CHIP_ID);
+
 	res = read_sys_info();
 	if (res < 0)
 		LOGE("%s: Couldnot read sys info.. No FW..\n", __func__);
@@ -2084,6 +2092,10 @@ static int fts_probe(struct spi_device *client)
 	ret_val = fts_init(info);
 	if (ret_val < OK) {
 		LOGE("%s: Initialization fails.. exiting..\n", __func__);
+		if (ret_val == ERROR_WRONG_CHIP_ID)
+			error = -EPROBE_DEFER;
+		else
+			error = -EIO;
 		goto probe_error_exit_6;
 	}
 
