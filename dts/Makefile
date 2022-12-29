@@ -11,7 +11,10 @@ dtbo-y += \
         gs201-felix-evt1_0.dtbo \
         gs201-felix-evt1_0-wingboard.dtbo \
         gs201-felix-evt1_0-doe.dtbo \
-        gs201-felix-dvt1_0.dtbo
+        gs201-felix-dvt1_0.dtbo \
+        gs201-felix-pvt1_0.dtbo \
+        gs201-felix-mp.dtbo
+
 
 gs201-felix-dev1_0.dtbo-base := google-base/gs201-a0.dtb
 gs201-felix-proto1_0.dtbo-base := google-base/gs201-b0.dtb
