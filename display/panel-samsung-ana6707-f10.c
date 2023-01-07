@@ -785,9 +785,6 @@ static void ana6707_f10_get_panel_rev(struct exynos_panel *ctx, u32 id)
 		ctx->panel_rev = PANEL_REV_DVT1;
 		break;
 	case 0x11:
-		ctx->panel_rev = PANEL_REV_DVT1_1;
-		break;
-	case 0x14:
 		ctx->panel_rev = PANEL_REV_PVT;
 		break;
 	default:

@@ -311,7 +311,7 @@ static void ea8182_f10_get_panel_rev(struct exynos_panel *ctx, u32 id)
 	case 0xA:
 		ctx->panel_rev = PANEL_REV_DVT1_1;
 		break;
-	case 0x11:
+	case 0x10:
 		ctx->panel_rev = PANEL_REV_PVT;
 		break;
 	default:
