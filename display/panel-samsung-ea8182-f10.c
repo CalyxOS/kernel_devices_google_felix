@@ -166,6 +166,12 @@ static void ea8182_f10_set_nolp_mode(struct exynos_panel *ctx,
 
 	EXYNOS_DCS_WRITE_TABLE(ctx, display_off);
 	EXYNOS_DCS_WRITE_TABLE(ctx, unlock_cmd_f0);
+
+	if ((ctx->panel_rev >= PANEL_REV_DVT1) && vrefresh == 60) {
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x04);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xEE, 0x83);
+	}
+
 	ea8182_f10_change_frequency(ctx, vrefresh);
 
 	if (ctx->panel_rev <= PANEL_REV_PROTO1_1)
