@@ -642,6 +642,7 @@ static int ana6707_f10_enable(struct drm_panel *panel)
 {
 	struct exynos_panel *ctx = container_of(panel, struct exynos_panel, panel);
 	const struct exynos_panel_mode *pmode = ctx->current_mode;
+	u8 delay = (ctx->panel_rev >= PANEL_REV_DVT1) ? 132 : 110;
 
 	if (!pmode) {
 		dev_err(ctx->dev, "no current mode set\n");
@@ -698,13 +699,17 @@ static int ana6707_f10_enable(struct drm_panel *panel)
 		EXYNOS_DCS_WRITE_SEQ(ctx, 0xFC, 0xA5, 0xA5);
 	}
 
-	EXYNOS_DCS_WRITE_SEQ_DELAY(ctx, 110, 0x53, 0x20); /* backlight control */
+	EXYNOS_DCS_WRITE_SEQ_DELAY(ctx, delay, 0x53, 0x20); /* backlight control */
 
 	ctx->enabled = true;
-	if (pmode->exynos_mode.is_lp_mode)
+	if (pmode->exynos_mode.is_lp_mode) {
 		exynos_panel_set_lp_mode(ctx, pmode);
-	else
-		EXYNOS_DCS_WRITE_SEQ_DELAY(ctx, 100, 0x29); /* display on: b/253361485 */
+	} else {
+		if (ctx->panel_rev >= PANEL_REV_DVT1)
+			EXYNOS_DCS_WRITE_SEQ(ctx, 0x29); /* display on */
+		else
+			EXYNOS_DCS_WRITE_SEQ_DELAY(ctx, 100, 0x29); /* display on */
+	}
 
 	return 0;
 }
