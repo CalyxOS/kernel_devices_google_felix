@@ -728,9 +728,6 @@ do { \
   */
 static void fts_status_event_handler(struct fts_ts_info *info, u8 *event)
 {
-	u8 grid_touch_status;
-	static u8 scanning_frequency = 0;
-
 	switch (event[1]) {
 	case EVT_TYPE_STATUS_ECHO:
 		log_status_event(0, event);
@@ -824,13 +821,20 @@ static void fts_status_event_handler(struct fts_ts_info *info, u8 *event)
 		break;
 
 	case EVT_TYPE_STATUS_NOISE:
-		if(scanning_frequency != event[3]) {
-			LOGI("%s: Scanning frequency changed from %02X to %02X\n",
-				__func__, scanning_frequency, event[3]);
+	{
+		static u8 noise_level;
+		static u8 scanning_frequency;
+
+		if (noise_level != event[2] || scanning_frequency != event[3]) {
+			log_status_event2(1, "changed", event);
+			LOGI("%s: level:[%02X->%02X],freq:[%02X->%02X]\n",
+				__func__, noise_level, event[2],
+				scanning_frequency, event[3]);
+			noise_level = event[2];
 			scanning_frequency = event[3];
-			log_status_event(1, event);
 		} else
 			log_status_event(0, event);
+	}
 		break;
 
 	case EVT_TYPE_STATUS_PALM_TOUCH:
@@ -858,8 +862,11 @@ static void fts_status_event_handler(struct fts_ts_info *info, u8 *event)
 		break;
 
 	case EVT_TYPE_STATUS_GRIP_TOUCH:
-		grid_touch_status = (event[2] & 0xF0) >> 4;
-		switch (grid_touch_status) {
+	{
+		u8 grip_touch_status;
+
+		grip_touch_status = (event[2] & 0xF0) >> 4;
+		switch (grip_touch_status) {
 		case 0x01:
 			log_status_event2(0, "entry", event);
 #if IS_ENABLED(CONFIG_GOOG_TOUCH_INTERFACE)
@@ -880,6 +887,7 @@ static void fts_status_event_handler(struct fts_ts_info *info, u8 *event)
 			log_status_event2(1, "unknown event", event);
 			break;
 		}
+	}
 		break;
 
 	case EVT_TYPE_STATUS_GOLDEN_RAW_VAL:
