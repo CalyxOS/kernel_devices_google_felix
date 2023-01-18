@@ -6,6 +6,10 @@
  *
  */
 
+&drmdecon0 {
+       max_dfs_lv_for_wb = <533000>;
+};
+
 &drmdecon1 {
        status = "ok";
 };
