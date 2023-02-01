@@ -3227,9 +3227,16 @@ static bool fts_status_event_handler(struct fts_ts_info *info, unsigned
 
 	switch (event[1]) {
 	case EVT_TYPE_STATUS_ECHO:
-		dev_dbg(info->dev, "%s: Echo event of command = %02X %02X %02X %02X %02X %02X\n",
-			__func__, event[2], event[3], event[4], event[5],
-			event[6], event[7]);
+		if (event[2] == FTS_CMD_CUSTOM_W &&
+			event[3] == CUSTOM_CMD_CONTINUOUS_REPORT) {
+			dev_dbg(info->dev, "%s: Echo event of command = %02X %02X %02X %02X %02X %02X\n",
+				__func__, event[2], event[3], event[4], event[5],
+				event[6], event[7]);
+		} else {
+			dev_info(info->dev, "%s: Echo event of command = %02X %02X %02X %02X %02X %02X\n",
+				__func__, event[2], event[3], event[4], event[5],
+				event[6], event[7]);
+		}
 		break;
 
 	case EVT_TYPE_STATUS_GPIO_CHAR_DET:
@@ -4858,7 +4865,7 @@ static int fts_mode_handler(struct fts_ts_info *info, int force)
 		res = ERROR_OP_NOT_ALLOW;
 	}
 
-	dev_dbg(info->dev, "%s: Mode Handler finished! res = %08X mode = %08X\n",
+	dev_info(info->dev, "%s: Mode Handler finished! res = %08X mode = %08X\n",
 		__func__, res, info->mode);
 	return res;
 }

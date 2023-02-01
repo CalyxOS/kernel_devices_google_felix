@@ -361,7 +361,7 @@ int setScanMode(struct fts_ts_info *info, u8 mode, u8 settings)
 	u8 cmd1[7] = {0xFA, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00};
 	int ret, size = 3;
 
-	dev_dbg(info->dev, "%s: Setting scan mode: mode = %02X settings = %02X !\n",
+	dev_info(info->dev, "%s: Setting scan mode: mode = %02X settings = %02X\n",
 		__func__, mode, settings);
 	if (mode == SCAN_MODE_LOW_POWER)
 		size = 2;
