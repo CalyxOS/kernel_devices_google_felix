@@ -666,9 +666,6 @@ static int ana6707_f10_enable(struct drm_panel *panel)
 	EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x0D); /* Global para */
 	EXYNOS_DCS_WRITE_SEQ(ctx, 0xB9, 0x00, 0x06, 0xE5); /* Vsync to TE2 setting */
 
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x08);
-	EXYNOS_DCS_WRITE_SEQ(ctx, 0xB9, 0x0A); /* TE pulse width 168us */
-
 	/* brightness init setting*/
 	if (ctx->panel_rev >= PANEL_REV_EVT1) {
 		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x96);
