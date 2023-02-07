@@ -25,6 +25,7 @@ ext_modules += sensors/hall_sensor
 ext_modules += touch/common
 ext_modules += ../devices/google/felix/touch/ftm5
 ext_modules += ../devices/google/felix/touch/fst2
+ext_modules += wlan/wlan_ptracker
 ext_modules += wlan/bcmdhd4389
 ext_modules += video/gchips
 ext_modules += ../devices/google/felix/display
