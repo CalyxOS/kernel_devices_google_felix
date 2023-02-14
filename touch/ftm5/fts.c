@@ -2731,7 +2731,19 @@ static int set_screen_protector_mode(
 	write[1] = (u8) CUSTOM_CMD_HIGH_SENSITIVITY;
 	write[2] = enable;
 
-	ret = fts_write(info, write, sizeof(write));
+	/* The set_screen protector_mode() will be called in the last feature
+	 * command when GTI resets features after the device resumes, use
+	 * fts_writeFwCmd() to read out all echo events in the FIFO before
+	 * sense-on command.
+	 */
+	/* 1. Use fts_write() when interrupts enabled and show the echo evnets
+	 *    in fts_status_event_handler().
+	 * 2. Use fts_writeFwCmd() to poll echo ACK when interrupts disabled.
+	 */
+	if (info->irq_enabled)
+		ret = fts_write(info, write, sizeof(write));
+	else
+		ret = fts_writeFwCmd(info, write, sizeof(write));
 	if (ret) {
 		dev_err(info->dev, "Failed to %s screen protector mode.\n",
 			enable ? "enable" : "disable");

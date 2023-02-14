@@ -229,8 +229,8 @@ int pollForEvent(struct fts_ts_info *info, int *event_to_search,
 			err_handling = errorHandler(info, readData, FIFO_EVENT_SIZE);
 			if ((err_handling & 0xF0FF0000) ==
 			    ERROR_HANDLER_STOP_PROC) {
-				dev_err(info->dev, "pollForEvent: forced to be stopped! ERROR %08X\n",
-					err_handling);
+				dev_err(info->dev, "%s: forced to be stopped! ERROR %08X\n",
+					__func__, err_handling);
 				return err_handling;
 			}
 		} else {
@@ -243,7 +243,8 @@ int pollForEvent(struct fts_ts_info *info, int *event_to_search,
 
 			if (readData[0] == EVT_ID_CONTROLLER_READY &&
 			    event_to_search[0] != EVT_ID_CONTROLLER_READY) {
-				dev_err(info->dev, "pollForEvent: Unmanned Controller Ready Event! Setting reset flags...\n");
+				dev_err(info->dev, "%s: Unmanned Controller Ready Event! Setting reset flags...\n",
+					__func__);
 				setSystemResetedUp(info, 1);
 				setSystemResetedDown(info, 1);
 			}
@@ -261,21 +262,24 @@ int pollForEvent(struct fts_ts_info *info, int *event_to_search,
 	}
 	stopStopWatch(&clock);
 	if ((retry >= time_to_count) && find != 1) {
-		dev_err(info->dev, "pollForEvent: ERROR %08X\n", ERROR_TIMEOUT);
+		dev_err(info->dev, "%s: ERROR %08X, retry(%d/%d)\n",
+			__func__, ERROR_TIMEOUT, retry, time_to_count);
 		return ERROR_TIMEOUT;
 	} else if (find == 1) {
-		dev_info(info->dev, "%s\n",
+		dev_info(info->dev, "%s, retry(%d/%d)\n",
 			 printHex("FOUND EVENT = ",
 				  readData,
 				  FIFO_EVENT_SIZE,
 				  temp,
-				  sizeof(temp)));
+				  sizeof(temp)),
+				  retry, time_to_count);
 		memset(temp, 0, 128);
 		dev_dbg(info->dev, "Event found in %d ms (%d iterations)! Number of errors found = %d\n",
 			elapsedMillisecond(&clock), retry, count_err);
 		return count_err;
 	} else {
-		dev_err(info->dev, "pollForEvent: ERROR %08X\n", ERROR_BUS_R);
+		dev_err(info->dev, "%s: ERROR %08X, retry(%d/%d)\n",
+			__func__, ERROR_BUS_R, retry, time_to_count);
 		return ERROR_BUS_R;
 	}
 }
@@ -366,10 +370,18 @@ int setScanMode(struct fts_ts_info *info, u8 mode, u8 settings)
 	if (mode == SCAN_MODE_LOW_POWER)
 		size = 2;
 	ret = fts_write(info, cmd1, 7);
-	if(ret >= OK)
-		ret = fts_write(info, cmd, size);
-	/* use write instead of writeFw because can be called while the
-	 * interrupt are enabled */
+	if (ret >= OK) {
+		/* 1. Use fts_write() when interrupts enabled or device
+		 *    suspended and show the echo evnets in
+		 *    fts_status_event_handler().
+		 * 2. Use fts_writeFwCmd() to poll echo ACK when interrupts
+		 *    disabled.
+		 */
+		if (info->irq_enabled || !info->resume_bit)
+			ret = fts_write(info, cmd, size);
+		else
+			ret = fts_writeFwCmd(info, cmd, size);
+	}
 	if (ret < OK) {
 		dev_err(info->dev, "%s: write failed...ERROR %08X !\n",
 			 __func__, ret);
