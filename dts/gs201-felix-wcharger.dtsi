@@ -79,6 +79,12 @@
 		google,light_load;      /* Calibration light load */
 		google,ll-bpp-vout-not-set;
 
+		google,alignment_scalar_low_current = <200>;
+		google,alignment_scalar_high_current = <100>;
+		google,alignment_offset_low_current = <129000>;
+		google,alignment_offset_high_current = <139000>;
+		google,alignment_current_threshold = <500>;
+
 		p9xxx_gpio: p9xxx_gpio {
 			gpio-controller;
 			#gpio-cells = <2>;
