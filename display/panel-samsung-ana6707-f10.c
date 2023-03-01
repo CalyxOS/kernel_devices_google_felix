@@ -87,16 +87,15 @@ struct ana6707_f10_mode_data {
 struct ana6707_f10_panel {
 	/** @base: base panel struct */
 	struct exynos_panel base;
-
 	/** @early_exit: current early exit info */
 	struct ana6707_f10_early_exit early_exit;
-
+	/** @hw_idle_vrefresh: idle vrefresh rate effective in panel */
+	u32 hw_idle_vrefresh;
 	/**
 	 * @auto_mode_vrefresh: indicates current minimum refresh rate while in auto mode,
 	 *			if 0 it means that auto mode is not enabled
 	 */
 	u32 auto_mode_vrefresh;
-
 	/**
 	* @delayed_idle: indicates idle mode set is delayed due to idle_delay_ms,
 	*                we should avoid changing idle_mode when it's true
@@ -405,6 +404,7 @@ static void ana6707_f10_set_manual_mode(struct exynos_panel *ctx, const struct e
 
 	spanel->early_exit.status = EARLY_EXIT_OFF;
 	spanel->auto_mode_vrefresh = 0;
+	spanel->hw_idle_vrefresh = 0;
 }
 
 static void ana6707_f10_early_exit_enable(struct exynos_panel *ctx)
@@ -509,7 +509,7 @@ static void ana6707_f10_early_exit_post_enable(struct exynos_panel *ctx, bool fo
 	EXYNOS_DCS_WRITE_TABLE(ctx, lock_cmd_f0);
 
 	spanel->early_exit.status = EARLY_EXIT_ON;
-	spanel->auto_mode_vrefresh = idle_vrefresh;
+	spanel->hw_idle_vrefresh = idle_vrefresh;
 
 	if (force_update)
 		atomic_set(&spanel->early_exit.delayed, 0);
@@ -533,6 +533,8 @@ static void ana6707_f10_update_refresh_mode(struct exynos_panel *ctx, const stru
 
 	ana6707_f10_flush_pending_early_exit(ctx);
 
+	spanel->auto_mode_vrefresh = idle_vrefresh;
+
 	EXYNOS_DCS_WRITE_TABLE(ctx, unlock_cmd_f0);
 	if (idle_vrefresh) {
 		dev_dbg(ctx->dev, "%s: mode: %s with auto mode idle_vrefresh: %d\n", __func__,
@@ -552,9 +554,6 @@ static void ana6707_f10_update_refresh_mode(struct exynos_panel *ctx, const stru
 		ana6707_f10_set_manual_mode(ctx, pmode, exit_hlpm);
 	}
 	EXYNOS_DCS_WRITE_TABLE(ctx, lock_cmd_f0);
-
-	/* when mode is explicitly set (manual) panel idle effect would be disabled */
-	ctx->panel_idle_vrefresh = 0;
 }
 
 static void ana6707_f10_update_wrctrld(struct exynos_panel *ctx)
@@ -634,6 +633,7 @@ static int ana6707_f10_disable(struct drm_panel *panel)
 
 	/* clear the flag since early exit is disabled after init */
 	spanel->early_exit.status = EARLY_EXIT_OFF;
+	spanel->hw_idle_vrefresh = 0;
 
 	return exynos_panel_disable(panel);
 }
@@ -876,6 +876,8 @@ static bool ana6707_f10_set_self_refresh(struct exynos_panel *ctx, bool enable)
 			ana6707_f10_update_refresh_mode(ctx, mdata, pmode, idle_vrefresh, false);
 			return true;
 		}
+
+		ctx->panel_idle_vrefresh = ctx->self_refresh_active ? spanel->hw_idle_vrefresh : 0;
 		return false;
 	}
 
