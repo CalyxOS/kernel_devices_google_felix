@@ -70,9 +70,9 @@ static const struct exynos_dsi_cmd ea8182_f10_lp_low_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_EVT1|PANEL_REV_EVT1_1, 0xB7, 0x12, 0x06, 0xBC, 0x01, 0x00),
 	EXYNOS_DSI_CMD0_REV(lock_cmd_f0, PANEL_REV_LT(PANEL_REV_DVT1)),
 	EXYNOS_DSI_CMD_SEQ_DELAY_REV(PANEL_REV_LT(PANEL_REV_EVT1), 34, 0x53, 0x25),
-	EXYNOS_DSI_CMD_SEQ_DELAY_REV(PANEL_REV_GE(PANEL_REV_EVT1), 34, 0x53, 0x24),
-	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_EVT1|PANEL_REV_EVT1_1, 0x51, 0x07, 0xFF),
-	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_DVT1), 0x51, 0x00, 0x1A),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_EVT1), 0x53, 0x24),
+	EXYNOS_DSI_CMD_SEQ_DELAY_REV(PANEL_REV_EVT1|PANEL_REV_EVT1_1, 34, 0x51, 0x07, 0xFF),
+	EXYNOS_DSI_CMD_SEQ_DELAY_REV(PANEL_REV_GE(PANEL_REV_DVT1), 34, 0x51, 0x00, 0x1A),
 
 	EXYNOS_DSI_CMD(display_on, 0),
 };
@@ -83,8 +83,9 @@ static const struct exynos_dsi_cmd ea8182_f10_lp_high_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_EVT1|PANEL_REV_EVT1_1, 0xB0, 0xBC),
 	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_EVT1|PANEL_REV_EVT1_1, 0xB7, 0x02, 0x06, 0xBC, 0x01, 0x00),
 	EXYNOS_DSI_CMD0_REV(lock_cmd_f0, PANEL_REV_LT(PANEL_REV_DVT1)),
-	EXYNOS_DSI_CMD_SEQ_DELAY(34, 0x53, 0x24),
-	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_EVT1), 0x51, 0x07, 0xFF),
+	EXYNOS_DSI_CMD_SEQ_DELAY_REV(PANEL_REV_LT(PANEL_REV_EVT1), 34, 0x53, 0x24),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_EVT1), 0x53, 0x24),
+	EXYNOS_DSI_CMD_SEQ_DELAY_REV(PANEL_REV_GE(PANEL_REV_EVT1), 34, 0x51, 0x07, 0xFF),
 
 	EXYNOS_DSI_CMD(display_on, 0),
 };
@@ -120,8 +121,18 @@ static DEFINE_EXYNOS_CMD_SET(ea8182_f10_init);
 static void ea8182_f10_change_frequency(struct exynos_panel *ctx,
 				     unsigned int vrefresh)
 {
-	if (!ctx || (vrefresh != 60 && vrefresh != 120))
+	if (!ctx || (vrefresh != 30 && vrefresh != 60 && vrefresh != 120))
 		return;
+
+	/* We need to set the default 60Hz setting before going into AoD */
+	if (vrefresh == 30) {
+		if (ctx->panel_rev >= PANEL_REV_DVT1) {
+			vrefresh = 60;
+			dev_dbg(ctx->dev, "%s: set to default refresh rate\n", __func__);
+		} else {
+			return;
+		}
+	}
 
 	EXYNOS_DCS_WRITE_SEQ(ctx, 0x60, (vrefresh == 120) ? 0x08 : 0x00, 0x00);
 	EXYNOS_DCS_WRITE_SEQ(ctx, 0xEB, 0x14, 0x00);
