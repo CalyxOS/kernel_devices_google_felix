@@ -75,7 +75,7 @@
 		fod_epp_comp = [99 7f 99 7f 95 7e 98 6c 95 72 97 69 01 01 FF 19];
 		google,fod_fsw_base;
 		google,fod_fsw_high_thres = <141>;
-		google,fod_fsw_low_thres = <137>;
+		google,fod_fsw_low_thres = <140>;
 		google,light_load;      /* Calibration light load */
 
 		p9xxx_gpio: p9xxx_gpio {
