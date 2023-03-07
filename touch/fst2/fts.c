@@ -78,30 +78,19 @@ extern struct test_to_do tests;
 #define TYPE_B_PROTOCOL
 #endif
 
+/* Refer to 2.1.4 Status Event Summary */
 static char *event_type_str[EVT_TYPE_STATUS_MAX_NUM] = {
-	"",				// 0x00
-	"Echo event of command",	// 0x01
-	"GPIO Charger Detect",		// 0x02
-	"Frame Drop",			// 0x03
-	"",				// 0x04
-	"Force Cal",			// 0x05
-	"Water Mode",			// 0x06
-	"SS Raw Saturated",		// 0x07
-	"Previous Water",		// 0x08
-	"Noise Status Event",		// 0x09
-	"Stimpad Status Event",		// 0x0A
-	"No Touch Status Event",	// 0x0B
-	"Idle Status Event",		// 0x0C
-	"Palm touch status",		// 0x0D
-	"Grip touch status",		// 0x0E
-	"Golden Raw Validation",	// 0x0F
-	"",				// 0x10
-	"",				// 0x11
-	"",				// 0x12
-	"",				// 0x13
-	"",				// 0x14
-	"",				// 0x15
-	"Golden Raw Data Abnormal"	// 0x16
+	[EVT_TYPE_STATUS_ECHO] = "Echo",
+	[EVT_TYPE_STATUS_GPIO_CHAR_DET] = "GPIO Charger Detect",
+	[EVT_TYPE_STATUS_FRAME_DROP] = "Frame Drop",
+	[EVT_TYPE_STATUS_FORCE_CAL] = "Force Cal",
+	[EVT_TYPE_STATUS_WATER] = "Water Mode",
+	[EVT_TYPE_STATUS_NOISE] = "Noise Status",
+	[EVT_TYPE_STATUS_PALM_TOUCH] = "Palm Status",
+	[EVT_TYPE_STATUS_GRIP_TOUCH] = "Grip Status",
+	[EVT_TYPE_STATUS_GOLDEN_RAW_ERR] = "Golden Raw Data Abnormal",
+	[EVT_TYPE_STATUS_INV_GESTURE] = "Invalid Gesture",
+	[EVT_TYPE_STATUS_HIGH_SENS] = "High Sensitivity Mode",
 };
 
 static void fts_pinctrl_setup(struct fts_ts_info *info, bool active);
@@ -735,9 +724,8 @@ static void fts_status_event_handler(struct fts_ts_info *info, u8 *event)
 
 	case EVT_TYPE_STATUS_GPIO_CHAR_DET:
 	case EVT_TYPE_STATUS_FRAME_DROP:
-	case EVT_TYPE_STATUS_NO_TOUCH:
-	case EVT_TYPE_STATUS_IDLE:
 	case EVT_TYPE_STATUS_GOLDEN_RAW_ERR:
+	case EVT_TYPE_STATUS_INV_GESTURE:
 		log_status_event(1, event);
 		break;
 
@@ -752,27 +740,15 @@ static void fts_status_event_handler(struct fts_ts_info *info, u8 *event)
 			break;
 
 		case 0x10:
-			log_status_event2(1, "mutual frame drop", event);
+			log_status_event2(1, "frame drop", event);
 			break;
 
 		case 0x11:
-			log_status_event2(1, "mutual pure raw", event);
+			log_status_event2(1, "pure raw", event);
 			break;
 
 		case 0x20:
-			log_status_event2(1, "self detect negative", event);
-			break;
-
-		case 0x21:
-			log_status_event2(1, "self touch negative", event);
-			break;
-
-		case 0x22:
-			log_status_event2(1, "self detect frame flatness", event);
-			break;
-
-		case 0x23:
-			log_status_event2(1, "self touch frame flatness", event);
+			log_status_event2(1, "ss detect negative strength", event);
 			break;
 
 		case 0x30:
@@ -780,23 +756,11 @@ static void fts_status_event_handler(struct fts_ts_info *info, u8 *event)
 			break;
 
 		case 0x31:
-			log_status_event2(1, "invalid differential mutual", event);
+			log_status_event2(1, "invalid self", event);
 			break;
 
 		case 0x32:
-			log_status_event2(1, "invalid Self", event);
-			break;
-
-		case 0x33:
-			log_status_event2(1, "invalid self island", event);
-			break;
-
-		case 0x34:
-			log_status_event2(1, "invalid Self force touch", event);
-			break;
-
-		case 0x35:
-			log_status_event2(1, "mutual frame flatness", event);
+			log_status_event2(1, "invalid self islands", event);
 			break;
 
 		default:
@@ -805,15 +769,8 @@ static void fts_status_event_handler(struct fts_ts_info *info, u8 *event)
 		}
 		break;
 
-	case EVT_TYPE_STATUS_SS_RAW_SAT:
-		if (event[2] == 1)
-			log_status_event2(1, "saturated", event);
-		else
-			log_status_event2(1, "no more saturated", event);
-		break;
-
 	case EVT_TYPE_STATUS_WATER:
-	case EVT_TYPE_STATUS_PRE_WAT_DET:
+	case EVT_TYPE_STATUS_HIGH_SENS:
 		if (event[2] == 1)
 			log_status_event2(1, "entry", event);
 		else
@@ -888,22 +845,6 @@ static void fts_status_event_handler(struct fts_ts_info *info, u8 *event)
 			break;
 		}
 	}
-		break;
-
-	case EVT_TYPE_STATUS_GOLDEN_RAW_VAL:
-		switch (event[2]) {
-		case 0x01:
-			log_status_event2(1, "pass", event);
-			break;
-
-		case 0x02:
-			log_status_event2(1, "fail", event);
-			break;
-
-		default:
-			log_status_event2(1, "unknown event", event);
-			break;
-		}
 		break;
 
 	default:

@@ -207,20 +207,15 @@
 #define EVT_TYPE_STATUS_FORCE_CAL	0x05	/* /< Force Calibration has
 						 * triggered */
 #define EVT_TYPE_STATUS_WATER		0x06	/* /< Water Mode */
-#define EVT_TYPE_STATUS_SS_RAW_SAT	0x07	/* /< Self Sense data saturated */
-#define EVT_TYPE_STATUS_PRE_WAT_DET	0x08	/* /< Previous Water Detect* */
-#define EVT_TYPE_STATUS_NOISE		0x09	/* /< Noise Status* */
-#define EVT_TYPE_STATUS_STIMPAD		0x0A	/* /< Stimpad Status* */
-#define EVT_TYPE_STATUS_NO_TOUCH	0x0B	/* /< No Touch Status* */
-#define EVT_TYPE_STATUS_IDLE		0x0C	/* /< Idle Status* */
-#define EVT_TYPE_STATUS_PALM_TOUCH	0x0D	/* /< Palm Touch Status* */
-#define EVT_TYPE_STATUS_GRIP_TOUCH	0x0E	/* /< Grip Touch Status* */
-#define EVT_TYPE_STATUS_GOLDEN_RAW_VAL	0x0F	/* /< Golden Raw
-						 * Validation Status */
-#define EVT_TYPE_STATUS_GOLDEN_RAW_ERR	0x16	/* /< Golden Raw
-						 * Data Abnormal */
-#define EVT_TYPE_STATUS_MAX_NUM		EVT_TYPE_STATUS_GOLDEN_RAW_ERR + 1 /* /Max
-						 * status string1 number*/
+#define EVT_TYPE_STATUS_NOISE		0x09	/* /< Noise Status */
+#define EVT_TYPE_STATUS_PALM_TOUCH	0x0D	/* /< Palm Touch Status */
+#define EVT_TYPE_STATUS_GRIP_TOUCH	0x0E	/* /< Grip Touch Status */
+#define EVT_TYPE_STATUS_GOLDEN_RAW_ERR	0x17	/* /< Abnormal golden ms raw */
+#define EVT_TYPE_STATUS_INV_GESTURE	0x18	/* /< Invalid gesture */
+#define EVT_TYPE_STATUS_HIGH_SENS	0x1A	/* /< High sensitivity mode */
+
+#define EVT_TYPE_STATUS_MAX_NUM		(EVT_TYPE_STATUS_HIGH_SENS + 1)
+					/* /< Max event type number */
 
 /** @} */
 
