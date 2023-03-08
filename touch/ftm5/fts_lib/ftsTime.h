@@ -37,7 +37,10 @@
 #define RELEASE_INFO_TIMEOUT			(2 * TIMEOUT_RESOLUTION)
 /* /< timeout to request release info in ms */
 
-
+#define TIMEOUT_CMD_CUSTOM_W			(1 * TIMEOUT_RESOLUTION)
+/* /< timeout to perform custom write cmd in ms */
+#define TIMEOUT_CMD_SCAN_MODE			(1 * TIMEOUT_RESOLUTION)
+/* /< timeout to perform scan mode cmd in ms */
 #define TIMEOUT_REQU_COMP_DATA			(4 * TIMEOUT_RESOLUTION)
 /* /< timeout to request compensation data in ms */
 #define TIMEOUT_REQU_DATA			(8 * TIMEOUT_RESOLUTION)

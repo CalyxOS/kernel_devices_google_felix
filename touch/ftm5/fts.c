@@ -2725,6 +2725,7 @@ static int set_screen_protector_mode(
 	u8 enable;
 	int ret;
 
+	dev_info(info->dev, "%s: setting %u.\n", __func__, cmd->setting);
 	enable = cmd->setting == GTI_SCREEN_PROTECTOR_MODE_ENABLE ? 1 : 0;
 
 	write[0] = (u8) FTS_CMD_CUSTOM_W;
@@ -2745,12 +2746,10 @@ static int set_screen_protector_mode(
 	else
 		ret = fts_writeFwCmd(info, write, sizeof(write));
 	if (ret) {
-		dev_err(info->dev, "Failed to %s screen protector mode.\n",
-			enable ? "enable" : "disable");
+		dev_err(info->dev, "%s: failed(ret: %d)!\n", __func__, ret);
 	} else {
 		info->glove_enabled = enable;
-		dev_info(info->dev, "%s screen protector mode.\n",
-			info->glove_enabled ? "Enable" : "Disable");
+		dev_info(info->dev, "%s: ok.\n", __func__);
 	}
 
 	return ret;
@@ -2785,6 +2784,7 @@ static int set_grip_mode(void *private_data, struct gti_grip_cmd *cmd)
 	u8 enable;
 	int ret;
 
+	dev_info(info->dev, "%s: setting %u.\n", __func__, cmd->setting);
 	enable = cmd->setting == GTI_GRIP_ENABLE ? 1 : 0;
 
 	write[0] = (u8) FTS_CMD_CUSTOM_W;
@@ -2795,12 +2795,10 @@ static int set_grip_mode(void *private_data, struct gti_grip_cmd *cmd)
 
 	ret = fts_write(info, write, sizeof(write));
 	if (ret) {
-		dev_err(info->dev, "Failed to %s firmware grip suppression.\n",
-			enable ? "enable" : "disable");
+		dev_err(info->dev, "%s: failed(ret: %d)!\n", __func__, ret);
 	} else {
 		info->grip_enabled = enable;
-		dev_info(info->dev, "%s firmware grip suppression.\n",
-			info->grip_enabled ? "Enable" : "Disable");
+		dev_info(info->dev, "%s: ok.\n", __func__);
 	}
 
 	return ret;
@@ -2833,6 +2831,7 @@ static int set_palm_mode(void *private_data, struct gti_palm_cmd *cmd)
 	u8 enable;
 	int ret;
 
+	dev_info(info->dev, "%s: setting %u.\n", __func__, cmd->setting);
 	enable = cmd->setting == GTI_PALM_ENABLE ? 1 : 0;
 
 	write[0] = (u8) FTS_CMD_CUSTOM_W;
@@ -2841,12 +2840,10 @@ static int set_palm_mode(void *private_data, struct gti_palm_cmd *cmd)
 
 	ret = fts_write(info, write, sizeof(write));
 	if (ret) {
-		dev_err(info->dev, "Failed to %s firmware palm rejection.\n",
-			enable ? "enable" : "disable");
+		dev_err(info->dev, "%s: failed(ret: %d)!\n", __func__, ret);
 	} else {
 		info->palm_enabled = enable;
-		dev_info(info->dev, "%s firmware palm rejection.\n",
-			info->palm_enabled ? "Enable" : "Disable");
+		dev_info(info->dev, "%s: ok.\n", __func__);
 	}
 
 	return ret;
@@ -3241,11 +3238,11 @@ static bool fts_status_event_handler(struct fts_ts_info *info, unsigned
 	case EVT_TYPE_STATUS_ECHO:
 		if (event[2] == FTS_CMD_CUSTOM_W &&
 			event[3] == CUSTOM_CMD_CONTINUOUS_REPORT) {
-			dev_dbg(info->dev, "%s: Echo event of command = %02X %02X %02X %02X %02X %02X\n",
+			dev_dbg(info->dev, "%s: Echo = %02X %02X %02X %02X %02X %02X\n",
 				__func__, event[2], event[3], event[4], event[5],
 				event[6], event[7]);
 		} else {
-			dev_info(info->dev, "%s: Echo event of command = %02X %02X %02X %02X %02X %02X\n",
+			dev_info(info->dev, "%s: Echo = %02X %02X %02X %02X %02X %02X\n",
 				__func__, event[2], event[3], event[4], event[5],
 				event[6], event[7]);
 		}
