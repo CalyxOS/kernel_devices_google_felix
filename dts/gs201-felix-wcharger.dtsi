@@ -77,6 +77,7 @@
 		google,fod_fsw_high_thres = <141>;
 		google,fod_fsw_low_thres = <137>;
 		google,light_load;      /* Calibration light load */
+		google,ll-bpp-vout-not-set;
 
 		p9xxx_gpio: p9xxx_gpio {
 			gpio-controller;
