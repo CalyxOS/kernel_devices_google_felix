@@ -150,7 +150,8 @@ cat /proc/fts/driver_test ==> Prevent the driver
 from transitioning the ownership of the bus to SLPI.
 Single parameter indicates force touch state */
 
-
+/* The string length when there is no data to print. */
+#define NO_DATA_STRING_LEN 14
 
 static int limit;	/* /< store the amount of data to print into the shell*/
 static int chunk;	/* /< store the chuk of data that should be printed in
@@ -184,8 +185,12 @@ static void *fts_seq_start(struct seq_file *s, loff_t *pos)
 
 	if (test_print_buff == NULL && *pos == 0) {
 		LOGI("%s: No data to print!\n", __func__);
-		test_print_buff = (u8 *)kmalloc(13 * sizeof(u8), GFP_KERNEL);
-		snprintf(test_print_buff, 14, "{ %08X }\n", ERROR_OP_NOT_ALLOW);
+		test_print_buff = (u8 *)kmalloc(NO_DATA_STRING_LEN * sizeof(u8), GFP_KERNEL);
+		if (test_print_buff == NULL) {
+			LOGE("%s: Error allocating memory\n", __func__);
+			return NULL;
+		}
+		snprintf(test_print_buff, NO_DATA_STRING_LEN, "{ %08X }\n", ERROR_OP_NOT_ALLOW);
 		limit = strlen(test_print_buff);
 	} else {
 		if (*pos != 0)
