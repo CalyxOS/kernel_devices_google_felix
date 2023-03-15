@@ -526,13 +526,18 @@ int fts_writeFwCmd(struct fts_ts_info *info, u8 *cmd, int cmdLength)
 		mutex_lock(&info->io_mutex);
 		ret_write = fts_write_internal(info, cmd, cmdLength, false);
 		mutex_unlock(&info->io_mutex);
-		retry++;
 		if (ret_write >= OK) {
 			ret_echo = checkEcho(info, cmd, cmdLength);
 			if (ret_echo >= OK)
 				break;
 		}
+		retry++;
 		mdelay(I2C_WAIT_BEFORE_RETRY);
+	}
+
+	if (retry) {
+		dev_warn(info->dev, "%s: retry %d for cmd %*ph!",
+			__func__, retry, min(4, cmdLength), cmd);
 	}
 	if (ret_write < OK) {
 		dev_err(info->dev, "fts_writeFwCmd: ERROR %08X\n", ERROR_BUS_W);

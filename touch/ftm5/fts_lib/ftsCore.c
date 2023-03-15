@@ -213,7 +213,8 @@ int pollForEvent(struct fts_ts_info *info, int *event_to_search,
 		if (readData[0] == NO_RESPONSE ||
 		    readData[0] == EVT_ID_NOEVENT) {
 			/* No events available, so sleep briefly */
-			msleep(POLL_SLEEP_TIME_MS);
+			usleep_range(POLL_SLEEP_TIME_MS * USEC_PER_MSEC,
+				POLL_SLEEP_TIME_MS * USEC_PER_MSEC + 100);
 			retry++;
 			continue;
 		} else if (readData[0] == EVT_ID_ERROR) {
@@ -301,9 +302,12 @@ int checkEcho(struct fts_ts_info *info, u8 *cmd, int size)
 
 
 	if (size < 1) {
-		dev_err(info->dev, "checkEcho: Error Size = %d not valid!\n", size);
+		dev_err(info->dev, "%s: Error Size = %d not valid for cmd %*ph!\n",
+			__func__, size, min(4, size), cmd);
 		return ERROR_OP_NOT_ALLOW;
 	} else {
+		int timeout = GENERAL_TIMEOUT;
+
 		if ((size + 4) > FIFO_EVENT_SIZE)
 			size = FIFO_EVENT_SIZE - 4;
 		/* Echo event 0x43 0x01 xx xx xx xx xx fifo_status
@@ -316,33 +320,36 @@ int checkEcho(struct fts_ts_info *info, u8 *cmd, int size)
 		if ((cmd[0] == FTS_CMD_SYSTEM) &&
 			(cmd[1] == SYS_CMD_SPECIAL) &&
 			((cmd[2] == SPECIAL_FULL_PANEL_INIT) ||
-			(cmd[2] == SPECIAL_PANEL_INIT)))
-			ret = pollForEvent(info, event_to_search, size + 2,
-				   readData, TIMEOUT_ECHO_FPI);
-		else if ((cmd[0] == FTS_CMD_SYSTEM) &&
-			(cmd[1] == SYS_CMD_CX_TUNING))
-			ret = pollForEvent(info, event_to_search, size + 2,
-				   readData,
-				   TIMEOUT_ECHO_SINGLE_ENDED_SPECIAL_AUTOTUNE);
-		else if (cmd[0] == FTS_CMD_SYSTEM &&
+			(cmd[2] == SPECIAL_PANEL_INIT))) {
+			timeout = TIMEOUT_ECHO_FPI;
+		} else if ((cmd[0] == FTS_CMD_SYSTEM) &&
+			(cmd[1] == SYS_CMD_CX_TUNING)) {
+			timeout = TIMEOUT_ECHO_SINGLE_ENDED_SPECIAL_AUTOTUNE;
+		} else if (cmd[0] == FTS_CMD_SYSTEM &&
 			 cmd[1] == SYS_CMD_SPECIAL &&
-			 cmd[2] == SPECIAL_FIFO_FLUSH)
-			ret = pollForEvent(info, event_to_search, size + 2,
-				   readData, TIMEOUT_ECHO_FLUSH);
-		else
-			ret = pollForEvent(info, event_to_search, size + 2,
-				   readData, TIEMOUT_ECHO);
+			 cmd[2] == SPECIAL_FIFO_FLUSH) {
+			timeout = TIMEOUT_ECHO_FLUSH;
+		} else if (cmd[0] == FTS_CMD_CUSTOM_W) {
+			timeout = TIMEOUT_CMD_CUSTOM_W;
+		} else if (cmd[0] == FTS_CMD_SCAN_MODE) {
+			timeout = TIMEOUT_CMD_SCAN_MODE;
+		} else {
+			timeout = TIEMOUT_ECHO;
+		}
+
+		ret = pollForEvent(info, event_to_search, size + 2,
+				readData, timeout);
 		if (ret < OK) {
-			dev_err(info->dev, "checkEcho: Echo Event not found! ERROR %08X\n",
-				ret);
+			dev_err(info->dev, "%s: Echo Event not found(ERROR %08X) for cmd %*ph!\n",
+				__func__, ret, min(4, size), cmd);
 			return ret | ERROR_CHECK_ECHO_FAIL;
 		} else if (ret > OK) {
-			dev_err(info->dev, "checkEcho: Echo Event found but with some error events before! num_error = %d\n",
-				ret);
+			dev_err(info->dev, "%s: Echo Event found with errors(ret %d) for cmd %*ph!\n",
+				__func__, ret, min(4, size), cmd);
 			return ERROR_CHECK_ECHO_FAIL;
 		}
 
-		dev_info(info->dev, "ECHO OK!\n");
+		dev_info(info->dev, "ECHO OK for cmd %*ph.\n", min(4, size), cmd);
 		return ret;
 	}
 }
