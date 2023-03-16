@@ -50,6 +50,8 @@
 				google,ttf-soc-table =  <49 71 88 91  93  100>;
 				google,ttf-elap-table = <41 55 79 106 147 178>;
 				google,ttf-tier-table = <0 50 74>;
+
+				google,fan-bt-limits = <280 290 300 320>;
 			};
 
 			google_dual_batt_gauge: google,dual_batt_gauge {
