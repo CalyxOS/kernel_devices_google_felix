@@ -107,8 +107,8 @@ struct ana6707_f10_panel {
 
 #define to_spanel(ctx) container_of(ctx, struct ana6707_f10_panel, base)
 
-static const unsigned char PPS_SETTING[] = {
-	0x11, 0x00, 0x00, 0x89, 0x30, 0x80, 0x08, 0xA0,
+static const u8 pps_setting[] = {
+	0x9E, 0x11, 0x00, 0x00, 0x89, 0x30, 0x80, 0x08, 0xA0,
 	0x07, 0x30, 0x00, 0x20, 0x03, 0x98, 0x03, 0x98,
 	0x02, 0x00, 0x03, 0x1A, 0x00, 0x20, 0x03, 0x87,
 	0x00, 0x0C, 0x00, 0x0E, 0x03, 0x9D, 0x01, 0xDA,
@@ -653,7 +653,7 @@ static int ana6707_f10_enable(struct drm_panel *panel)
 	EXYNOS_DCS_WRITE_SEQ_DELAY(ctx, 10, 0x11); /* sleep out: 10ms delay */
 
 	exynos_dcs_compression_mode(ctx, 0x1); /* DSC_DEC_ON */
-	EXYNOS_PPS_LONG_WRITE(ctx); /* PPS_SETTING */
+	EXYNOS_DCS_WRITE_TABLE(ctx, pps_setting);
 	EXYNOS_DCS_WRITE_TABLE(ctx, update_key);
 
 	EXYNOS_DCS_WRITE_SEQ(ctx, 0x35); /* TE on */
@@ -1305,8 +1305,6 @@ const struct brightness_capability ana6707_f10_brightness_capability = {
 };
 
 const struct exynos_panel_desc samsung_ana6707_f10 = {
-	.dsc_pps = PPS_SETTING,
-	.dsc_pps_len = ARRAY_SIZE(PPS_SETTING),
 	.data_lane_cnt = 4,
 	.max_brightness = 3320,
 	.min_brightness = 7,
