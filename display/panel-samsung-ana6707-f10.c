@@ -1022,7 +1022,7 @@ static int ana6707_f10_set_power(struct exynos_panel *ctx, bool enable)
 				dev_err(ctx->dev, "vci enable failed\n");
 				return ret;
 			}
-			usleep_range(10000, 10010);
+			usleep_range(20000, 20010);
 		}
 	} else {
 		gpiod_set_value(ctx->reset_gpio, 0);
