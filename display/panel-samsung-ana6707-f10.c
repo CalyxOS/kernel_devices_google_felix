@@ -584,14 +584,11 @@ static void ana6707_f10_change_frequency(struct exynos_panel *ctx,
 static void ana6707_f10_set_nolp_mode(struct exynos_panel *ctx,
 				  const struct exynos_panel_mode *pmode)
 {
-	unsigned int vrefresh = drm_mode_vrefresh(&pmode->mode);
-	u32 delay_us = mult_frac(1000, 1020, vrefresh);
-
 	if (!ctx->enabled)
 		return;
 
 	EXYNOS_DCS_WRITE_TABLE(ctx, display_off);
-	usleep_range(delay_us, delay_us + 10);
+	usleep_range(34000, 34010);
 	EXYNOS_DCS_WRITE_TABLE(ctx, unlock_cmd_f0);
 
 	if (ctx->panel_rev == PANEL_REV_PROTO1) {
@@ -606,7 +603,7 @@ static void ana6707_f10_set_nolp_mode(struct exynos_panel *ctx,
 	EXYNOS_DCS_WRITE_TABLE(ctx, update_key);
 	EXYNOS_DCS_WRITE_TABLE(ctx, lock_cmd_f0);
 	ana6707_f10_change_frequency(ctx, pmode, true);
-	usleep_range(delay_us, delay_us + 10);
+	usleep_range(34000, 34010);
 	EXYNOS_DCS_WRITE_TABLE(ctx, display_on);
 
 	dev_info(ctx->dev, "exit LP mode\n");
