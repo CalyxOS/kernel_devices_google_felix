@@ -147,12 +147,21 @@ static const u8 pixel_off[] = { 0x22 };
 static const u8 normal_on[] = { 0x13 };
 
 static const struct exynos_dsi_cmd ana6707_f10_off_cmds[] = {
-	EXYNOS_DSI_CMD_SEQ(0xF0, 0x5A, 0x5A),
-	EXYNOS_DSI_CMD_SEQ(0xB0, 0x10),
-	EXYNOS_DSI_CMD_SEQ(0xEF, 0x03, 0x03),
-	EXYNOS_DSI_CMD_SEQ(0xF7, 0x07),
-	EXYNOS_DSI_CMD_SEQ(0xF0, 0xA5, 0xA5),
-	EXYNOS_DSI_CMD(display_off, 20),
+	EXYNOS_DSI_CMD_REV(display_off, 20, PANEL_REV_LT(PANEL_REV_DVT1)),
+	EXYNOS_DSI_CMD_REV(display_off, 0, PANEL_REV_GE(PANEL_REV_DVT1)),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_DVT1), 0xB0, 0x0E),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_DVT1), 0xF3, 0x10),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_DVT1), 0xB0, 0x9B),
+	/* VLIN 7.9V */
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_DVT1), 0xF3, 0x23, 0x02),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_DVT1), 0xB0, 0x9A),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_DVT1), 0xF3, 0xF6),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_DVT1), 0xB0, 0x16),
+	/* VGH 7.4V */
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_DVT1), 0xF4, 0x30, 0x22),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_DVT1), 0xB0, 0x1B),
+	/* VREG 5.9V */
+	EXYNOS_DSI_CMD_SEQ_DELAY_REV(PANEL_REV_GE(PANEL_REV_DVT1), 20, 0xF4, 0x0E),
 	EXYNOS_DSI_CMD(sleep_in, 120),
 };
 static DEFINE_EXYNOS_CMD_SET(ana6707_f10_off);
@@ -352,6 +361,47 @@ static const struct ana6707_f10_mode_data ana6707_f10_mode_60 = {
 	.manual_mode_cmd_set = &ana6707_f10_60hz_manual_mode_cmd_set,
 	.manual_mode_hlpm_cmd_set = &ana6707_f10_60hz_manual_mode_hlpm_cmd_set,
 };
+
+static void ana6707_f10_set_voltage(struct exynos_panel *ctx, bool enable)
+{
+	if (ctx->panel_rev < PANEL_REV_DVT1)
+		return;
+
+	dev_dbg(ctx->dev, "%s enable = %d\n", __func__, enable);
+	EXYNOS_DCS_WRITE_TABLE(ctx, unlock_cmd_f0);
+
+	if (enable) {
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x0E);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xF3, 0x10);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x9B);
+		/* VLIN 7.3V */
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xF3, 0x23, 0x0E);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x9A);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xF3, 0xF6);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x16);
+		/* VGH 6.7V */
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xF4, 0x00, 0xBB);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x1B);
+		/* VREG 6.5V */
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xF4, 0x14);
+	} else {
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x0E);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xF3, 0x10);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x9B);
+		/* VLIN 7.9V */
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xF3, 0x23, 0x02);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x9A);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xF3, 0xF6);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x16);
+		/* VGH 7.4V */
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xF4, 0x30, 0x22);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x1B);
+		/* VREG 5.9V */
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xF4, 0x0E);
+	}
+
+	EXYNOS_DCS_WRITE_TABLE(ctx, lock_cmd_f0);
+}
 
 static inline bool is_auto_mode_preferred(struct exynos_panel *ctx)
 {
@@ -659,6 +709,8 @@ static int ana6707_f10_enable(struct drm_panel *panel)
 
 	EXYNOS_DCS_WRITE_SEQ_DELAY(ctx, 10, 0x11); /* sleep out: 10ms delay */
 
+	ana6707_f10_set_voltage(ctx, false);
+
 	exynos_dcs_compression_mode(ctx, 0x1); /* DSC_DEC_ON */
 	EXYNOS_DCS_WRITE_TABLE(ctx, pps_setting);
 	EXYNOS_DCS_WRITE_TABLE(ctx, update_key);
@@ -703,6 +755,8 @@ static int ana6707_f10_enable(struct drm_panel *panel)
 	}
 
 	EXYNOS_DCS_WRITE_SEQ_DELAY(ctx, delay, 0x53, 0x20); /* backlight control */
+
+	ana6707_f10_set_voltage(ctx, true);
 
 	ctx->enabled = true;
 	if (pmode->exynos_mode.is_lp_mode) {
