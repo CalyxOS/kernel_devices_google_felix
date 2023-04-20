@@ -103,6 +103,11 @@ struct ana6707_f10_panel {
 	bool delayed_idle;
 	/** @tzd: thermal zone struct */
 	struct thermal_zone_device *tzd;
+	/**
+	 * @is_pixel_off: pixel-off command is sent to panel. Only sending normal-on or resetting
+	 *			panel can recover to normal mode after entering pixel-off state.
+	 */
+	bool is_pixel_off;
 };
 
 #define to_spanel(ctx) container_of(ctx, struct ana6707_f10_panel, base)
@@ -138,6 +143,8 @@ static const u8 sleep_in[] = { MIPI_DCS_ENTER_SLEEP_MODE };
 static const u8 early_exit_global_para[] = { 0xB0, 0x05 };
 static const u8 mode_set_60hz[] = { 0x60, 0x08 };
 static const u8 mode_set_120hz[] = { 0x60, 0x00 };
+static const u8 pixel_off[] = { 0x22 };
+static const u8 normal_on[] = { 0x13 };
 
 static const struct exynos_dsi_cmd ana6707_f10_off_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(0xF0, 0x5A, 0x5A),
@@ -1052,6 +1059,43 @@ static int ana6707_f10_set_power(struct exynos_panel *ctx, bool enable)
 	return 0;
 }
 
+static int ana6707_f10_set_brightness(struct exynos_panel *ctx, u16 br)
+{
+	u16 brightness;
+	struct ana6707_f10_panel *spanel = to_spanel(ctx);
+
+	if (ctx->current_mode->exynos_mode.is_lp_mode) {
+		const struct exynos_panel_funcs *funcs;
+
+		/* don't stay at pixel-off state in AOD, or black screen is possibly seen */
+		if (spanel->is_pixel_off) {
+			EXYNOS_DCS_WRITE_TABLE(ctx, normal_on);
+			spanel->is_pixel_off = false;
+		}
+		funcs = ctx->desc->exynos_panel_func;
+		if (funcs && funcs->set_binned_lp)
+			funcs->set_binned_lp(ctx, br);
+		return 0;
+	}
+
+	/* Use pixel off command instead of setting DBV 0 */
+	if (!br) {
+		if (!spanel->is_pixel_off) {
+			EXYNOS_DCS_WRITE_TABLE(ctx, pixel_off);
+			spanel->is_pixel_off = true;
+			dev_dbg(ctx->dev, "%s: pixel off instead of dbv 0\n", __func__);
+		}
+		return 0;
+	} else if (br && spanel->is_pixel_off) {
+		EXYNOS_DCS_WRITE_TABLE(ctx, normal_on);
+		spanel->is_pixel_off = false;
+	}
+
+	brightness = (br & 0xff) << 8 | br >> 8;
+
+	return exynos_dcs_set_brightness(ctx, brightness);
+}
+
 static const struct exynos_display_underrun_param underrun_param = {
 	.te_idle_us = 350,
 	.te_var = 1,
@@ -1234,6 +1278,7 @@ static int ana6707_f10_panel_probe(struct mipi_dsi_device *dsi)
 
 	spanel->auto_mode_vrefresh = 0;
 	spanel->delayed_idle = false;
+	spanel->is_pixel_off = false;
 	spanel->tzd = thermal_zone_device_register("inner-disp",
 				0, 0, spanel, &spanel_tzd_ops, NULL, 0, 0);
 	if (IS_ERR(spanel->tzd))
@@ -1258,7 +1303,7 @@ static const struct drm_panel_funcs ana6707_f10_drm_funcs = {
 };
 
 static const struct exynos_panel_funcs ana6707_f10_exynos_funcs = {
-	.set_brightness = exynos_panel_set_brightness,
+	.set_brightness = ana6707_f10_set_brightness,
 	.set_lp_mode = ana6707_f10_set_lp_mode,
 	.set_binned_lp = exynos_panel_set_binned_lp,
 	.set_nolp_mode = ana6707_f10_set_nolp_mode,
