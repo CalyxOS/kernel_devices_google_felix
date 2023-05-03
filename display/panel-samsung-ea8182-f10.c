@@ -20,6 +20,35 @@
 #define EA8182_F10_WRCTRLD_BCTRL_BIT      0x20
 #define EA8182_F10_WRCTRLD_HBM_BIT        0xE0
 
+#define VLIN1_CMD_SIZE  2
+#define VGH_CMD_SIZE    4
+#define VREG_CMD_SIZE  11
+/**
+ * struct ea8182_f10_panel - panel specific runtime info
+ *
+ * This struct maintains ea8182_f10 panel specific runtime info, any fixed details about panel
+ * should most likely go into struct exynos_panel_desc
+ */
+struct ea8182_f10_panel {
+	/** @base: base panel struct */
+	struct exynos_panel base;
+
+	/** @panel_voltage: panel default voltage  */
+	struct panel_voltage {
+		u8 vlin1_default[VLIN1_CMD_SIZE];
+		u8 vgh_default[VGH_CMD_SIZE];
+		u8 vreg_default[VREG_CMD_SIZE];
+		u8 vreg_offset[VREG_CMD_SIZE];
+	} panel_voltage;
+	/**
+	 * @is_pixel_off: pixel-off command is sent to panel. Only sending normal-on or resetting
+	 *			panel can recover to normal mode after entering pixel-off state.
+	 */
+	bool is_pixel_off;
+};
+
+#define to_spanel(ctx) container_of(ctx, struct ea8182_f10_panel, base)
+
 static const u8 pps_setting[] = {
 	0x9E, 0x11, 0x00, 0x00, 0x89, 0x30, 0x80, 0x08, 0x2C,
 	0x04, 0x38, 0x02, 0x0B, 0x02, 0x1C, 0x02, 0x1C,
@@ -42,9 +71,13 @@ static const u8 pps_setting[] = {
 static const u8 display_off[] = { MIPI_DCS_SET_DISPLAY_OFF };
 static const u8 display_on[] = { MIPI_DCS_SET_DISPLAY_ON };
 static const u8 sleep_in[] = { MIPI_DCS_ENTER_SLEEP_MODE };
+static const u8 sleep_out[] = { MIPI_DCS_EXIT_SLEEP_MODE };
 static const u8 unlock_cmd_f0[] = { 0xF0, 0x5A, 0x5A };
-static const u8 lock_cmd_f0[]   = { 0xF0, 0xA5, 0xA5 };
-
+static const u8 lock_cmd_f0[] = { 0xF0, 0xA5, 0xA5 };
+static const u8 vlin1_7v9[] = { 0xE7, 0x01 };
+static const u8 vgh_7v4[] = { 0xE3, 0x12, 0x12, 0x12 };
+static const u8 pixel_off[] = { 0x22 };
+static const u8 normal_on[] = { 0x13 };
 
 static const struct exynos_dsi_cmd ea8182_f10_off_cmds[] = {
 	EXYNOS_DSI_CMD(display_off, 20),
@@ -99,8 +132,6 @@ static const struct exynos_binned_lp ea8182_f10_binned_lp[] = {
 
 
 static const struct exynos_dsi_cmd ea8182_f10_init_cmds[] = {
-	EXYNOS_DSI_CMD_SEQ_DELAY(10, 0x11), /* sleep out: 10ms delay */
-
 	EXYNOS_DSI_CMD_SEQ(0x35, 0x00), /* TE on */
 
 	/* TE2 Setting */
@@ -201,6 +232,39 @@ static void ea8182_f10_set_nolp_mode(struct exynos_panel *ctx,
 	dev_info(ctx->dev, "exit LP mode\n");
 }
 
+static void ea8182_f10_set_default_voltage(struct exynos_panel *ctx, bool enable)
+{
+	struct ea8182_f10_panel *spanel = to_spanel(ctx);
+	const u8 *vlin1 = spanel->panel_voltage.vlin1_default;
+	const u8 *vgh = spanel->panel_voltage.vgh_default;
+	const u8 *vreg = spanel->panel_voltage.vreg_default;
+	const u8 *vreg_offset = spanel->panel_voltage.vreg_offset;
+
+	if (ctx->panel_rev < PANEL_REV_DVT1)
+		return;
+
+	dev_dbg(ctx->dev, "%s enable = %d\n", __func__, enable);
+	EXYNOS_DCS_WRITE_TABLE(ctx, unlock_cmd_f0);
+
+	if (enable) {
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x09);
+		exynos_dcs_write(ctx, vlin1, VLIN1_CMD_SIZE);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x14);
+		exynos_dcs_write(ctx, vgh, VGH_CMD_SIZE);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x1D);
+		exynos_dcs_write(ctx, vreg, VREG_CMD_SIZE);
+	} else {
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x09);
+		EXYNOS_DCS_WRITE_TABLE(ctx, vlin1_7v9);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x14);
+		EXYNOS_DCS_WRITE_TABLE(ctx, vgh_7v4);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x1D);
+		exynos_dcs_write(ctx, vreg_offset, VREG_CMD_SIZE);
+	}
+
+	EXYNOS_DCS_WRITE_TABLE(ctx, lock_cmd_f0);
+}
+
 static void ea8182_f10_panel_reset(struct exynos_panel *ctx)
 {
 	dev_dbg(ctx->dev, "%s +\n", __func__);
@@ -229,6 +293,12 @@ static int ea8182_f10_enable(struct drm_panel *panel)
 
 	EXYNOS_DCS_WRITE_SEQ(ctx, 0x9D, 0x01);  /* Compression Enable */
 	EXYNOS_DCS_WRITE_TABLE(ctx, pps_setting);
+	EXYNOS_DCS_WRITE_TABLE(ctx, sleep_out);
+	usleep_range(10000, 10010);
+
+	ea8182_f10_set_default_voltage(ctx, false);
+	usleep_range(20000, 20010);
+
 	exynos_panel_send_cmd_set(ctx, &ea8182_f10_init_cmd_set);
 	usleep_range(90000, 90010);
 	EXYNOS_DCS_WRITE_TABLE(ctx, unlock_cmd_f0);
@@ -238,10 +308,24 @@ static int ea8182_f10_enable(struct drm_panel *panel)
 
 	ctx->enabled = true;
 
-	if (pmode->exynos_mode.is_lp_mode)
+	if (pmode->exynos_mode.is_lp_mode) {
 		exynos_panel_set_lp_mode(ctx, pmode);
-	else
+	} else {
 		EXYNOS_DCS_WRITE_TABLE(ctx, display_on);
+	}
+	ea8182_f10_set_default_voltage(ctx, true);
+
+	return 0;
+}
+
+static int ea8182_f10_disable(struct drm_panel *panel)
+{
+	struct exynos_panel *ctx = container_of(panel, struct exynos_panel, panel);
+
+	dev_dbg(ctx->dev, "%s\n", __func__);
+
+	ea8182_f10_set_default_voltage(ctx, false);
+	exynos_panel_disable(panel);
 
 	return 0;
 }
@@ -404,6 +488,143 @@ static int ea8182_f10_set_power(struct exynos_panel *ctx, bool enable)
 	return 0;
 }
 
+static int ea8182_f10_set_brightness(struct exynos_panel *ctx, u16 br)
+{
+	u16 brightness;
+	struct ea8182_f10_panel *spanel = to_spanel(ctx);
+
+	if (ctx->current_mode->exynos_mode.is_lp_mode) {
+		const struct exynos_panel_funcs *funcs;
+
+		/* don't stay at pixel-off state in AOD, or black screen is possibly seen */
+		if (spanel->is_pixel_off) {
+			EXYNOS_DCS_WRITE_TABLE(ctx, normal_on);
+			spanel->is_pixel_off = false;
+		}
+		funcs = ctx->desc->exynos_panel_func;
+		if (funcs && funcs->set_binned_lp)
+			funcs->set_binned_lp(ctx, br);
+		return 0;
+	}
+
+	/* Use pixel off command instead of setting DBV 0 */
+	if (!br) {
+		if (!spanel->is_pixel_off) {
+			EXYNOS_DCS_WRITE_TABLE(ctx, pixel_off);
+			spanel->is_pixel_off = true;
+			dev_dbg(ctx->dev, "%s: pixel off instead of dbv 0\n", __func__);
+		}
+		return 0;
+	} else if (br && spanel->is_pixel_off) {
+		EXYNOS_DCS_WRITE_TABLE(ctx, normal_on);
+		spanel->is_pixel_off = false;
+	}
+
+	brightness = (br & 0xff) << 8 | br >> 8;
+
+	return exynos_dcs_set_brightness(ctx, brightness);
+}
+
+
+static void ea8182_f10_get_vreg_offset_voltage(struct exynos_panel *ctx)
+{
+	struct ea8182_f10_panel *spanel = to_spanel(ctx);
+	u8 *vreg = spanel->panel_voltage.vreg_default;
+	u8 *vreg_offset = spanel->panel_voltage.vreg_offset;
+	int i;
+
+	vreg_offset[0] = vreg[0];
+	dev_info(ctx->dev, "%s: vreg_offset: (0x%2x)\n", __func__, vreg_offset[0]);
+	for (i = 1; i < VREG_CMD_SIZE; i++) {
+		/* VREG offset -0.3V */
+		vreg_offset[i] = vreg[i] - 3;
+		dev_info(ctx->dev, "%s: vreg_offset: (0x%2x)\n", __func__, vreg_offset[i]);
+	}
+}
+
+static int ea8182_f10_read_default_voltage(struct exynos_panel *ctx)
+{
+	struct mipi_dsi_device *dsi = to_mipi_dsi_device(ctx->dev);
+	struct ea8182_f10_panel *spanel = to_spanel(ctx);
+	int ret;
+	u8 *vlin1 = spanel->panel_voltage.vlin1_default;
+	u8 *vgh = spanel->panel_voltage.vgh_default;
+	u8 *vreg = spanel->panel_voltage.vreg_default;
+	u8 buf[VLIN1_CMD_SIZE * 2] = {0};
+	u8 buf1[VGH_CMD_SIZE * 2] = {0};
+	u8 buf2[VREG_CMD_SIZE * 2] = {0};
+
+	EXYNOS_DCS_WRITE_SEQ(ctx, 0xF0, 0x5A, 0x5A);
+	EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x09);
+
+	ret = mipi_dsi_dcs_read(dsi, 0xE7, vlin1 + 1, VLIN1_CMD_SIZE - 1);
+	if (ret == (VLIN1_CMD_SIZE - 1)) {
+		vlin1[0] = 0xE7;
+		exynos_bin2hex(vlin1 + 1, VLIN1_CMD_SIZE - 1, buf, sizeof(buf));
+
+		dev_info(ctx->dev, "%s: vlin1: %s\n", __func__, buf);
+	} else {
+		dev_err(ctx->dev, "unable to raed vlin1\n");
+	}
+
+	EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x14);
+
+	ret = mipi_dsi_dcs_read(dsi, 0xE3, vgh + 1, VGH_CMD_SIZE - 1);
+	if (ret == (VGH_CMD_SIZE - 1)) {
+		vgh[0] = 0xE3;
+		exynos_bin2hex(vgh + 1, VGH_CMD_SIZE - 1, buf1, sizeof(buf1));
+
+		dev_info(ctx->dev, "%s: vgh: %s\n", __func__, buf1);
+	} else {
+		dev_err(ctx->dev, "unable to raed vgh\n");
+	}
+
+	EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x1D);
+
+	ret = mipi_dsi_dcs_read(dsi, 0xE3, vreg + 1, VREG_CMD_SIZE - 1);
+	if (ret == (VREG_CMD_SIZE - 1)) {
+		vreg[0] = 0xE3;
+		exynos_bin2hex(vreg + 1, VREG_CMD_SIZE - 1, buf2, sizeof(buf2));
+
+		dev_info(ctx->dev, "%s: vreg: %s\n", __func__, buf2);
+	} else {
+		dev_err(ctx->dev, "unable to raed vreg\n");
+	}
+
+	EXYNOS_DCS_WRITE_SEQ(ctx, 0xF0, 0xA5, 0xA5);
+
+	return 0;
+}
+static int ea8182_f10_read_id(struct exynos_panel *ctx)
+{
+	int ret;
+
+	ret = exynos_panel_read_id(ctx);
+	if (ret)
+		return ret;
+
+	if (ctx->panel_rev < PANEL_REV_DVT1)
+		return 0;
+
+	ea8182_f10_read_default_voltage(ctx);
+	ea8182_f10_get_vreg_offset_voltage(ctx);
+
+	return 0;
+}
+
+static int ea8182_f10_panel_probe(struct mipi_dsi_device *dsi)
+{
+	struct ea8182_f10_panel *spanel;
+
+	spanel = devm_kzalloc(&dsi->dev, sizeof(*spanel), GFP_KERNEL);
+	if (!spanel)
+		return -ENOMEM;
+
+	spanel->is_pixel_off = false;
+
+	return exynos_panel_common_init(dsi, &spanel->base);
+}
+
 static void ea8182_f10_panel_init(struct exynos_panel *ctx)
 {
 	struct dentry *csroot = ctx->debugfs_cmdset_entry;
@@ -512,7 +733,7 @@ static const struct exynos_panel_mode ea8182_f10_lp_mode = {
 };
 
 static const struct drm_panel_funcs ea8182_f10_drm_funcs = {
-	.disable = exynos_panel_disable,
+	.disable = ea8182_f10_disable,
 	.unprepare = exynos_panel_unprepare,
 	.prepare = exynos_panel_prepare,
 	.enable = ea8182_f10_enable,
@@ -520,7 +741,7 @@ static const struct drm_panel_funcs ea8182_f10_drm_funcs = {
 };
 
 static const struct exynos_panel_funcs ea8182_f10_exynos_funcs = {
-	.set_brightness = exynos_panel_set_brightness,
+	.set_brightness = ea8182_f10_set_brightness,
 	.set_lp_mode = exynos_panel_set_lp_mode,
 	.set_nolp_mode = ea8182_f10_set_nolp_mode,
 	.set_binned_lp = exynos_panel_set_binned_lp,
@@ -531,6 +752,7 @@ static const struct exynos_panel_funcs ea8182_f10_exynos_funcs = {
 	.panel_init = ea8182_f10_panel_init,
 	.get_panel_rev = ea8182_f10_get_panel_rev,
 	.set_power = ea8182_f10_set_power,
+	.read_id = ea8182_f10_read_id,
 };
 
 const struct brightness_capability ea8182_f10_brightness_capability = {
@@ -593,7 +815,7 @@ static const struct of_device_id exynos_panel_of_match[] = {
 MODULE_DEVICE_TABLE(of, exynos_panel_of_match);
 
 static struct mipi_dsi_driver exynos_panel_driver = {
-	.probe = exynos_panel_probe,
+	.probe = ea8182_f10_panel_probe,
 	.remove = exynos_panel_remove,
 	.driver = {
 		.name = "panel-samsung-ea8182-f10",
