@@ -20,6 +20,13 @@
 	/delete-property/ regulator-always-on;
 };
 
+&spi_0 {
+	status = "okay";
+	dma-mode;
+	dmas = <&pdma0 0 &pdma0 1>;
+	swap-mode = <1> ;
+};
+
 &spitouch {
 	status = "ok";
 	compatible = "st,fst2";
@@ -29,7 +36,7 @@
 	st,device_name = "fts";
 	st,firmware_names = "ftm5_fw_f10.ftb";
 	st,limits_names = "stm_fts_production_limits_f10.csv";
-	/* st,panel_map = <&samsung_ana6707_f10 0>; */
+	st,panel_map = <&samsung_ana6707_f10 0>;
 	st,tx_rx_dir_swap;
 	pinctrl-names = "pmx_ts_active", "pmx_ts_suspend";
 	st,irq-gpio = <&gpa7 0 0>;
@@ -40,6 +47,20 @@
 					 area. Unit: pixels */
 	vdd-supply = <&s_ldo22_reg>; /* VIO 1.8V, different from common. */
 	avdd-supply = <&s_ldo6_reg>; /* AVDD 3.3V, different from common. */
+	st,mm2px = /bits/ 8 <15>; /* 2208 px / 150 mm  = 14.7 */
+	goog,tbn-enabled;
+	goog,offload-enabled;
+	goog,v4l2-enabled;
+	goog,touch_offload_id = /bits/ 8 <'f''1''0''0'>; /* outer: 1; inner 0 */
+	goog,display-resolution = /bits/ 16 <2208 1840>;
+	goog,channel-num = /bits/ 16 <39 32>;
+	goog,offload-caps-cancel-reporting;
+	goog,offload-caps-data-types = /bits/ 16 <0x1f>;
+	goog,offload-caps-scan-types = /bits/ 16 <0xc0>;
+	goog,offload-caps-rotation-reporting;
+	goog,default-grip-disabled;
+	goog,default-palm-disabled;
+
 	controller-data {
 		cs-gpio = <&gpp20 3 0>;
 		samsung,spi-feedback-delay = <1>;

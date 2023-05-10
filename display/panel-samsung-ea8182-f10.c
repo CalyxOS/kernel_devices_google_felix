@@ -16,41 +16,35 @@
 
 #include "samsung/panel/panel-samsung-drv.h"
 
-/**
- * struct ea8182_f10_panel - panel specific info
- *
- * This struct maintains ea8182-f10 panel specific info,
- *
- */
-
-#define to_spanel(ctx) container_of(ctx, struct ea8182_f10_panel, base)
-
-static const unsigned char PPS_SETTING[] = {
-     0x11, 0x00, 0x00, 0x89, 0x30, 0x80, 0x08, 0x34,
-     0x04, 0x38, 0x02, 0x0B, 0x02, 0x1C, 0x02, 0x1C,
-     0x02, 0x00, 0x02, 0x0E, 0x00, 0x20, 0x32, 0x90,
-     0x00, 0x07, 0x00, 0x0C, 0x00, 0x30, 0x00, 0x32,
-     0x18, 0x00, 0x10, 0xF0, 0x03, 0x0C, 0x20, 0x00,
-     0x06, 0x0B, 0x0B, 0x33, 0x0E, 0x1C, 0x2A, 0x38,
-     0x46, 0x54, 0x62, 0x69, 0x70, 0x77, 0x79, 0x7B,
-     0x7D, 0x7E, 0x01, 0x02, 0x01, 0x00, 0x09, 0x40,
-     0x09, 0xBE, 0x19, 0xFC, 0x19, 0xFA, 0x19, 0xF8,
-     0x1A, 0x38, 0x1A, 0x78, 0x1A, 0xB6, 0x2A, 0xF6,
-     0x2B, 0x34, 0x2B, 0x74, 0x3B, 0x74, 0x6B, 0xF4,
-     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-};
-
 #define EA8182_F10_WRCTRLD_DIMMING_BIT    0x08
 #define EA8182_F10_WRCTRLD_BCTRL_BIT      0x20
 #define EA8182_F10_WRCTRLD_HBM_BIT        0xE0
 
+static const u8 pps_setting[] = {
+	0x9E, 0x11, 0x00, 0x00, 0x89, 0x30, 0x80, 0x08, 0x2C,
+	0x04, 0x38, 0x02, 0x0B, 0x02, 0x1C, 0x02, 0x1C,
+	0x02, 0x00, 0x02, 0x0E, 0x00, 0x20, 0x32, 0x90,
+	0x00, 0x07, 0x00, 0x0C, 0x00, 0x30, 0x00, 0x32,
+	0x18, 0x00, 0x10, 0xF0, 0x03, 0x0C, 0x20, 0x00,
+	0x06, 0x0B, 0x0B, 0x33, 0x0E, 0x1C, 0x2A, 0x38,
+	0x46, 0x54, 0x62, 0x69, 0x70, 0x77, 0x79, 0x7B,
+	0x7D, 0x7E, 0x01, 0x02, 0x01, 0x00, 0x09, 0x40,
+	0x09, 0xBE, 0x19, 0xFC, 0x19, 0xFA, 0x19, 0xF8,
+	0x1A, 0x38, 0x1A, 0x78, 0x1A, 0xB6, 0x2A, 0xF6,
+	0x2B, 0x34, 0x2B, 0x74, 0x3B, 0x74, 0x6B, 0xF4,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+};
+
 static const u8 display_off[] = { MIPI_DCS_SET_DISPLAY_OFF };
 static const u8 display_on[] = { MIPI_DCS_SET_DISPLAY_ON };
 static const u8 sleep_in[] = { MIPI_DCS_ENTER_SLEEP_MODE };
+static const u8 unlock_cmd_f0[] = { 0xF0, 0x5A, 0x5A };
+static const u8 lock_cmd_f0[]   = { 0xF0, 0xA5, 0xA5 };
+
 
 static const struct exynos_dsi_cmd ea8182_f10_off_cmds[] = {
 	EXYNOS_DSI_CMD(display_off, 20),
@@ -70,24 +64,28 @@ static const struct exynos_dsi_cmd ea8182_f10_lp_off_cmds[] = {
 
 
 static const struct exynos_dsi_cmd ea8182_f10_lp_low_cmds[] = {
-	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_PROTO1), 0xF0, 0x5A, 0x5A),
-	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_PROTO1), 0xC3, 0x01),
-	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_PROTO1), 0x53, 0x25),  /* AOD 10 nit */
-	EXYNOS_DSI_CMD_SEQ_DELAY_REV(PANEL_REV_GE(PANEL_REV_PROTO1), 17, 0xF0, 0xA5, 0xA5),
-
-	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_LT(PANEL_REV_PROTO1), 0x51, 0x00, 0x29), /* AOD 10 nit */
+	EXYNOS_DSI_CMD0_REV(unlock_cmd_f0, PANEL_REV_LT(PANEL_REV_DVT1)),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_LT(PANEL_REV_EVT1), 0xC3, 0x01),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_EVT1|PANEL_REV_EVT1_1, 0xB0, 0xBC),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_EVT1|PANEL_REV_EVT1_1, 0xB7, 0x12, 0x06, 0xBC, 0x01, 0x00),
+	EXYNOS_DSI_CMD0_REV(lock_cmd_f0, PANEL_REV_LT(PANEL_REV_DVT1)),
+	EXYNOS_DSI_CMD_SEQ_DELAY_REV(PANEL_REV_LT(PANEL_REV_EVT1), 34, 0x53, 0x25),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_EVT1), 0x53, 0x24),
+	EXYNOS_DSI_CMD_SEQ_DELAY_REV(PANEL_REV_EVT1|PANEL_REV_EVT1_1, 34, 0x51, 0x07, 0xFF),
+	EXYNOS_DSI_CMD_SEQ_DELAY_REV(PANEL_REV_GE(PANEL_REV_DVT1), 34, 0x51, 0x00, 0x1A),
 
 	EXYNOS_DSI_CMD(display_on, 0),
 };
 
 static const struct exynos_dsi_cmd ea8182_f10_lp_high_cmds[] = {
-	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_PROTO1), 0xF0, 0x5A, 0x5A),
-	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_PROTO1), 0xC3, 0x01),
-	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_PROTO1), 0x53, 0x24),  /* AOD 50 nit */
-	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_PROTO1), 0xF7, 0x07),
-	EXYNOS_DSI_CMD_SEQ_DELAY_REV(PANEL_REV_GE(PANEL_REV_PROTO1), 17, 0xF0, 0xA5, 0xA5),
-
-	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_LT(PANEL_REV_PROTO1), 0x51, 0x00, 0xCD), /* AOD 50 nit */
+	EXYNOS_DSI_CMD0_REV(unlock_cmd_f0, PANEL_REV_LT(PANEL_REV_DVT1)),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_LT(PANEL_REV_EVT1), 0xC3, 0x01),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_EVT1|PANEL_REV_EVT1_1, 0xB0, 0xBC),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_EVT1|PANEL_REV_EVT1_1, 0xB7, 0x02, 0x06, 0xBC, 0x01, 0x00),
+	EXYNOS_DSI_CMD0_REV(lock_cmd_f0, PANEL_REV_LT(PANEL_REV_DVT1)),
+	EXYNOS_DSI_CMD_SEQ_DELAY_REV(PANEL_REV_LT(PANEL_REV_EVT1), 34, 0x53, 0x24),
+	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_GE(PANEL_REV_EVT1), 0x53, 0x24),
+	EXYNOS_DSI_CMD_SEQ_DELAY_REV(PANEL_REV_GE(PANEL_REV_EVT1), 34, 0x51, 0x07, 0xFF),
 
 	EXYNOS_DSI_CMD(display_on, 0),
 };
@@ -106,21 +104,48 @@ static const struct exynos_dsi_cmd ea8182_f10_init_cmds[] = {
 	EXYNOS_DSI_CMD_SEQ(0x35, 0x00), /* TE on */
 
 	/* TE2 Setting */
-	EXYNOS_DSI_CMD_SEQ(0xF0, 0x5A, 0x5A),
+	EXYNOS_DSI_CMD0(unlock_cmd_f0),
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x15),
-	EXYNOS_DSI_CMD_SEQ(0xE2, 0x02),
+	EXYNOS_DSI_CMD_SEQ(0xE2, 0x03),
 	EXYNOS_DSI_CMD_SEQ(0xB0, 0x1A),
 	EXYNOS_DSI_CMD_SEQ(0xE2, 0x00, 0x0B, 0x01, 0x0A),
 	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1, 0xB0, 0x70),
 	EXYNOS_DSI_CMD_SEQ_REV(PANEL_REV_PROTO1, 0xB7, 0x17, 0x77), /* WRDISBV TH setting */
-	EXYNOS_DSI_CMD_SEQ(0xF0, 0xA5, 0xA5),
+	EXYNOS_DSI_CMD0(lock_cmd_f0),
 
 	EXYNOS_DSI_CMD_SEQ(0x2A, 0x00, 0x00, 0x04, 0x37), /* CASET */
 	EXYNOS_DSI_CMD_SEQ(0x2B, 0x00, 0x00, 0x08, 0x2B), /* PASET */
 };
 static DEFINE_EXYNOS_CMD_SET(ea8182_f10_init);
 
-/* TODO: change frequency */
+static void ea8182_f10_change_frequency(struct exynos_panel *ctx,
+				     unsigned int vrefresh)
+{
+	if (!ctx || (vrefresh != 30 && vrefresh != 60 && vrefresh != 120))
+		return;
+
+	/* We need to set the default 60Hz setting before going into AoD */
+	if (vrefresh == 30) {
+		if (ctx->panel_rev >= PANEL_REV_DVT1) {
+			vrefresh = 60;
+			dev_dbg(ctx->dev, "%s: set to default refresh rate\n", __func__);
+		} else {
+			return;
+		}
+	}
+
+	EXYNOS_DCS_WRITE_SEQ(ctx, 0x60, (vrefresh == 120) ? 0x08 : 0x00, 0x00);
+	EXYNOS_DCS_WRITE_SEQ(ctx, 0xEB, 0x14, 0x00);
+	EXYNOS_DCS_WRITE_SEQ(ctx, 0xF7, 0x07);
+
+	if (ctx->panel_rev >= PANEL_REV_DVT1) {
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x16);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xE2, 0x08, 0x48, 0x00,
+					(vrefresh == 120) ? 0x30 : 0x1C);
+	}
+
+	dev_dbg(ctx->dev, "%s: change to %uhz\n", __func__, vrefresh);
+}
 
 static void ea8182_f10_update_wrctrld(struct exynos_panel *ctx)
 {
@@ -150,21 +175,42 @@ static void ea8182_f10_set_nolp_mode(struct exynos_panel *ctx,
 	if (!ctx->enabled)
 		return;
 
-	if (ctx->panel_rev >= PANEL_REV_EVT1) {
-		EXYNOS_DCS_WRITE_TABLE(ctx, display_off);
-		usleep_range(delay_us, delay_us + 10);
-		EXYNOS_DCS_WRITE_SEQ(ctx, 0xF0, 0x5A, 0x5A);
-		EXYNOS_DCS_WRITE_SEQ(ctx, 0xC3, 0x02);
-		EXYNOS_DCS_WRITE_SEQ(ctx, 0xF0, 0xA5, 0xA5);
+	EXYNOS_DCS_WRITE_TABLE(ctx, display_off);
+	EXYNOS_DCS_WRITE_TABLE(ctx, unlock_cmd_f0);
 
-		/* TODO: add change frequency */
-
-		ea8182_f10_update_wrctrld(ctx);
-		usleep_range(delay_us, delay_us + 10);
-		EXYNOS_DCS_WRITE_TABLE(ctx, display_on);
+	if ((ctx->panel_rev >= PANEL_REV_DVT1) && vrefresh == 60) {
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0x04);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xEE, 0x83);
 	}
 
+	ea8182_f10_change_frequency(ctx, vrefresh);
+
+	if (ctx->panel_rev <= PANEL_REV_PROTO1_1)
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xC3, 0x02);
+
+	if ((ctx->panel_rev >= PANEL_REV_EVT1) && (ctx->panel_rev < PANEL_REV_DVT1)) {
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB0, 0xBC);
+		EXYNOS_DCS_WRITE_SEQ(ctx, 0xB7, 0x02);
+	}
+
+	EXYNOS_DCS_WRITE_TABLE(ctx, lock_cmd_f0);
+	ea8182_f10_update_wrctrld(ctx);
+	usleep_range(delay_us, delay_us + 10);
+	EXYNOS_DCS_WRITE_TABLE(ctx, display_on);
+
 	dev_info(ctx->dev, "exit LP mode\n");
+}
+
+static void ea8182_f10_panel_reset(struct exynos_panel *ctx)
+{
+	dev_dbg(ctx->dev, "%s +\n", __func__);
+
+	gpiod_set_value(ctx->reset_gpio, 1);
+	usleep_range(10100, 10110);
+
+	dev_dbg(ctx->dev, "%s -\n", __func__);
+
+	exynos_panel_init(ctx);
 }
 
 static int ea8182_f10_enable(struct drm_panel *panel)
@@ -179,15 +225,16 @@ static int ea8182_f10_enable(struct drm_panel *panel)
 
 	dev_dbg(ctx->dev, "%s\n", __func__);
 
-	exynos_panel_reset(ctx);
+	ea8182_f10_panel_reset(ctx);
 
 	EXYNOS_DCS_WRITE_SEQ(ctx, 0x9D, 0x01);  /* Compression Enable */
-	EXYNOS_PPS_LONG_WRITE(ctx);             /* PPS_SETTING */
-
+	EXYNOS_DCS_WRITE_TABLE(ctx, pps_setting);
 	exynos_panel_send_cmd_set(ctx, &ea8182_f10_init_cmd_set);
+	usleep_range(90000, 90010);
+	EXYNOS_DCS_WRITE_TABLE(ctx, unlock_cmd_f0);
+	ea8182_f10_change_frequency(ctx, drm_mode_vrefresh(&pmode->mode));
+	EXYNOS_DCS_WRITE_TABLE(ctx, lock_cmd_f0);
 	ea8182_f10_update_wrctrld(ctx);             /* dimming and HBM */
-
-	/* TODO: add change frequency */
 
 	ctx->enabled = true;
 
@@ -202,15 +249,36 @@ static int ea8182_f10_enable(struct drm_panel *panel)
 static void ea8182_f10_set_hbm_mode(struct exynos_panel *exynos_panel,
 				 enum exynos_hbm_mode mode)
 {
+	const bool hbm_update =
+		(IS_HBM_ON(exynos_panel->hbm_mode) != IS_HBM_ON(mode));
+	const bool irc_update =
+		(IS_HBM_ON_IRC_OFF(exynos_panel->hbm_mode) != IS_HBM_ON_IRC_OFF(mode));
+
 	exynos_panel->hbm_mode = mode;
 
-	ea8182_f10_update_wrctrld(exynos_panel);
+	if (hbm_update)
+		ea8182_f10_update_wrctrld(exynos_panel);
+
+	if (irc_update) {
+		EXYNOS_DCS_WRITE_SEQ(exynos_panel, 0xF0, 0x5A, 0x5A);
+		EXYNOS_DCS_WRITE_SEQ(exynos_panel, 0xB0, 0x01);
+		EXYNOS_DCS_WRITE_SEQ(exynos_panel, 0xC6, IS_HBM_ON_IRC_OFF(mode) ? 0x05 : 0x25);
+		EXYNOS_DCS_WRITE_SEQ(exynos_panel, 0xF0, 0xA5, 0xA5);
+	}
+	dev_info(exynos_panel->dev, "hbm_on=%d hbm_ircoff=%d\n", IS_HBM_ON(exynos_panel->hbm_mode),
+		IS_HBM_ON_IRC_OFF(exynos_panel->hbm_mode));
 }
 
 static void ea8182_f10_set_dimming_on(struct exynos_panel *exynos_panel,
 				 bool dimming_on)
 {
+	const struct exynos_panel_mode *pmode = exynos_panel->current_mode;
+
 	exynos_panel->dimming_on = dimming_on;
+	if (pmode->exynos_mode.is_lp_mode) {
+		dev_info(exynos_panel->dev,"in lp mode, skip to update");
+		return;
+	}
 
 	ea8182_f10_update_wrctrld(exynos_panel);
 }
@@ -221,7 +289,9 @@ static void ea8182_f10_mode_set(struct exynos_panel *ctx,
 	if (!ctx->enabled)
 		return;
 
-	/* TODO: add change frequency */
+	EXYNOS_DCS_WRITE_TABLE(ctx, unlock_cmd_f0);
+	ea8182_f10_change_frequency(ctx, drm_mode_vrefresh(&pmode->mode));
+	EXYNOS_DCS_WRITE_TABLE(ctx, lock_cmd_f0);
 }
 
 static bool ea8182_f10_is_mode_seamless(const struct exynos_panel *ctx,
@@ -235,31 +305,28 @@ static void ea8182_f10_get_panel_rev(struct exynos_panel *ctx, u32 id)
 {
 	/* extract command 0xDB */
 	u8 build_code = (id & 0xFF00) >> 8;
-	u8 rev = (((build_code & 0xE0) >> 3) | (build_code & 0x03));
+	u8 rev = (((build_code & 0xE0) >> 3) | (build_code & 0x0C) >> 2);
 
 	switch (rev) {
-	case 0:
+	case 1:
 		ctx->panel_rev = PANEL_REV_PROTO1;
 		break;
-	case 1:
-		ctx->panel_rev = PANEL_REV_PROTO1_1;
-		break;
 	case 2:
-		ctx->panel_rev = PANEL_REV_PROTO1_2;
+		ctx->panel_rev = PANEL_REV_PROTO1_1;
 		break;
 	case 4:
 		ctx->panel_rev = PANEL_REV_EVT1;
 		break;
-	case 5:
+	case 6:
 		ctx->panel_rev = PANEL_REV_EVT1_1;
 		break;
-	case 6:
+	case 7:
 		ctx->panel_rev = PANEL_REV_EVT1_2;
 		break;
-	case 8:
+	case 9:
 		ctx->panel_rev = PANEL_REV_DVT1;
 		break;
-	case 9:
+	case 0xA:
 		ctx->panel_rev = PANEL_REV_DVT1_1;
 		break;
 	case 0x10:
@@ -276,7 +343,66 @@ static void ea8182_f10_get_panel_rev(struct exynos_panel *ctx, u32 id)
 	dev_info(ctx->dev, "panel_rev: 0x%x\n", ctx->panel_rev);
 }
 
-/* TODO: set power */
+static int ea8182_f10_set_power(struct exynos_panel *ctx, bool enable)
+{
+	int ret;
+
+	if (enable) {
+		if (ctx->vddi) {
+			ret = regulator_enable(ctx->vddi);
+			if (ret) {
+				dev_err(ctx->dev, "vddi enable failed\n");
+				return ret;
+			}
+		}
+
+		if (ctx->vddd) {
+			ret = regulator_enable(ctx->vddd);
+			if (ret) {
+				dev_err(ctx->dev, "vddd enable failed\n");
+				return ret;
+			}
+		}
+
+		if (ctx->vci) {
+			ret = regulator_enable(ctx->vci);
+			if (ret) {
+				dev_err(ctx->dev, "vci enable failed\n");
+				return ret;
+			}
+			usleep_range(11000, 11010);
+		}
+	} else {
+		gpiod_set_value(ctx->reset_gpio, 0);
+		usleep_range(10000, 10010);
+
+		if (ctx->vci) {
+			ret = regulator_disable(ctx->vci);
+			if (ret) {
+				dev_err(ctx->dev, "vci disable failed\n");
+				return ret;
+			}
+		}
+
+		if (ctx->vddd) {
+			ret = regulator_disable(ctx->vddd);
+			if (ret) {
+				dev_err(ctx->dev, "vddd disable failed\n");
+				return ret;
+			}
+		}
+
+		if (ctx->vddi) {
+			ret = regulator_disable(ctx->vddi);
+			if (ret) {
+				dev_err(ctx->dev, "vddi disable failed\n");
+				return ret;
+			}
+		}
+	}
+
+	return 0;
+}
 
 static void ea8182_f10_panel_init(struct exynos_panel *ctx)
 {
@@ -304,18 +430,19 @@ static const struct exynos_panel_mode ea8182_f10_modes[] = {
 			.vsync_end = 2092 + 24 + 6, // add vsa
 			.vtotal = 2092 + 24 + 6 + 28, // add vbp
 			.flags = 0,
-			.width_mm = 72,
-			.height_mm = 136,
+			.width_mm = 67,
+			.height_mm = 130,
 		},
 		.exynos_mode = {
 			.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
 			.vblank_usec = 120,
+			.te_usec = 8530,
 			.bpc = 8,
 			.dsc = {
 				.enabled = true,
 				.dsc_count = 1,
 				.slice_count = 2,
-				.slice_height = 523,	// 50
+				.slice_height = 523,
 			},
 			.underrun_param = &underrun_param,
 		},
@@ -333,18 +460,19 @@ static const struct exynos_panel_mode ea8182_f10_modes[] = {
 			.vsync_end = 2092 + 24 + 6, // add vsa
 			.vtotal = 2092 + 24 + 6 + 28, // add vbp
 			.flags = 0,
-			.width_mm = 72,
-			.height_mm = 136,
+			.width_mm = 67,
+			.height_mm = 130,
 		},
 		.exynos_mode = {
 			.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
 			.vblank_usec = 120,
+			.te_usec = 217,
 			.bpc = 8,
 			.dsc = {
 				.enabled = true,
 				.dsc_count = 1,
 				.slice_count = 2,
-				.slice_height = 50,
+				.slice_height = 523,
 			},
 			.underrun_param = &underrun_param,
 		},
@@ -365,8 +493,8 @@ static const struct exynos_panel_mode ea8182_f10_lp_mode = {
 		.vsync_end = 2092 + 24 + 6, // add vsa
 		.vtotal = 2092 + 24 + 6 + 28, // add vbp
 		.flags = 0,
-		.width_mm = 72,
-		.height_mm = 136,
+		.width_mm = 67,
+		.height_mm = 130,
 	},
 	.exynos_mode = {
 		.mode_flags = MIPI_DSI_CLOCK_NON_CONTINUOUS,
@@ -376,7 +504,7 @@ static const struct exynos_panel_mode ea8182_f10_lp_mode = {
 			.enabled = true,
 			.dsc_count = 1,
 			.slice_count = 2,
-			.slice_height = 50,
+			.slice_height = 523,
 		},
 		.underrun_param = &underrun_param,
 		.is_lp_mode = true,
@@ -402,50 +530,49 @@ static const struct exynos_panel_funcs ea8182_f10_exynos_funcs = {
 	.mode_set = ea8182_f10_mode_set,
 	.panel_init = ea8182_f10_panel_init,
 	.get_panel_rev = ea8182_f10_get_panel_rev,
+	.set_power = ea8182_f10_set_power,
 };
 
 const struct brightness_capability ea8182_f10_brightness_capability = {
 	.normal = {
 		.nits = {
 			.min = 2,
-			.max = 500,
+			.max = 600,
 		},
 		.level = {
 			.min = 4,
-			.max = 2047,
+			.max = 1536,
 		},
 		.percentage = {
 			.min = 0,
-			.max = 62,
+			.max = 50,
 		},
 	},
 	.hbm = {
 		.nits = {
-			.min = 500,
-			.max = 800,
+			.min = 600,
+			.max = 1200,
 		},
 		.level = {
 			.min = 2048,
-			.max = 3152,
+			.max = 3584,
 		},
 		.percentage = {
-			.min = 62,
+			.min = 50,
 			.max = 100,
 		},
 	},
 };
 
 const struct exynos_panel_desc samsung_ea8182_f10 = {
-	.dsc_pps = PPS_SETTING,
-	.dsc_pps_len = ARRAY_SIZE(PPS_SETTING),
 	.data_lane_cnt = 4,
-	.max_brightness = 3152,
+	.max_brightness = 3584,
 	.min_brightness = 4,
 	.dft_brightness = 1023,
 	.brt_capability = &ea8182_f10_brightness_capability,
 	/* supported HDR format bitmask : 1(DOLBY_VISION), 2(HDR10), 3(HLG) */
 	.hdr_formats = BIT(2) | BIT(3),
-	.max_luminance = 8000000,
+	.max_luminance = 10000000,
 	.max_avg_luminance = 1200000,
 	.min_luminance = 5,
 	.modes = ea8182_f10_modes,

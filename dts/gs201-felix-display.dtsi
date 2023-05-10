@@ -6,6 +6,10 @@
  *
  */
 
+&drmdecon0 {
+       max_dfs_lv_for_wb = <533000>;
+};
+
 &drmdecon1 {
        status = "ok";
 };
@@ -50,6 +54,7 @@
 		vci-supply = <&m_ldo27_reg>;
 		vddi-supply = <&m_ldo23_reg>;
 		vddd-supply = <&disp_vddd>;
+		touch = <&spi6touch>;
 	};
 	panel@1 {
 		compatible = "samsung,emul";

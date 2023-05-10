@@ -230,7 +230,7 @@
 
 		cirrus,boost-peak-milliamp = <3500>;
 		cirrus,boost-ind-nanohenry = <1000>;
-		cirrus,boost-cap-microfarad = <30>;
+		cirrus,boost-cap-microfarad = <4>;
 
 		cirrus,asp-sdout-hiz = <3>;
 		cirrus,tuning-has-prefix;
@@ -274,7 +274,7 @@
 
 		cirrus,boost-peak-milliamp = <3500>;
 		cirrus,boost-ind-nanohenry = <1000>;
-		cirrus,boost-cap-microfarad = <30>;
+		cirrus,boost-cap-microfarad = <4>;
 
 		cirrus,asp-sdout-hiz = <3>;
 		cirrus,tuning-has-prefix;
@@ -317,7 +317,7 @@
 
 		cirrus,boost-peak-milliamp = <3500>;
 		cirrus,boost-ind-nanohenry = <1000>;
-		cirrus,boost-cap-microfarad = <30>;
+		cirrus,boost-cap-microfarad = <4>;
 
 		cirrus,asp-sdout-hiz = <3>;
 		cirrus,tuning-has-prefix;
@@ -360,11 +360,14 @@
 
 		reset-gpios = <&gpp18 2 0>;
 
+		VA-supply = <&s_bucka_reg>;
+		VP-supply = <&V_SYS_dummy>;
+
 		cirrus,bst-dcm-en = <0>;
-		cirrus,vibe-state;
+		cirrus,pwle-zero-cross-en;
 		cirrus,bst-expl-mode-disable;
 		cirrus,vpbr-enable = <1>;
-		cirrus,vpbr-thld-mv = <2800>;			/* 2.8V */
+		cirrus,vpbr-thld-mv = <3008>;			/* 3.008V */
 		status = "okay";
 
 		cs40l26_codec: cs40l26_codec@snd {
@@ -388,11 +391,14 @@
 
 		reset-gpios = <&gpp24 3 0>;
 
+		VA-supply = <&s_bucka_reg>;
+		VP-supply = <&V_SYS_dummy>;
+
 		cirrus,bst-dcm-en = <0>;
-		cirrus,vibe-state;
+		cirrus,pwle-zero-cross-en;
 		cirrus,bst-expl-mode-disable;
 		cirrus,vpbr-enable = <1>;
-		cirrus,vpbr-thld-mv = <2800>;			/* 2.8V */
+		cirrus,vpbr-thld-mv = <3008>;			/* 3.008V */
 		status = "okay";
 
 		cs40l26_codec_2: cs40l26_codec_2@snd {

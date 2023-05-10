@@ -153,3 +153,8 @@
 &ch12 {
 	rail-name = "LDO27M";
 };
+
+/* Dual display parallel sensing circuit */
+&s_ext4_rail {
+	shunt-res-uohms = <5000>;
+};

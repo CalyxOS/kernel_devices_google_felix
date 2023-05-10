@@ -51,8 +51,8 @@
 };
 
 &s_ldo12_reg {
-	regulator-min-microvolt = <1800000>;
-	regulator-max-microvolt = <1800000>;
+	regulator-min-microvolt = <1875000>;
+	regulator-max-microvolt = <1875000>;
 };
 
 &s_ldo24_reg {
@@ -61,8 +61,8 @@
 };
 
 &s_ldo25_reg {
-	regulator-min-microvolt = <1100000>;
-	regulator-max-microvolt = <1100000>;
+	regulator-min-microvolt = <1125000>;
+	regulator-max-microvolt = <1125000>;
 };
 
 &pinctrl_4 {
@@ -121,6 +121,20 @@
 		samsung,pin-drv = <GS101_PIN_DRV_2_5_MA>;
 	};
 
+	hsi2c8_bus: hsi2c8-bus {
+		samsung,pins = "gpp16-0", "gpp16-1";
+		samsung,pin-con-pdn = <EXYNOS_PIN_PDN_PREV>;
+	};
+
+	/* GPP8[2] Flashlight Enable */
+	flash_en: flash-en {
+		samsung,pins = "gpp8-2";
+		samsung,pin-function = <EXYNOS_PIN_FUNC_INPUT>;
+		samsung,pin-pud = <EXYNOS_PIN_PULL_NONE>;
+		samsung,pin-con-pdn = <EXYNOS_PIN_PDN_PREV>;
+		samsung,pin-pud-pdn = <EXYNOS_PIN_PULL_NONE>;
+	};
+
 	sensor_mclk1_out: sensor-mclk1-out {
 		samsung,pin-drv = <GS101_PIN_DRV_5_MA>;
 	};
@@ -131,7 +145,7 @@
 		samsung,pin-drv = <GS101_PIN_DRV_5_MA>;
 	};
 	sensor_mclk2_fn: sensor-mclk2-fn {
-		samsung,pin-drv = <GS101_PIN_DRV_5_MA>;
+		samsung,pin-drv = <GS101_PIN_DRV_2_5_MA>;
 	};
 	sensor_mclk3_out: sensor-mclk3-out {
 		samsung,pin-drv = <GS101_PIN_DRV_5_MA>;
@@ -217,7 +231,7 @@
 	clock-frequency = <400000>;
 
 	pinctrl-names = "default","on_i2c","off_i2c";
-	pinctrl-0 = <&hsi2c8_bus>;
+	pinctrl-0 = <&hsi2c8_bus &flash_en>;
 	pinctrl-1 = <&hsi2c8_bus>;
 	pinctrl-2 = <&hsi2c8_bus>;
 };
@@ -338,6 +352,8 @@
 					 1000
 					 1000
 					 1000>;
+				transaction-thread-priority = <99>;
+				i2c-lock-group-id = <0>;
 			};
 
 			/* FRONT CAMERA MEDUSA */
@@ -417,6 +433,8 @@
 					 1000
 					 1000
 					 1000>;
+				transaction-thread-priority = <99>;
+				i2c-lock-group-id = <1>;
 			};
 
 			/* REAR ULTRA WIDE CAMERA SANDWORM */
@@ -496,6 +514,8 @@
 					 1000
 					 1000
 					 1000>;
+				transaction-thread-priority = <99>;
+				i2c-lock-group-id = <2>;
 			};
 
 			/* REAR TELE CAMERA DOKKAEBI */
@@ -597,6 +617,8 @@
 					 1000
 					 1000
 					 1000>;
+				transaction-thread-priority = <99>;
+				i2c-lock-group-id = <3>;
 			};
 
 			/* FRONT CAMERA DOKKAEBI */
@@ -676,6 +698,8 @@
 					 1000
 					 1000
 					 1000>;
+				transaction-thread-priority = <99>;
+				i2c-lock-group-id = <4>;
 			};
 
 			/* Eeprom nessie for oksoko */
@@ -725,6 +749,7 @@
 					<1000
 					 1000
 					 1000>;
+				i2c-lock-group-id = <0>;
 			};
 
 			/* Eeprom smaug for medusa */
@@ -760,6 +785,7 @@
 					"regulator";
 				power-down-seq-delays-us =
 					<1000>;
+				i2c-lock-group-id = <1>;
 			};
 
 			/* Eeprom smaug for sandworm */
@@ -795,6 +821,7 @@
 					"regulator";
 				power-down-seq-delays-us =
 					<1000>;
+				i2c-lock-group-id = <2>;
 			};
 
 			/* Eeprom jotnar for dokkaebi tele */
@@ -854,6 +881,7 @@
 					 1000
 					 1000
 					 1000>;
+				i2c-lock-group-id = <3>;
 			};
 
 			/* Eeprom smaug for dokkaebi */
@@ -889,6 +917,7 @@
 					"regulator";
 				power-down-seq-delays-us =
 					<1000>;
+				i2c-lock-group-id = <4>;
 			};
 
 			/* Actuator nessie for oksoko */
@@ -938,6 +967,8 @@
 					<1000
 					 1000
 					 1000>;
+				periodic-io-thread-priority = <99>;
+				i2c-lock-group-id = <0>;
 			};
 
 			/* Actuator jotnar for dokkaebi tele */
@@ -997,6 +1028,8 @@
 					 1000
 					 1000
 					 1000>;
+				periodic-io-thread-priority = <99>;
+				i2c-lock-group-id = <1>;
 			};
 
 			/* Ois nessie for oksoko */
@@ -1046,6 +1079,8 @@
 					<1000
 					 1000
 					 1000>;
+				periodic-io-thread-priority = <99>;
+				i2c-lock-group-id = <0>;
 			};
 
 			/* Ois jotnar for dokkaebi tele */
@@ -1105,6 +1140,8 @@
 					 1000
 					 1000
 					 1000>;
+				periodic-io-thread-priority = <99>;
+				i2c-lock-group-id = <1>;
 			};
 
 			flash0: flash@0 {

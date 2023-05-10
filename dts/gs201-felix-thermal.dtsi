@@ -53,9 +53,19 @@
 		thermal-sensors = <&gs201_tm1 2>;
 		trips {
 			trip_config2: trip-config2 {
-				temperature = <125000>;
+				temperature = <55500>;
 				hysteresis = <1000>;
 				type = "passive";
+			};
+			backup_shutdown_sw: backup-shutdown-sw {
+				temperature = <56500>;
+				hysteresis = <1000>;
+				type = "critical";
+			};
+			backup_shutdown_hw: backup-shutdown-hw {
+				temperature = <58500>;
+				hysteresis = <1000>;
+				type = "hot";
 			};
 		};
 	};
