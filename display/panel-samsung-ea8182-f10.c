@@ -79,10 +79,11 @@ static const u8 vgh_7v4[] = { 0xE3, 0x12, 0x12, 0x12 };
 static const u8 pixel_off[] = { 0x22 };
 static const u8 normal_on[] = { 0x13 };
 
-static const struct exynos_dsi_cmd ea8182_f10_sleep_in_cmds[] = {
+static const struct exynos_dsi_cmd ea8182_f10_off_cmds[] = {
+	EXYNOS_DSI_CMD(display_off, 20),
 	EXYNOS_DSI_CMD(sleep_in, 130),
 };
-static DEFINE_EXYNOS_CMD_SET(ea8182_f10_sleep_in);
+static DEFINE_EXYNOS_CMD_SET(ea8182_f10_off);
 
 static const struct exynos_dsi_cmd ea8182_f10_lp_cmds[] = {
 	EXYNOS_DSI_CMD(display_off, 0),
@@ -320,16 +321,9 @@ static int ea8182_f10_enable(struct drm_panel *panel)
 static int ea8182_f10_disable(struct drm_panel *panel)
 {
 	struct exynos_panel *ctx = container_of(panel, struct exynos_panel, panel);
-	const struct exynos_panel_mode *pmode = ctx->current_mode;
 
 	dev_dbg(ctx->dev, "%s\n", __func__);
 
-	/* exit lp mode via 0x53 cmd to avoid green flicker when adjusting voltage  */
-	if (pmode && pmode->exynos_mode.is_lp_mode)
-		EXYNOS_DCS_WRITE_SEQ(ctx, MIPI_DCS_WRITE_CONTROL_DISPLAY,
-				EA8182_F10_WRCTRLD_BCTRL_BIT);
-
-	EXYNOS_DCS_WRITE_TABLE_DELAY(ctx, 20, display_off);
 	ea8182_f10_set_default_voltage(ctx, false);
 	exynos_panel_disable(panel);
 
@@ -805,7 +799,7 @@ const struct exynos_panel_desc samsung_ea8182_f10 = {
 	.min_luminance = 5,
 	.modes = ea8182_f10_modes,
 	.num_modes = ARRAY_SIZE(ea8182_f10_modes),
-	.off_cmd_set = &ea8182_f10_sleep_in_cmd_set,
+	.off_cmd_set = &ea8182_f10_off_cmd_set,
 	.lp_mode = &ea8182_f10_lp_mode,
 	.lp_cmd_set = &ea8182_f10_lp_cmd_set,
 	.binned_lp = ea8182_f10_binned_lp,
